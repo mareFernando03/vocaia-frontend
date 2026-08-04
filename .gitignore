@@ -16,6 +16,14 @@ dist
 dist-ssr
 *.local
 
+# TypeScript
+*.tsbuildinfo
+
+# TanStack / Vite cache
+.tanstack
+.vinxi
+.output
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
