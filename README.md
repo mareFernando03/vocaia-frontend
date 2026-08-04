@@ -1,29 +1,28 @@
-# Welcome to your Lovable project
+# VocaIA — Frontend
 
-This project was built with [Lovable](https://lovable.dev).
+Frontend oficial de VocaIA, un agente conversacional de orientación vocacional. Proyecto final de Ingeniería en Sistemas de Información de la UTN FRSF.
 
-## Build with Lovable
+## Stack
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Requisitos
 
-## Development
+- Node.js 20 o superior
+- npm
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Instalación y ejecución
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
 
-## Built with
+La aplicación se levanta en `http://localhost:5173` por defecto.
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Backend
+
+El backend es un servicio Python con FastAPI que vive en un repositorio aparte y se conectará a través de `src/api/`.
