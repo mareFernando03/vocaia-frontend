@@ -1,8 +1,13 @@
 name: Asignar reviewer
 
+# pull_request_target y no pull_request: con pull_request el workflow Y el script
+# salen de la rama del PR, asi que su autor podria editarlos para exfiltrar el PAT.
+# pull_request_target los toma de la rama base y nunca ejecuta codigo del PR.
 on:
-  pull_request:
+  pull_request_target:
     types: [ready_for_review, opened, reopened]
+
+permissions: {}
 
 jobs:
   assign:
@@ -10,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
       - run: node .github/scripts/assign-reviewer.mjs
         env:
           # PAT (scope repo) porque GITHUB_TOKEN no ve el repo del back.

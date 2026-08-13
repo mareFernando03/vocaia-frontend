@@ -38,6 +38,8 @@ const count = (q) =>
   api(`/search/issues?per_page=1&q=${encodeURIComponent(q)}`).then(r => r.total_count);
 
 async function main() {
+  if (!TOKEN) throw new Error('Falta GH_TOKEN: crea el secret REVIEW_TOKEN (PAT classic, scope repo) en este repo.');
+
   const event = JSON.parse(await (await import('node:fs/promises')).readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
   const pr = event.pull_request;
   const repo = process.env.GITHUB_REPOSITORY;
