@@ -1,0 +1,17 @@
+name: Asignar reviewer
+
+on:
+  pull_request:
+    types: [ready_for_review, opened, reopened]
+
+jobs:
+  assign:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node .github/scripts/assign-reviewer.mjs
+        env:
+          # PAT (scope repo) porque GITHUB_TOKEN no ve el repo del back.
+          GH_TOKEN: ${{ secrets.REVIEW_TOKEN }}
+          LOAD_REPOS: LucaElbio/vocaia-backend,mareFernando03/vocaia-frontend
