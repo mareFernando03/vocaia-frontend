@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react";
 
 import { AVISO } from "../contenido/aviso-ia";
 
@@ -8,52 +8,107 @@ import { AVISO } from "../contenido/aviso-ia";
  * Dos modos, porque los criterios de aceptación piden dos cosas distintas:
  *
  * - `puerta`: se muestra antes de iniciar la conversación y no se puede
- *   esquivar. No cierra con Escape ni con clic afuera; la única salida es leer
- *   y aceptar. Es un requisito de cumplimiento, no una cortesía.
+ *   esquivar. No cierra con Escape ni con clic afuera, y el foco no sale del
+ *   diálogo. Es un requisito de cumplimiento, no una cortesía.
  * - `consulta`: la relectura durante la sesión, que sí se cierra como cualquier
  *   diálogo. Cubre el criterio de que el aviso sea recuperable en todo momento.
+ *
+ * Las propiedades son una unión discriminada por `modo`: cada modo tiene una
+ * sola salida y depende de su propio callback, así que dejarlos opcionales
+ * permitía construir un diálogo del que no se podía salir.
  */
 
 export type ModoAviso = "puerta" | "consulta";
 
-export interface PropiedadesAvisoIA {
-  modo: ModoAviso;
-  /** Confirma la lectura. Solo se usa en modo `puerta`. */
-  onAceptar?: () => void;
-  /** Cierra la relectura. Solo se usa en modo `consulta`. */
-  onCerrar?: () => void;
-}
+export type PropiedadesAvisoIA =
+  | { modo: "puerta"; onAceptar: () => void; onCerrar?: never }
+  | { modo: "consulta"; onCerrar: () => void; onAceptar?: never };
+
+const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const CLASES_BOTON =
   "rounded-md px-5 py-2.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
 
 export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
   const contenedor = useRef<HTMLDivElement>(null);
+  const focoPrevio = useRef<HTMLElement | null>(null);
   const esPuerta = modo === "puerta";
 
-  // Al abrir, el foco entra al diálogo. Sin esto, quien navega con teclado o
-  // con lector de pantalla sigue parado en la página de atrás y el aviso, que
-  // es lo único que importa en ese momento, le pasa desapercibido.
+  // El foco entra al diálogo al abrirse y vuelve a su origen al cerrarse. Sin
+  // lo primero, quien navega con teclado sigue parado en la página de atrás y
+  // el aviso le pasa desapercibido; sin lo segundo, al cerrar queda tirado en
+  // el `body` y tiene que recorrer la página entera de nuevo.
   useEffect(() => {
+    focoPrevio.current = document.activeElement as HTMLElement | null;
     contenedor.current?.focus();
+    return () => focoPrevio.current?.focus?.();
   }, []);
 
   // Escape cierra la relectura, nunca la puerta.
   useEffect(() => {
     if (esPuerta || !onCerrar) return;
-    const alPresionar = (evento: KeyboardEvent) => {
+    const alPresionar = (evento: globalThis.KeyboardEvent) => {
       if (evento.key === "Escape") onCerrar();
     };
     document.addEventListener("keydown", alPresionar);
     return () => document.removeEventListener("keydown", alPresionar);
   }, [esPuerta, onCerrar]);
 
+  /**
+   * Tab circula dentro del diálogo y no se va afuera.
+   *
+   * El fondo va marcado `inert` desde `App`, pero eso solo lo saca del orden de
+   * tabulación de la página: sin este ciclo el foco se escapa igual a la barra
+   * del navegador y vuelve por detrás del diálogo.
+   */
+  const alTabular = (evento: KeyboardEvent<HTMLDivElement>) => {
+    if (evento.key !== "Tab" || !contenedor.current) return;
+
+    const focalizables = Array.from(contenedor.current.querySelectorAll<HTMLElement>(FOCALIZABLES));
+    if (focalizables.length === 0) return;
+
+    const primero = focalizables[0];
+    const ultimo = focalizables[focalizables.length - 1];
+    const activo = document.activeElement;
+
+    if (evento.shiftKey && (activo === primero || activo === contenedor.current)) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && activo === ultimo) {
+      evento.preventDefault();
+      primero.focus();
+    }
+  };
+
+  /**
+   * Cierra la relectura solo si la pulsación empezó *y* terminó en el fondo.
+   *
+   * Mirar solo el `click` no alcanza, y frenar la propagación adentro tampoco:
+   * si el mousedown cae en el panel y el mouseup en el fondo —seleccionar una
+   * frase para copiarla, o arrastrar de más al scrollear—, el navegador dispara
+   * el `click` sobre el ancestro común, que es el fondo. Con cualquiera de esas
+   * dos defensas el diálogo se cierra en mitad de la lectura, así que hay que
+   * recordar dónde empezó.
+   */
+  const empezoEnElFondo = useRef(false);
+
+  const alPresionarElFondo = (evento: MouseEvent<HTMLDivElement>) => {
+    empezoEnElFondo.current = evento.target === evento.currentTarget;
+  };
+
+  const alClickearElFondo = (evento: MouseEvent<HTMLDivElement>) => {
+    const termino = evento.target === evento.currentTarget;
+    const empezo = empezoEnElFondo.current;
+    empezoEnElFondo.current = false;
+    if (esPuerta || !empezo || !termino) return;
+    onCerrar?.();
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
-      // El fondo cierra la relectura; en la puerta no hace nada, que es la
-      // diferencia entre un diálogo y un requisito.
-      onClick={esPuerta ? undefined : onCerrar}
+      onMouseDown={alPresionarElFondo}
+      onClick={alClickearElFondo}
     >
       <div
         ref={contenedor}
@@ -61,8 +116,8 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
         aria-modal="true"
         aria-labelledby="aviso-ia-titulo"
         tabIndex={-1}
+        onKeyDown={alTabular}
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl outline-none"
-        onClick={(evento) => evento.stopPropagation()}
       >
         <h2 id="aviso-ia-titulo" className="text-xl font-semibold text-slate-900">
           {AVISO.titulo}

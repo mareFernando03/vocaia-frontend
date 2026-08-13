@@ -109,4 +109,68 @@ describe("HU-02 · divulgación de que se conversa con una IA", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("tampoco se puede esquivar con Tab", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    const dialogo = screen.getByRole("dialog");
+
+    // Muchas más tabulaciones que elementos focalizables: si el foco puede
+    // salir, en alguna vuelta sale. Es el agujero que deja una puerta que solo
+    // frena el mouse y Escape.
+    for (let vuelta = 0; vuelta < 8; vuelta += 1) {
+      await usuario.tab();
+      expect(dialogo.contains(document.activeElement)).toBe(true);
+    }
+  });
+
+  it("con la puerta abierta, el fondo queda fuera del alcance del teclado", () => {
+    const { container } = render(<App />);
+
+    expect(container.querySelector("[inert]")).not.toBeNull();
+    // El disparador de relectura ni siquiera se dibuja mientras no acepte: si
+    // lo hiciera, se lo podría accionar y la relectura saltaría sola al pasar.
+    expect(screen.queryByRole("button", { name: AVISO.reabrir })).not.toBeInTheDocument();
+  });
+
+  it("seleccionar texto arrastrando hasta afuera no cierra la relectura", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+    await usuario.click(screen.getByRole("button", { name: AVISO.reabrir }));
+
+    const dialogo = screen.getByRole("dialog");
+    const fondo = dialogo.parentElement as HTMLElement;
+    // Apretar adentro y soltar afuera dispara el click sobre el ancestro común.
+    await usuario.pointer([
+      { target: dialogo, keys: "[MouseLeft>]" },
+      { target: fondo, keys: "[/MouseLeft]" },
+    ]);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("un clic limpio en el fondo sí cierra la relectura", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+    await usuario.click(screen.getByRole("button", { name: AVISO.reabrir }));
+    const fondo = screen.getByRole("dialog").parentElement as HTMLElement;
+
+    await usuario.click(fondo);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("al cerrar la relectura, el foco vuelve al botón que la abrió", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+    const disparador = screen.getByRole("button", { name: AVISO.reabrir });
+    await usuario.click(disparador);
+
+    await usuario.keyboard("{Escape}");
+
+    expect(disparador).toHaveFocus();
+  });
 });
