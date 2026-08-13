@@ -16,8 +16,9 @@ export default function App() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
           <p className="text-sm text-slate-700">
-            Estás hablando con una <strong className="font-semibold">inteligencia artificial</strong>
-            . No reemplaza a un orientador vocacional.
+            Estás hablando con una{" "}
+            <strong className="font-semibold">inteligencia artificial</strong>. No reemplaza a un
+            orientador vocacional.
           </p>
           <button
             type="button"
