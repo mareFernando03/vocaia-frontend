@@ -4,12 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "dev": "vite",
+    "format": "prettier --write .",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "preview": "vite preview",
+    "verificar-contraste": "node scripts/verificar-contraste.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -22,6 +23,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",

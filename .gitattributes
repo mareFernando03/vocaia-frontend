@@ -1,0 +1,17 @@
+# Los archivos de texto se registran y se entregan siempre con finales de línea
+# LF, en los tres sistemas operativos.
+#
+# Sin esto, con `core.autocrlf=true` —el valor por defecto en Windows— Git
+# entrega el árbol de trabajo con CRLF, y Prettier, que espera LF, marca cada
+# línea de cada archivo como error. El equipo desarrolla en Windows: sin esta
+# regla, `npm run lint` es inusable ahí y termina ignorándose.
+* text=auto eol=lf
+
+# Binarios: que Git no intente convertir nada.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
