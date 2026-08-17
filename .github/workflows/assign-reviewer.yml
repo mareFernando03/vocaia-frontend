@@ -7,7 +7,17 @@ on:
   pull_request_target:
     types: [ready_for_review, opened, reopened]
 
-permissions: {}
+# `contents: read` y no `{}`: con permisos vacios el GITHUB_TOKEN no puede leer
+# el repo y `actions/checkout` no puede clonar. Aca no se notaba porque este
+# repo es publico y se clona sin autenticacion; en el backend, que es privado,
+# el mismo archivo fallaba en todos los PRs con «Repository not found» —GitHub
+# devuelve 404 y no 403 para no admitir que el repo existe—. Si este repo pasa a
+# privado alguna vez, romperia igual.
+#
+# Leer es todo lo que hace falta: el script se autentica con el PAT
+# (`secrets.REVIEW_TOKEN`), no con el GITHUB_TOKEN.
+permissions:
+  contents: read
 
 jobs:
   assign:
