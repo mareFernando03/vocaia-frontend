@@ -1,12 +1,59 @@
+import { useState } from "react";
+
+import { AvisoIA } from "./componentes/AvisoIA";
+import { AVISO } from "./contenido/aviso-ia";
+import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
+
 export default function App() {
+  const { aceptado, aceptar } = useAvisoAceptado();
+  const [releyendo, setReleyendo] = useState(false);
+  const hayDialogoAbierto = !aceptado || releyendo;
+
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="max-w-md text-center">
-        <h1 className="text-2xl font-semibold">VocaIA — frontend</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Proyecto inicializado. Todavía no tiene interfaz.
-        </p>
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      {/* `inert` saca todo el fondo del orden de tabulación y del árbol de
+          accesibilidad mientras hay un diálogo abierto. Sin esto la puerta solo
+          detiene al mouse y a Escape: con Tab se llega igual al contenido de
+          atrás y, en cuanto la conversación exista, se podría escribir en ella
+          sin haber visto la divulgación. Sería un control cosmético justo para
+          los usuarios que tiene que proteger. */}
+      <div inert={hayDialogoAbierto} className="flex flex-1 flex-col">
+        {/* La divulgación es persistente, no solo inicial: la franja queda a la
+            vista durante toda la sesión y el botón permite releer el aviso
+            completo en cualquier momento (HU-02). */}
+        <header className="border-b border-slate-200 bg-white">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
+            <p className="text-sm text-slate-700">
+              Estás hablando con una{" "}
+              <strong className="font-semibold">inteligencia artificial</strong>. No reemplaza a un
+              orientador vocacional.
+            </p>
+            {/* Solo después de aceptar: si se dibuja antes, se lo puede
+                accionar por teclado con la puerta abierta y la relectura salta
+                sola apenas se acepta. */}
+            {aceptado && (
+              <button
+                type="button"
+                onClick={() => setReleyendo(true)}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              >
+                {AVISO.reabrir}
+              </button>
+            )}
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-3xl flex-1 p-6">
+          {/* Acá va la conversación (HU-06). Todavía no existe: el espacio
+              queda reservado para no acoplar el aviso a una interfaz que está
+              construyendo otra persona. */}
+          <p className="text-sm text-slate-500">La conversación todavía no está implementada.</p>
+        </main>
       </div>
-    </main>
+
+      {/* Antes de la conversación, la puerta. Después, solo si la pide. */}
+      {!aceptado && <AvisoIA modo="puerta" onAceptar={aceptar} />}
+      {aceptado && releyendo && <AvisoIA modo="consulta" onCerrar={() => setReleyendo(false)} />}
+    </div>
   );
 }
