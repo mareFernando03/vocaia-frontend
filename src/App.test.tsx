@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import indexHtml from "../index.html?raw";
 import App from "./App";
 import { AVISO } from "./contenido/aviso-ia";
 
@@ -172,5 +173,75 @@ describe("HU-02 · divulgación de que se conversa con una IA", () => {
     await usuario.keyboard("{Escape}");
 
     expect(disparador).toHaveFocus();
+  });
+});
+
+/**
+ * HU-08 · acceso desde cualquier dispositivo (RNF-08, RNF-01).
+ *
+ * Lo que jsdom **no** puede probar: no calcula diseño ni aplica las clases de
+ * Tailwind, así que no sabe cuánto mide nada ni en qué punto de quiebre está.
+ * El criterio «accesible desde navegador de escritorio y móvil» se verifica a
+ * mano en un navegador real; acá quedan las partes que sí son estructurales y
+ * que son las que se rompen sin que nadie se entere.
+ *
+ * El tercer criterio de aceptación —contraste mínimo— lo cubre el verificador
+ * ejecutable de VOCAIA-59, no este archivo.
+ */
+describe("HU-08 · acceso desde cualquier dispositivo", () => {
+  it("declara el viewport, sin lo cual el móvil dibuja a 980 px y se ve todo diminuto", () => {
+    // Vive en index.html, fuera del árbol de React, y por eso es justo lo que
+    // alguien borra sin notar el efecto: la página sigue funcionando en el
+    // escritorio y se vuelve ilegible en el celular.
+    // Se lee con el `?raw` de Vite y no con `node:fs`: bajo jsdom
+    // `import.meta.url` no es un `file://`, y traer `@types/node` para que
+    // `tsc` acepte el import sería sumar una dependencia por una sola línea.
+    expect(indexHtml).toMatch(/<meta\s+name="viewport"[^>]*width=device-width/);
+  });
+
+  it("la primera parada del tabulador es el salto al contenido", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+
+    await usuario.tab();
+
+    const salto = screen.getByRole("link", { name: /saltar al contenido/i });
+    expect(salto).toHaveFocus();
+    expect(salto).toHaveAttribute("href", "#contenido");
+  });
+
+  it("el salto tiene destino y el destino puede recibir el foco", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+
+    const contenido = screen.getByRole("main");
+    // Sin `tabIndex`, algunos navegadores hacen scroll pero dejan el foco
+    // arriba, y el Tab siguiente vuelve al principio: el salto no sirve.
+    expect(contenido).toHaveAttribute("id", "contenido");
+    expect(contenido).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("con la puerta abierta el salto tampoco es alcanzable", () => {
+    const { container } = render(<App />);
+
+    // Si quedara fuera del contenedor `inert` sería un atajo para empezar a
+    // usar el sistema sin haber visto la divulgación.
+    const salto = screen.getByRole("link", { name: /saltar al contenido/i });
+    expect(container.querySelector("[inert]")?.contains(salto)).toBe(true);
+  });
+
+  it("los controles llegan al área táctil mínima", async () => {
+    const usuario = userEvent.setup();
+    render(<App />);
+
+    // jsdom no mide, así que se verifica la clase que fija el mínimo de 44 px
+    // (`min-h-11`, WCAG 2.5.8). Es una prueba de intención: caza a quien la
+    // borre, no a quien la rompa por otro lado.
+    expect(screen.getByRole("button", { name: AVISO.aceptar })).toHaveClass("min-h-11");
+
+    await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));
+    expect(screen.getByRole("button", { name: AVISO.reabrir })).toHaveClass("min-h-11");
   });
 });
