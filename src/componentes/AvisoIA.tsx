@@ -27,7 +27,7 @@ export type PropiedadesAvisoIA =
 const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const CLASES_BOTON =
-  "rounded-md px-5 py-2.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
+  "inline-flex min-h-11 items-center justify-center rounded-md px-5 py-2.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
 
 export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
   const contenedor = useRef<HTMLDivElement>(null);
@@ -117,7 +117,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
         aria-labelledby="aviso-ia-titulo"
         tabIndex={-1}
         onKeyDown={alTabular}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl outline-none"
       >
         <h2 id="aviso-ia-titulo" className="text-xl font-semibold text-slate-900">
           {AVISO.titulo}
