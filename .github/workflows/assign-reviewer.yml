@@ -24,9 +24,15 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
+      # `base.ref` y no `base.sha`: base.sha es el merge-base —el commit del que
+      # salio la rama—, no la punta de la base. Una rama que salio de un main
+      # viejo hace checkout de un arbol sin este script y el job muere con
+      # MODULE_NOT_FOUND. Paso en el PR de VOCAIA-49, y como el workflow solo
+      # dispara en opened/reopened, nunca reintenta solo.
+      # Sigue siendo seguro: es la rama base, nunca codigo del PR.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.ref }}
           persist-credentials: false
       - run: node .github/scripts/assign-reviewer.mjs
         env:

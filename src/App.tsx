@@ -10,7 +10,7 @@ export default function App() {
   const hayDialogoAbierto = !aceptado || releyendo;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-dvh flex-col">
       {/* `inert` saca todo el fondo del orden de tabulación y del árbol de
           accesibilidad mientras hay un diálogo abierto. Sin esto la puerta solo
           detiene al mouse y a Escape: con Tab se llega igual al contenido de
@@ -18,6 +18,19 @@ export default function App() {
           sin haber visto la divulgación. Sería un control cosmético justo para
           los usuarios que tiene que proteger. */}
       <div inert={hayDialogoAbierto} className="flex flex-1 flex-col">
+        {/* Enlace de salto (HU-08): primera parada del tabulador, invisible
+            hasta que recibe el foco. Sin esto, quien navega con teclado tiene
+            que recorrer la franja de divulgación y el botón de relectura en
+            cada carga antes de llegar a la conversación. Va adentro del
+            contenedor `inert` a propósito: con la puerta abierta no debe ser
+            alcanzable, o sería una forma de saltearse el aviso. */}
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:bg-primary focus:text-primary-foreground focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-md focus:px-4 focus:font-medium"
+        >
+          Saltar al contenido
+        </a>
+
         {/* La divulgación es persistente, no solo inicial: la franja queda a la
             vista durante toda la sesión y el botón permite releer el aviso
             completo en cualquier momento (HU-02). */}
@@ -35,7 +48,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setReleyendo(true)}
-                className="border-input hover:bg-primary-soft rounded-md border px-3 py-1.5 text-sm font-medium"
+                className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium"
               >
                 {AVISO.reabrir}
               </button>
@@ -43,7 +56,16 @@ export default function App() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl flex-1 p-6">
+        {/* `tabIndex={-1}` para que el enlace de salto pueda dejarle el foco:
+            sin eso algunos navegadores hacen scroll pero el foco se queda
+            arriba, y el siguiente Tab vuelve al principio. El relleno arranca
+            en 4 y sube a 6 recién en pantallas anchas: a 360 px, 24 px por
+            lado se comen el ancho de la conversación. */}
+        <main
+          id="contenido"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-3xl flex-1 p-4 outline-none sm:p-6"
+        >
           {/* Acá va la conversación (HU-06). Todavía no existe: el espacio
               queda reservado para no acoplar el aviso a una interfaz que está
               construyendo otra persona. */}
