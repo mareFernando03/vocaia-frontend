@@ -31,6 +31,8 @@ const PARES = [
   ["Texto sobre éxito", "success-foreground", "success", 4.5],
   ["Texto sobre advertencia", "warning-foreground", "warning", 4.5],
   ["Enlaces sobre el fondo", "primary", "background", 4.5],
+  // Fondo de la sección de ayuda del aviso y del hover de los botones neutros.
+  ["Texto normal sobre el azul claro", "foreground", "primary-soft", 4.5],
   // 1.4.11: el borde de un campo es información necesaria para identificarlo.
   ["Borde de campos sobre el fondo", "input", "background", 3.0],
   // El anillo de foco tiene que verse, o la navegación por teclado se pierde.

@@ -26,8 +26,7 @@ export type PropiedadesAvisoIA =
 
 const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-const CLASES_BOTON =
-  "rounded-md px-5 py-2.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
+const CLASES_BOTON = "rounded-md px-5 py-2.5 font-medium";
 
 export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
   const contenedor = useRef<HTMLDivElement>(null);
@@ -106,7 +105,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
+      className="bg-foreground/70 fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={alPresionarElFondo}
       onClick={alClickearElFondo}
     >
@@ -117,13 +116,13 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
         aria-labelledby="aviso-ia-titulo"
         tabIndex={-1}
         onKeyDown={alTabular}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl outline-none"
+        className="bg-surface max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg p-6 shadow-xl outline-none"
       >
-        <h2 id="aviso-ia-titulo" className="text-xl font-semibold text-slate-900">
+        <h2 id="aviso-ia-titulo" className="text-xl font-semibold">
           {AVISO.titulo}
         </h2>
 
-        <div className="mt-4 space-y-3 text-base leading-relaxed text-slate-800">
+        <div className="mt-4 space-y-3 text-base leading-relaxed">
           {AVISO.parrafos.map((parrafo) => (
             <p key={parrafo}>{parrafo}</p>
           ))}
@@ -133,9 +132,9 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
             en `contenido/aviso-ia.ts`: una sección de ayuda vacía es peor que
             ninguna. */}
         {AVISO.canales.length > 0 && (
-          <section className="mt-5 rounded-md bg-slate-100 p-4">
-            <h3 className="text-sm font-semibold text-slate-700">{AVISO.tituloAyuda}</h3>
-            <ul className="mt-2 space-y-2 text-sm text-slate-800">
+          <section className="bg-primary-soft mt-5 rounded-md p-4">
+            <h3 className="text-sm font-semibold">{AVISO.tituloAyuda}</h3>
+            <ul className="mt-2 space-y-2 text-sm">
               {AVISO.canales.map((canal) => (
                 <li key={canal.nombre}>
                   <span className="font-medium">{canal.nombre}</span>{" "}
@@ -157,7 +156,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
             <button
               type="button"
               onClick={onAceptar}
-              className={`${CLASES_BOTON} bg-slate-900 text-white hover:bg-slate-700`}
+              className={`${CLASES_BOTON} bg-primary text-primary-foreground hover:bg-primary-light`}
             >
               {AVISO.aceptar}
             </button>
@@ -165,7 +164,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
             <button
               type="button"
               onClick={onCerrar}
-              className={`${CLASES_BOTON} border border-slate-300 text-slate-900 hover:bg-slate-100`}
+              className={`${CLASES_BOTON} border-input hover:bg-primary-soft border`}
             >
               Cerrar
             </button>
