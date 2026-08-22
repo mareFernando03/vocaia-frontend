@@ -6,3 +6,13 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+
+# Scripts de CI: son herramientas de operaciones, no código de la aplicación,
+# y siguen las convenciones de quien los mantiene. Reformatearlos desde acá
+# solo genera conflictos en las ramas de otros.
+.github
+
+# Lo escribe Lovable y se regenera en cada sincronización. Reformatearlo acá
+# no lo arregla: vuelve con el formato de Lovable y rompe la verificación en
+# main. Se ignora en vez de pelearlo.
+AGENTS.md
