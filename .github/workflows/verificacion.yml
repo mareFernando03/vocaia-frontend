@@ -1,0 +1,49 @@
+# Compuertas de calidad del frontend. Corre en cada push a main y en cada
+# pull request.
+#
+# Espeja el pipeline de `vocaia-backend`: primero lo que tarda segundos y falla
+# seguido, después lo que tarda. Un error de formato se reporta en menos de un
+# minuto en vez de esperar a que termine el build.
+name: Verificación
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificacion:
+    name: Formato, linter, pruebas y build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # Cachea ~/.npm usando package-lock.json como clave.
+          cache: npm
+
+      - name: Instalar dependencias
+        # `npm ci` instala exactamente lo que dice el lock y falla si está
+        # desincronizado de package.json, en lugar de actualizarlo en silencio.
+        run: npm ci
+
+      - name: Formato
+        # Se invoca por npx en vez de por script porque el `format` del
+        # package.json es `--write`: en CI hay que verificar, no reescribir.
+        run: npx prettier --check .
+
+      - name: Linter
+        run: npm run lint
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Build
+        # Va último porque es el paso más lento. Verifica los tipos de paso:
+        # el script es `tsc && vite build`, así que un error de tipos frena
+        # acá sin necesidad de un `tsc --noEmit` aparte que compilaría dos
+        # veces lo mismo.
+        run: npm run build

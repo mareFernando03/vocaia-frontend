@@ -1,0 +1,5 @@
+# Normaliza los finales de línea a LF en el repositorio. Sin esto, quien clona
+# en Windows recibe los archivos con CRLF por `core.autocrlf=true` —el valor por
+# defecto— y `prettier --check` falla en masa por fin de línea, tanto en local
+# como en la CI, sin que haya nada mal en el código.
+* text=auto eol=lf
