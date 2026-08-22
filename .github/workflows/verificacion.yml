@@ -38,6 +38,13 @@ jobs:
       - name: Linter
         run: npm run lint
 
+      # El CLAUDE.md dice que la accesibilidad se verifica y no se declara, y
+      # el verificador llego con VOCAIA-59 sin que nada lo ejecutara. Un check
+      # que nadie corre es documentacion, no una compuerta. Va antes de las
+      # pruebas porque tarda menos de un segundo.
+      - name: Contraste
+        run: npm run verificar-contraste
+
       - name: Pruebas
         run: npm test
 
