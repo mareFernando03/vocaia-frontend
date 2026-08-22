@@ -1,14 +1,108 @@
 @import "tailwindcss" source(none);
 @source "../src";
 
+/*
+ * Sistema de diseño de VocaIA.
+ *
+ * Todos los colores viven acá como tokens semánticos. En los componentes se
+ * usa el nombre de lo que la cosa ES (`text-muted-foreground`), no el color
+ * que tiene (`text-gray-500`): así un cambio de paleta es un cambio en este
+ * archivo y no una búsqueda por todo el proyecto.
+ *
+ * **Nunca escribir un color literal en un componente.**
+ *
+ * Los valores están en OKLCH y no en hexadecimal porque su primer número es
+ * la luminosidad percibida: se puede oscurecer un color para que cumpla
+ * contraste sin que cambie de tono, que es exactamente lo que hubo que hacer
+ * con `--success` y con `--input`.
+ *
+ * La paleta viene del prototipo previo. Las dos correcciones de contraste
+ * están anotadas donde corresponde. Fundamento completo y wireframes en
+ * `5to/proyecto-final/ejecucion/sistema-de-diseno.md`.
+ *
+ * Verificación: `npm run verificar-contraste`.
+ */
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* --- Superficies --- */
+  --color-background: oklch(0.985 0.001 106.4); /* off-white cálido */
+  --color-surface: oklch(1 0 0);
+  --color-border: oklch(0.928 0.006 264.5); /* separadores decorativos */
+
+  /* Borde de campos y controles. Más oscuro que `--border` a propósito: es
+   * información necesaria para identificar un control, así que WCAG 1.4.11 le
+   * exige 3:1 contra el fondo. Con el valor del prototipo (0.928) daba 1.18 y
+   * los campos eran prácticamente invisibles para alguien con visión baja. */
+  --color-input: oklch(0.645 0.006 264.5);
+
+  /* --- Texto --- */
+  --color-foreground: oklch(0.278 0.03 256.8);
+  --color-muted-foreground: oklch(0.551 0.023 264.4); /* 4.63:1, justo */
+
+  /* --- Marca --- */
+  --color-primary: oklch(0.379 0.138 265.5); /* azul académico */
+  --color-primary-foreground: oklch(1 0 0);
+  --color-primary-light: oklch(0.507 0.168 267.3);
+  --color-primary-soft: oklch(0.97 0.014 254.6);
+
+  --color-accent: oklch(0.769 0.165 70.1); /* ámbar */
+  --color-accent-foreground: oklch(0.278 0.03 256.8);
+  --color-accent-soft: oklch(0.962 0.058 95.6);
+  --color-accent-strong: oklch(0.555 0.146 49);
+
+  /* --- Estado --- */
+  --color-destructive: oklch(0.577 0.215 27.3);
+  --color-destructive-foreground: oklch(1 0 0);
+
+  /* Oscurecido desde 0.596 del prototipo: ahí el texto blanco encima daba
+   * 3.77:1 y no llegaba al mínimo de 4.5:1. */
+  --color-success: oklch(0.545 0.127 163.2);
+  --color-success-foreground: oklch(1 0 0);
+
+  --color-warning: oklch(0.555 0.146 49);
+  --color-warning-foreground: oklch(1 0 0);
+
+  --color-ring: oklch(0.507 0.168 267.3); /* foco */
+}
+
 @layer base {
   body {
-    font-family:
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  /*
+   * Foco visible en todo lo que se pueda enfocar.
+   *
+   * HU-08 exige que la interfaz sea usable con teclado, y quien navega así
+   * necesita ver dónde está parado. El anillo va separado del elemento para
+   * que se distinga incluso sobre un botón del mismo color.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Respeta a quien pidió menos movimiento en su sistema operativo. No es
+   * cosmético: para algunas personas la animación provoca mareo o migraña.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

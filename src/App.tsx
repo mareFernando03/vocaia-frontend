@@ -10,7 +10,7 @@ export default function App() {
   const hayDialogoAbierto = !aceptado || releyendo;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-900">
+    <div className="flex min-h-dvh flex-col">
       {/* `inert` saca todo el fondo del orden de tabulación y del árbol de
           accesibilidad mientras hay un diálogo abierto. Sin esto la puerta solo
           detiene al mouse y a Escape: con Tab se llega igual al contenido de
@@ -26,7 +26,7 @@ export default function App() {
             alcanzable, o sería una forma de saltearse el aviso. */}
         <a
           href="#contenido"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-md focus:bg-slate-900 focus:px-4 focus:font-medium focus:text-white focus:outline-2 focus:outline-offset-2 focus:outline-slate-900"
+          className="sr-only focus:not-sr-only focus:bg-primary focus:text-primary-foreground focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-md focus:px-4 focus:font-medium"
         >
           Saltar al contenido
         </a>
@@ -34,9 +34,9 @@ export default function App() {
         {/* La divulgación es persistente, no solo inicial: la franja queda a la
             vista durante toda la sesión y el botón permite releer el aviso
             completo en cualquier momento (HU-02). */}
-        <header className="border-b border-slate-200 bg-white">
+        <header className="border-border bg-surface border-b">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm">
               Estás hablando con una{" "}
               <strong className="font-semibold">inteligencia artificial</strong>. No reemplaza a un
               orientador vocacional.
@@ -48,7 +48,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setReleyendo(true)}
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium"
               >
                 {AVISO.reabrir}
               </button>
@@ -69,7 +69,9 @@ export default function App() {
           {/* Acá va la conversación (HU-06). Todavía no existe: el espacio
               queda reservado para no acoplar el aviso a una interfaz que está
               construyendo otra persona. */}
-          <p className="text-sm text-slate-500">La conversación todavía no está implementada.</p>
+          <p className="text-muted-foreground text-sm">
+            La conversación todavía no está implementada.
+          </p>
         </main>
       </div>
 

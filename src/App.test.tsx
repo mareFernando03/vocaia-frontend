@@ -236,9 +236,16 @@ describe("HU-08 · acceso desde cualquier dispositivo", () => {
     const usuario = userEvent.setup();
     render(<App />);
 
-    // jsdom no mide, así que se verifica la clase que fija el mínimo de 44 px
-    // (`min-h-11`, WCAG 2.5.8). Es una prueba de intención: caza a quien la
-    // borre, no a quien la rompa por otro lado.
+    // 44 px es **WCAG 2.5.5** Target Size (Enhanced), nivel AAA. El mínimo
+    // exigible es 2.5.8 Target Size (Minimum), AA, que pide 24×24: acá se
+    // cumple de más, a propósito, porque el público usa el sistema desde el
+    // teléfono.
+    //
+    // jsdom no mide, así que se verifica la clase que fija el alto. Es una
+    // prueba de intención: caza a quien borre `min-h-11`, no a quien rompa el
+    // área táctil por otro lado. En particular **no cubre el ancho**, que hoy
+    // lo dan el relleno horizontal y el texto de cada botón; un botón de solo
+    // ícono pasaría esta prueba y aun así sería un blanco de 44×24.
     expect(screen.getByRole("button", { name: AVISO.aceptar })).toHaveClass("min-h-11");
 
     await usuario.click(screen.getByRole("button", { name: AVISO.aceptar }));

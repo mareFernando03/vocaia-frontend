@@ -4,15 +4,16 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
-    "lint": "eslint .",
+    "dev": "vite",
     "format": "prettier --write .",
+    "lint": "eslint .",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cobertura": "vitest run --coverage"
+    "test:cobertura": "vitest run --coverage",
+    "verificar-contraste": "node scripts/verificar-contraste.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
