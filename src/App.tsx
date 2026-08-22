@@ -1,11 +1,14 @@
 import { useState } from "react";
 
+import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
 import { AVISO } from "./contenido/aviso-ia";
 import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
+import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
   const { aceptado, aceptar } = useAvisoAceptado();
+  const { sesion, ingresar, salir } = useSesion();
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 
@@ -33,7 +36,11 @@ export default function App() {
 
         {/* La divulgación es persistente, no solo inicial: la franja queda a la
             vista durante toda la sesión y el botón permite releer el aviso
-            completo en cualquier momento (HU-02). */}
+            completo en cualquier momento (HU-02).
+
+            La franja va afuera del ingreso a propósito: la puerta de HU-02 se
+            atraviesa antes de identificarse, así que quien todavía no entró
+            también lee de qué se trata el sistema. */}
         <header className="border-border bg-surface border-b">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
             <p className="text-sm">
@@ -66,18 +73,69 @@ export default function App() {
           tabIndex={-1}
           className="mx-auto w-full max-w-3xl flex-1 p-4 outline-none sm:p-6"
         >
-          {/* Acá va la conversación (HU-06). Todavía no existe: el espacio
-              queda reservado para no acoplar el aviso a una interfaz que está
-              construyendo otra persona. */}
-          <p className="text-muted-foreground text-sm">
-            La conversación todavía no está implementada.
-          </p>
+          <Contenido sesion={sesion} alIngresar={ingresar} alSalir={salir} />
         </main>
       </div>
 
       {/* Antes de la conversación, la puerta. Después, solo si la pide. */}
       {!aceptado && <AvisoIA modo="puerta" onAceptar={aceptar} />}
       {aceptado && releyendo && <AvisoIA modo="consulta" onCerrar={() => setReleyendo(false)} />}
+    </div>
+  );
+}
+
+interface PropiedadesContenido {
+  sesion: ReturnType<typeof useSesion>["sesion"];
+  alIngresar: (token: string) => void;
+  alSalir: () => Promise<void>;
+}
+
+/**
+ * Qué se ve según el estado de la sesión (HU-01).
+ *
+ * Vive dentro del armazón de arriba y no lo reemplaza: la franja de
+ * divulgación tiene que quedar a la vista en los tres estados.
+ */
+function Contenido({ sesion, alIngresar, alSalir }: PropiedadesContenido) {
+  if (sesion.estado === "verificando") {
+    return <p className="text-muted-foreground text-sm">Verificando la sesión…</p>;
+  }
+
+  if (sesion.estado === "anonimo") {
+    return <Ingresar alIngresar={alIngresar} />;
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-md text-center">
+      <h1 className="text-2xl font-semibold">Ya estás dentro</h1>
+      <p className="text-muted-foreground mt-2 text-sm">
+        Todavía no hay conversación: eso llega con HU-06. Esta pantalla existe para comprobar que el
+        ingreso funciona de punta a punta.
+      </p>
+
+      {/*
+        Se muestra el identificador opaco a propósito, y no un nombre: es
+        literalmente todo lo que el backend sabe decir sobre quién sos.
+      */}
+      <dl className="bg-surface mt-6 rounded-lg p-4 text-left text-sm">
+        <dt className="font-medium">Identificador opaco</dt>
+        <dd className="text-muted-foreground mt-1 font-mono text-xs break-all">
+          {sesion.usuario.identificador_opaco}
+        </dd>
+        <dt className="mt-3 font-medium">Proveedor</dt>
+        <dd className="text-muted-foreground mt-1">{sesion.usuario.proveedor}</dd>
+      </dl>
+
+      {/* Sin clases de foco propias: el anillo lo pone la regla global de
+          `:focus-visible` del sistema de diseño. `min-h-11` por el área táctil
+          mínima de HU-08, igual que el resto de los controles. */}
+      <button
+        type="button"
+        onClick={() => void alSalir()}
+        className="border-input hover:bg-primary-soft mt-6 inline-flex min-h-11 items-center justify-center rounded-full border px-5 py-2 text-sm"
+      >
+        Cerrar sesión
+      </button>
     </div>
   );
 }
