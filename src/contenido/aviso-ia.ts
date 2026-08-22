@@ -18,6 +18,15 @@ export interface CanalDeAyuda {
 }
 
 export interface AvisoIA {
+  /**
+   * Versión de este texto. Es lo que se registra como consentido (HU-03a).
+   *
+   * Se versiona porque el registro tiene que decir **qué** aceptó cada
+   * persona, no sólo que aceptó algo: un `true` suelto no prueba nada si el
+   * aviso cambió después. Al subirla, quien ya había aceptado vuelve a ver
+   * la puerta, que es justamente el punto.
+   */
+  version: string;
   titulo: string;
   parrafos: readonly string[];
   tituloAyuda: string;
@@ -35,6 +44,8 @@ export interface AvisoIA {
  * primera pantalla.
  */
 export const AVISO: AvisoIA = {
+  version: "aviso-v1",
+
   titulo: "Antes de empezar, algo importante",
 
   parrafos: [

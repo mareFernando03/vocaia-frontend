@@ -1,22 +1,27 @@
 import { useCallback, useState } from "react";
 
+import { AVISO } from "../contenido/aviso-ia";
+
 /**
- * Aceptación del aviso de divulgación, con alcance de sesión (HU-02).
+ * Aceptación del aviso de divulgación, con alcance de sesión (HU-02, HU-03a).
  *
  * Se guarda en `sessionStorage` y no en `localStorage` a propósito: el criterio
  * de aceptación habla de la sesión, y una pestaña nueva es una sesión nueva.
  * Sobrevive a recargar la página —volver a exigir la lectura tras un F5 sería
  * ruido, no cumplimiento— pero no convierte la aceptación en permanente.
  *
- * Esto registra la aceptación del lado del cliente, que es lo que gobierna la
- * interfaz. El registro en la bitácora de la sesión del backend es un evento
- * aparte y todavía no existe: ver la nota del PR.
+ * **Aceptar el aviso es también dar el consentimiento informado.** Son un solo
+ * acto y no dos pantallas: la puerta ya bloquea la aplicación antes del
+ * ingreso, así que nadie llega a identificarse sin haber leído qué es el
+ * sistema y qué hace con lo que le cuenta. Por eso lo que se guarda acá es la
+ * **versión** aceptada, que es lo que el backend registra al crear la
+ * identidad.
  */
 
 const CLAVE = "vocaia:aviso-ia:aceptado";
 
-/** Momento de la aceptación, o `null`. No rompe si el almacenamiento falla. */
-function leerAceptadoEn(): string | null {
+/** Versión aceptada en esta sesión, o `null`. No rompe si el almacenamiento falla. */
+export function versionAceptada(): string | null {
   try {
     return window.sessionStorage.getItem(CLAVE);
   } catch {
@@ -27,28 +32,29 @@ function leerAceptadoEn(): string | null {
 }
 
 export interface AvisoAceptado {
-  /** `true` si ya lo aceptó en esta sesión. */
+  /** `true` si aceptó **esta** versión del aviso en esta sesión. */
   aceptado: boolean;
-  /** Momento de la aceptación en ISO 8601. Es el dato que va a necesitar el
-   *  evento de bitácora del backend cuando exista. */
-  aceptadoEn: string | null;
+  /** La versión que aceptó, o `null`. Es lo que viaja al backend. */
+  version: string | null;
   aceptar: () => void;
 }
 
 export function useAvisoAceptado(): AvisoAceptado {
-  const [aceptadoEn, setAceptadoEn] = useState<string | null>(leerAceptadoEn);
+  const [version, setVersion] = useState<string | null>(versionAceptada);
 
   const aceptar = useCallback(() => {
-    const momento = new Date().toISOString();
     try {
-      window.sessionStorage.setItem(CLAVE, momento);
+      window.sessionStorage.setItem(CLAVE, AVISO.version);
     } catch {
       // Si no se puede persistir, la aceptación vale igual para esta carga de
       // la página: la persona leyó el aviso. Lo que se pierde es recordarlo
       // tras una recarga, y volver a mostrarlo es el fallo seguro.
     }
-    setAceptadoEn(momento);
+    setVersion(AVISO.version);
   }, []);
 
-  return { aceptado: aceptadoEn !== null, aceptadoEn, aceptar };
+  // Se compara contra la versión vigente y no contra `null`: si el aviso
+  // cambió, lo que la persona aceptó ya no es lo que dice la pantalla y la
+  // puerta se vuelve a mostrar. Es para lo que sirve versionarlo.
+  return { aceptado: version === AVISO.version, version, aceptar };
 }

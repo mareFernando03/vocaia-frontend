@@ -71,7 +71,22 @@ export function consultarUsuario(): Promise<Usuario> {
   return pedir<Usuario>("/api/identidad/yo");
 }
 
-/** Revoca la identidad en el backend. */
+/** Corta las sesiones vigentes en el backend. No da de baja la cuenta. */
 export function cerrarSesionEnBackend(): Promise<void> {
   return pedir<void>("/api/identidad/salir", { method: "POST" });
+}
+
+/**
+ * Registra el consentimiento informado y crea la identidad (HU-03a).
+ *
+ * Es el único pedido que hace nacer un dato personal del otro lado: hasta que
+ * esto ocurre, el backend no guarda ni el correo ni el nombre. Por eso el
+ * resto de la API responde 403 mientras no se haya llamado.
+ */
+export function registrarConsentimiento(version: string): Promise<Usuario> {
+  return pedir<Usuario>("/api/identidad/consentimiento", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ version }),
+  });
 }
