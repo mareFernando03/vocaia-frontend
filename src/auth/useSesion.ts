@@ -14,7 +14,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { cerrarSesionEnBackend, consultarUsuario, type Usuario } from "../api/cliente";
+import {
+  cerrarSesionEnBackend,
+  consultarUsuario,
+  ErrorDeApi,
+  registrarConsentimiento,
+  type Usuario,
+} from "../api/cliente";
+import { versionAceptada } from "../hooks/useAvisoAceptado";
 import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesion";
 
 export type EstadoSesion =
@@ -34,11 +41,28 @@ export function useSesion(): {
     }
     try {
       setSesion({ estado: "autenticado", usuario: await consultarUsuario() });
-    } catch {
-      // `pedir` ya borró el token si fue un 401. Ante cualquier otro fallo
-      // tampoco se puede afirmar que haya sesión.
-      setSesion({ estado: "anonimo" });
+      return;
+    } catch (error) {
+      // 403 es «la credencial vale pero falta el consentimiento» (HU-03a), y
+      // se puede resolver sin molestar a nadie: la persona ya lo dio al
+      // atravesar la puerta antes de ingresar. Se registra y se reintenta.
+      //
+      // Se manda la versión que efectivamente aceptó y no la vigente: si el
+      // aviso cambió, la puerta se le vuelve a mostrar y consiente de nuevo.
+      const version =
+        error instanceof ErrorDeApi && error.estado === 403 ? versionAceptada() : null;
+      if (version !== null) {
+        try {
+          setSesion({ estado: "autenticado", usuario: await registrarConsentimiento(version) });
+          return;
+        } catch {
+          // Cae al anónimo de abajo, como cualquier otro fallo.
+        }
+      }
     }
+    // `pedir` ya borró el token si fue un 401. Ante cualquier otro fallo
+    // tampoco se puede afirmar que haya sesión.
+    setSesion({ estado: "anonimo" });
   }, []);
 
   useEffect(() => {

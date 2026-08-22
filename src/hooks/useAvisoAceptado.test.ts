@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { AVISO } from "../contenido/aviso-ia";
 import { useAvisoAceptado } from "./useAvisoAceptado";
 
 /**
@@ -16,15 +17,27 @@ afterEach(() => {
 });
 
 describe("useAvisoAceptado", () => {
-  it("arranca sin aceptar y registra el momento al aceptar", () => {
+  it("arranca sin aceptar y registra la versión al aceptar", () => {
     const { result } = renderHook(() => useAvisoAceptado());
     expect(result.current.aceptado).toBe(false);
-    expect(result.current.aceptadoEn).toBeNull();
+    expect(result.current.version).toBeNull();
 
     act(() => result.current.aceptar());
 
     expect(result.current.aceptado).toBe(true);
-    expect(Date.parse(result.current.aceptadoEn ?? "")).not.toBeNaN();
+    // La versión es lo que después se registra como consentido (HU-03a).
+    expect(result.current.version).toBe(AVISO.version);
+  });
+
+  it("si el aviso cambió, lo aceptado antes no cuenta y la puerta vuelve", () => {
+    // Es para lo que sirve versionarlo: quien aceptó otro texto no consintió
+    // este. Sin esto, un cambio en el aviso pasaría inadvertido y el registro
+    // del backend diría que aceptó algo que nunca vio.
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-de-otra-epoca");
+
+    const { result } = renderHook(() => useAvisoAceptado());
+
+    expect(result.current.aceptado).toBe(false);
   });
 
   it("si no puede leer el almacenamiento, muestra el aviso igual", () => {
