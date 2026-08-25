@@ -38,6 +38,7 @@ export interface paths {
      * @description Responde en streaming y, recién después, extrae evidencia del turno.
      *
      *     Si la sesión no existe, se crea con este mensaje: no hay endpoint de alta.
+     *     Queda a nombre de quien la abre, y sólo esa persona puede seguirla.
      */
     post: operations["enviar_mensaje_api_conversacion__sesion_id__mensaje_post"];
     delete?: never;
@@ -333,7 +334,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N}` al cerrar, y `{'error': '...'}` si la generación se corta. */
+      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...'}]}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita—, y `{'error': '...'}` si la generación se corta. */
       200: {
         headers: {
           [name: string]: unknown;

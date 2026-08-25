@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import type { Fuente } from "../api/conversacion";
 import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
@@ -16,7 +17,7 @@ interface Propiedades {
 }
 
 export default function Conversacion({ alSalir }: Propiedades) {
-  const { turnos, enCurso, cargando, enviando, error, intercambios, enviar, reintentar } =
+  const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -100,6 +101,8 @@ export default function Conversacion({ alSalir }: Propiedades) {
         <li aria-hidden="true" ref={finDeLista} />
       </ol>
 
+      {fuentes.length > 0 && !enviando && <Fuentes fuentes={fuentes} />}
+
       {error !== null && (
         <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
           <span>{error}</span>
@@ -150,6 +153,64 @@ export default function Conversacion({ alSalir }: Propiedades) {
         </button>
       </form>
     </div>
+  );
+}
+
+/** Separa la ubicación del final del texto de la fuente, si la trae. */
+const UBICACION = /\s+—\s+(\S+)$/;
+
+function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
+  return (
+    <div className="border-border bg-surface rounded-md border p-3 text-sm">
+      {/* Fuera del <details> a propósito. Lo que se pliega es la lista, que es
+          material de respaldo y desplegada le roba la vista al campo de
+          escritura en un teléfono. Esta línea no: sin ella, la respuesta se lee
+          como información oficial de la Facultad, que es exactamente lo que
+          R-002 pide no hacer mientras el corpus no esté validado. Una salvedad
+          que hay que desplegar para leer no es una salvedad. */}
+      <p className="text-muted-foreground">
+        Datos <strong>provisionales</strong>, todavía sin validar por la Facultad.
+      </p>
+      <details className="mt-2">
+        <summary className="cursor-pointer font-medium">
+          Fuentes consultadas ({fuentes.length})
+        </summary>
+        {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
+            lo que se escribió y el modelo puede haber ignorado todo. Decir
+            «citadas» le atribuiría a la respuesta un respaldo que puede no
+            tener. */}
+        <p className="text-muted-foreground mt-2">
+          Material del corpus institucional que VocaIA consultó para armar la última respuesta. No
+          necesariamente lo citó.
+        </p>
+        <ul className="mt-2 flex flex-col gap-1">
+          {fuentes.map((fuente) => (
+            <li key={fuente.id}>
+              <Referencia texto={fuente.fuente} />
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
+function Referencia({ texto }: { texto: string }) {
+  const ubicacion = UBICACION.exec(texto);
+  // Sin ubicación reconocible se muestra el texto entero y listo: una fuente
+  // sin enlace se sigue pudiendo leer, y una fuente que no se muestra, no.
+  if (ubicacion === null || !ubicacion[1].startsWith("http")) {
+    return <span className="text-muted-foreground">{texto}</span>;
+  }
+  return (
+    <a
+      href={ubicacion[1]}
+      target="_blank"
+      rel="noreferrer"
+      className="text-primary underline underline-offset-2"
+    >
+      {texto.slice(0, ubicacion.index)}
+    </a>
   );
 }
 
