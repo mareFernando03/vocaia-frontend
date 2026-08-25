@@ -77,4 +77,28 @@ describe("enviarMensaje · lectura del flujo de eventos", () => {
     await expect(juntar()).rejects.toBeInstanceOf(SesionVencida);
     expect(window.sessionStorage.getItem(CLAVE_TOKEN)).toBeNull();
   });
+
+  // Sin `cancel` en el `finally`, el cuerpo queda sin leer y la conexión abierta:
+  // `releaseLock` sola suelta el lector pero no cierra nada. No se ve hasta que
+  // alguien corta el bucle antes de tiempo, que es lo que hace esta prueba.
+  it("cortar el bucle antes de tiempo cierra el cuerpo", async () => {
+    let cancelado = false;
+    responderCon(
+      new ReadableStream<Uint8Array>({
+        pull(controlador) {
+          controlador.enqueue(new TextEncoder().encode('data: {"delta": "y"}\n\n'));
+        },
+        cancel() {
+          cancelado = true;
+        },
+      }),
+    );
+
+    for await (const evento of enviarMensaje("s-1", "hola")) {
+      expect(evento).toEqual({ delta: "y" });
+      break;
+    }
+
+    expect(cancelado).toBe(true);
+  });
 });

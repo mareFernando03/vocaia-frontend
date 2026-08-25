@@ -20,7 +20,7 @@ export default function Conversacion({ alSalir }: Propiedades) {
     useConversacion();
   const [borrador, setBorrador] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
-  const finDeLista = useRef<HTMLDivElement>(null);
+  const finDeLista = useRef<HTMLLIElement>(null);
 
   // El foco vuelve al campo cuando termina el envío. Sin esto, quien escribe
   // con teclado queda sin punto de partida después de cada respuesta y tiene
@@ -97,7 +97,7 @@ export default function Conversacion({ alSalir }: Propiedades) {
           </>
         )}
 
-        <div ref={finDeLista} />
+        <li aria-hidden="true" ref={finDeLista} />
       </ol>
 
       {error !== null && (

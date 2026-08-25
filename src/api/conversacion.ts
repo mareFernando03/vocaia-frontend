@@ -70,7 +70,6 @@ export type EventoConversacion = EventoDelta | EventoFin | EventoError;
 export async function* enviarMensaje(
   sesionId: string,
   contenido: string,
-  senal?: AbortSignal,
 ): AsyncGenerator<EventoConversacion> {
   const token = obtenerToken();
   const cabeceras = new Headers({ "Content-Type": "application/json" });
@@ -80,7 +79,6 @@ export async function* enviarMensaje(
     method: "POST",
     headers: cabeceras,
     body: JSON.stringify({ contenido }),
-    signal: senal,
   });
 
   if (respuesta.status === 401) {
@@ -116,9 +114,10 @@ export async function* enviarMensaje(
       }
     }
   } finally {
-    // Si quien consume corta el bucle antes de tiempo, el cuerpo queda abierto
-    // y la conexión colgada. `finally` cubre también ese camino.
-    lector.releaseLock();
+    // Si quien consume corta el bucle antes de tiempo, `releaseLock` sola deja
+    // el cuerpo sin leer y la conexión abierta: lo que la cierra es `cancel`.
+    // Sobre un flujo que ya terminó no hace nada.
+    await lector.cancel();
   }
 }
 
