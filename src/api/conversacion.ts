@@ -41,11 +41,31 @@ interface EventoDelta {
   delta: string;
 }
 
-/** El turno se cerró. Los números los asigna el backend, no el cliente. */
+/**
+ * Un fragmento del corpus institucional que el backend consultó para el turno.
+ *
+ * `fuente` es la denominación de la fuente seguida de su ubicación, tal como la
+ * arma el backend: «Ordenanza C.S. N.º 1877 — http://…».
+ */
+export interface Fuente {
+  id: string;
+  fuente: string;
+}
+
+/**
+ * El turno se cerró. Los números los asigna el backend, no el cliente.
+ *
+ * `fuentes` son las que se **consultaron**, no necesariamente las que la
+ * respuesta cita: el backend recupera los fragmentos más cercanos a lo que la
+ * persona escribió y el modelo tiene instrucción de ignorar los que no vengan
+ * al caso. Mostrarlas como «citadas» le atribuiría a la respuesta un respaldo
+ * que puede no tener.
+ */
 interface EventoFin {
   fin: true;
   turno_usuario: number;
   turno_agente: number;
+  fuentes: Fuente[];
 }
 
 /** La generación se cortó a mitad de camino. */

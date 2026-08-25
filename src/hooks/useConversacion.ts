@@ -17,18 +17,18 @@
  * comodidad. Sobrevive a un F5, que es lo que pide HU-07; seguir en otro
  * dispositivo es HU-08 y volver a los meses es HU-14.
  *
- * **Y se olvida al cerrar sesión.** Hoy `GET /api/conversacion/{sesion_id}` no
- * exige identidad —el `openapi.json` no le declara seguridad—, así que quedarse
- * con el identificador después de un `/salir` significa que la próxima persona
- * que entre en esa misma pestaña rehidrata la conversación de la anterior. El
- * borrado de acá no arregla el agujero del backend, pero evita ser quien lo
- * dispara.
+ * **Y se olvida al cerrar sesión.** Desde VOCAIA-46 los dos endpoints exigen
+ * credencial y la sesión es de quien la abre, así que con el identificador de
+ * otra persona el backend devuelve 404. El borrado de acá dejó de ser lo único
+ * que separa una conversación de la siguiente, pero se conserva: sin él, la
+ * próxima persona que entre en esta pestaña arrastraría un identificador que no
+ * le sirve para nada y estrenaría su sesión con un 404 de por medio.
  */
 
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
-import { enviarMensaje, obtenerHistorial, type Turno } from "../api/conversacion";
+import { enviarMensaje, type Fuente, obtenerHistorial, type Turno } from "../api/conversacion";
 import { alCambiarSesion } from "../auth/sesion";
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -72,6 +72,16 @@ export interface Conversacion {
   cargando: boolean;
   enviando: boolean;
   error: string | null;
+  /**
+   * Fuentes del corpus consultadas para la última respuesta.
+   *
+   * Duran lo que dura la carga de la página: el backend las emite en el evento
+   * de cierre del streaming y no las persiste con el turno, así que después de
+   * un F5 el historial vuelve sin ellas. Es una limitación conocida y no un
+   * descuido —persistirlas es una tabla nueva—, pero significa que esto no se
+   * puede usar como registro de trazabilidad: para eso está la evidencia.
+   */
+  fuentes: Fuente[];
   /** Intercambios completos: los turnos de la persona son el 1, el 3, el 5… */
   intercambios: number;
   enviar: (contenido: string) => Promise<void>;
@@ -94,6 +104,7 @@ export function useConversacion(): Conversacion {
   const [cargando, setCargando] = useState(sesion.recuperada);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fuentes, setFuentes] = useState<Fuente[]>([]);
 
   /**
    * Trae los turnos y nada más.
@@ -137,6 +148,9 @@ export function useConversacion(): Conversacion {
       setEnCurso({ usuario: texto, agente: "" });
       setEnviando(true);
       setError(null);
+      // Se limpian al empezar y no al terminar: las de la respuesta anterior no
+      // respaldan la que se está por escribir.
+      setFuentes([]);
 
       try {
         for await (const evento of enviarMensaje(sesion.id, texto)) {
@@ -144,6 +158,11 @@ export function useConversacion(): Conversacion {
             setEnCurso((actual) =>
               actual === null ? actual : { ...actual, agente: actual.agente + evento.delta },
             );
+          } else if ("fin" in evento) {
+            // `?? []` porque la forma de los eventos SSE se declara a mano —el
+            // esquema OpenAPI no la puede describir— y nada garantiza en
+            // compilación que el backend del otro lado ya emita la clave.
+            setFuentes(evento.fuentes ?? []);
           } else if ("error" in evento) {
             // El stream ya había arrancado, así que lo que se alcanzó a
             // mostrar sigue siendo válido: se avisa y se conserva.
@@ -172,6 +191,7 @@ export function useConversacion(): Conversacion {
     cargando,
     enviando,
     error,
+    fuentes,
     intercambios,
     enviar,
     reintentar: () => void cargar(),

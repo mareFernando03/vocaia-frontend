@@ -31,6 +31,9 @@ const PARES = [
   ["Texto sobre éxito", "success-foreground", "success", 4.5],
   ["Texto sobre advertencia", "warning-foreground", "warning", 4.5],
   ["Enlaces sobre el fondo", "primary", "background", 4.5],
+  // El bloque de fuentes consultadas de la conversación va sobre `surface`, y
+  // sus enlaces son lo único que se puede seguir para verificar una cita.
+  ["Enlaces sobre tarjeta", "primary", "surface", 4.5],
   // Fondo de la sección de ayuda del aviso y del hover de los botones neutros.
   ["Texto normal sobre el azul claro", "foreground", "primary-soft", 4.5],
   // 1.4.11: el borde de un campo es información necesaria para identificarlo.
