@@ -161,32 +161,37 @@ const UBICACION = /\s+—\s+(\S+)$/;
 
 function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
-    <details className="border-border bg-surface rounded-md border p-3 text-sm">
-      {/* Plegado por defecto: es material de respaldo, no parte de la
-          conversación, y desplegado le roba la vista al campo de escritura en
-          una pantalla de teléfono. */}
-      <summary className="cursor-pointer font-medium">
-        Fuentes consultadas ({fuentes.length})
-      </summary>
-      {/* «Consultadas» y no «citadas», y el aviso de que el corpus es
-          provisional: el backend recupera lo más cercano a lo que se escribió y
-          el modelo puede haber ignorado todo. Decir «citadas» le atribuiría a
-          la respuesta un respaldo que puede no tener, y decirlo sin la
-          salvedad presentaría como oficial un corpus que la Facultad todavía no
-          validó. */}
-      <p className="text-muted-foreground mt-2">
-        Material del corpus institucional que VocaIA consultó para armar la última respuesta. No
-        necesariamente lo citó. Los datos son <strong>provisionales</strong>: salen de fuentes
-        públicas y todavía no los validó la Facultad.
+    <div className="border-border bg-surface rounded-md border p-3 text-sm">
+      {/* Fuera del <details> a propósito. Lo que se pliega es la lista, que es
+          material de respaldo y desplegada le roba la vista al campo de
+          escritura en un teléfono. Esta línea no: sin ella, la respuesta se lee
+          como información oficial de la Facultad, que es exactamente lo que
+          R-002 pide no hacer mientras el corpus no esté validado. Una salvedad
+          que hay que desplegar para leer no es una salvedad. */}
+      <p className="text-muted-foreground">
+        Datos <strong>provisionales</strong>, todavía sin validar por la Facultad.
       </p>
-      <ul className="mt-2 flex flex-col gap-1">
-        {fuentes.map((fuente) => (
-          <li key={fuente.id}>
-            <Referencia texto={fuente.fuente} />
-          </li>
-        ))}
-      </ul>
-    </details>
+      <details className="mt-2">
+        <summary className="cursor-pointer font-medium">
+          Fuentes consultadas ({fuentes.length})
+        </summary>
+        {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
+            lo que se escribió y el modelo puede haber ignorado todo. Decir
+            «citadas» le atribuiría a la respuesta un respaldo que puede no
+            tener. */}
+        <p className="text-muted-foreground mt-2">
+          Material del corpus institucional que VocaIA consultó para armar la última respuesta. No
+          necesariamente lo citó.
+        </p>
+        <ul className="mt-2 flex flex-col gap-1">
+          {fuentes.map((fuente) => (
+            <li key={fuente.id}>
+              <Referencia texto={fuente.fuente} />
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
   );
 }
 

@@ -65,7 +65,13 @@ interface EventoFin {
   fin: true;
   turno_usuario: number;
   turno_agente: number;
-  fuentes: Fuente[];
+  /**
+   * Opcional a propósito, aunque el backend siempre la emita: esta forma se
+   * declara a mano y no sale del `openapi.json`, así que el compilador no
+   * tiene cómo saber contra qué versión del backend corre. Es lo que hace que
+   * el `?? []` de quien la lee sea una rama de verdad y no código muerto.
+   */
+  fuentes?: Fuente[];
 }
 
 /** La generación se cortó a mitad de camino. */
