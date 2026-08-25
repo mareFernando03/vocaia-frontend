@@ -34,6 +34,9 @@ const PARES = [
   // El bloque de fuentes consultadas de la conversación va sobre `surface`, y
   // sus enlaces son lo único que se puede seguir para verificar una cita.
   ["Enlaces sobre tarjeta", "primary", "surface", 4.5],
+  // En ese mismo bloque va la salvedad de que el corpus es provisional. Es
+  // texto secundario sobre tarjeta, un par que hasta acá nadie había medido.
+  ["Texto secundario sobre tarjeta", "muted-foreground", "surface", 4.5],
   // Fondo de la sección de ayuda del aviso y del hover de los botones neutros.
   ["Texto normal sobre el azul claro", "foreground", "primary-soft", 4.5],
   // 1.4.11: el borde de un campo es información necesaria para identificarlo.

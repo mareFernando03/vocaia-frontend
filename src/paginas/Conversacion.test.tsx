@@ -146,8 +146,10 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     // modelo puede haberlo ignorado por completo.
     expect(screen.getByText(/consultadas/i)).toBeInTheDocument();
     expect(screen.queryByText(/citadas/i)).not.toBeInTheDocument();
-    // Y el corpus todavía no lo validó la Facultad: eso se dice, no se omite.
-    expect(screen.getByText(/provisionales/i)).toBeInTheDocument();
+    // `toBeVisible` y no `toBeInTheDocument`: adentro de un <details> plegado
+    // el texto está en el DOM igual, así que `toBeInTheDocument` pasa aunque
+    // nadie pueda leerlo. La salvedad de R-002 tiene que verse sin desplegar.
+    expect(screen.getByText(/provisionales/i)).toBeVisible();
   });
 
   it("un turno sin fuentes no dibuja el bloque", async () => {
