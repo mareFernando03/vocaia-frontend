@@ -9,7 +9,13 @@
 
 import { borrarToken, obtenerToken } from "../auth/sesion";
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+/**
+ * Se exporta porque el circuito conversacional no puede pasar por `pedir`: su
+ * respuesta es un `text/event-stream` que hay que leer de a trozos. Que la
+ * dirección del backend se escriba una sola vez no es cosmético — con dos
+ * copias, la que se olvide de actualizar falla recién en tiempo de ejecución.
+ */
+export const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 /** El backend respondió que la credencial ya no vale. */
 export class SesionVencida extends Error {
@@ -49,7 +55,7 @@ export async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promis
   return (await respuesta.json()) as T;
 }
 
-async function leerDetalle(respuesta: Response): Promise<string> {
+export async function leerDetalle(respuesta: Response): Promise<string> {
   try {
     const cuerpo: unknown = await respuesta.json();
     if (typeof cuerpo === "object" && cuerpo !== null && "detail" in cuerpo) {

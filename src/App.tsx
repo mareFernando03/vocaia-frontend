@@ -4,6 +4,7 @@ import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
 import { AVISO } from "./contenido/aviso-ia";
 import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
+import Conversacion from "./paginas/Conversacion";
 import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
@@ -71,7 +72,7 @@ export default function App() {
         <main
           id="contenido"
           tabIndex={-1}
-          className="mx-auto w-full max-w-3xl flex-1 p-4 outline-none sm:p-6"
+          className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-4 outline-none sm:p-6"
         >
           <Contenido sesion={sesion} alIngresar={ingresar} alSalir={salir} />
         </main>
@@ -105,37 +106,7 @@ function Contenido({ sesion, alIngresar, alSalir }: PropiedadesContenido) {
     return <Ingresar alIngresar={alIngresar} />;
   }
 
-  return (
-    <div className="mx-auto w-full max-w-md text-center">
-      <h1 className="text-2xl font-semibold">Ya estás dentro</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
-        Todavía no hay conversación: eso llega con HU-06. Esta pantalla existe para comprobar que el
-        ingreso funciona de punta a punta.
-      </p>
-
-      {/*
-        Se muestra el identificador opaco a propósito, y no un nombre: es
-        literalmente todo lo que el backend sabe decir sobre quién sos.
-      */}
-      <dl className="bg-surface mt-6 rounded-lg p-4 text-left text-sm">
-        <dt className="font-medium">Identificador opaco</dt>
-        <dd className="text-muted-foreground mt-1 font-mono text-xs break-all">
-          {sesion.usuario.identificador_opaco}
-        </dd>
-        <dt className="mt-3 font-medium">Proveedor</dt>
-        <dd className="text-muted-foreground mt-1">{sesion.usuario.proveedor}</dd>
-      </dl>
-
-      {/* Sin clases de foco propias: el anillo lo pone la regla global de
-          `:focus-visible` del sistema de diseño. `min-h-11` por el área táctil
-          mínima de HU-08, igual que el resto de los controles. */}
-      <button
-        type="button"
-        onClick={() => void alSalir()}
-        className="border-input hover:bg-primary-soft mt-6 inline-flex min-h-11 items-center justify-center rounded-full border px-5 py-2 text-sm"
-      >
-        Cerrar sesión
-      </button>
-    </div>
-  );
+  // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
+  // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
+  return <Conversacion alSalir={alSalir} />;
 }

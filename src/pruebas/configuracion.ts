@@ -11,6 +11,12 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
+// jsdom no implementa `scrollIntoView`: no tiene disposición visual, así que no
+// hay a dónde desplazarse. Sin este relleno, cualquier componente que siga una
+// lista que crece —la conversación— falla en las pruebas por algo que en el
+// navegador funciona.
+Element.prototype.scrollIntoView = () => {};
+
 afterEach(() => {
   cleanup();
   // El aviso se acepta por sesión: sin limpiar, la primera prueba que acepta
