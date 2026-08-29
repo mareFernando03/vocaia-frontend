@@ -46,7 +46,30 @@ jobs:
         run: npm run verificar-contraste
 
       - name: Pruebas
-        run: npm test
+        # Con cobertura en vez de `npm test` a secas: es la misma corrida y el
+        # instrumentado de v8 no agrega tiempo apreciable en una suite de este
+        # tamaño, así que no hace falta un job aparte.
+        run: npm run test:cobertura
+
+      - name: Cobertura en el resumen
+        # El log ya trae la tabla por archivo; esto deja el total arriba de
+        # todo en el check, que es donde se mira. No hay umbral configurado:
+        # el paso informa y nunca falla (VOCAIA-87).
+        run: |
+          node -e '
+            const t = require("./coverage/coverage-summary.json").total;
+            const fila = (n, m) => `| ${n} | ${m.pct}% | ${m.covered}/${m.total} |`;
+            for (const linea of [
+              "## Cobertura",
+              "",
+              "| | % | Cubierto |",
+              "| --- | --- | --- |",
+              fila("Sentencias", t.statements),
+              fila("Ramas", t.branches),
+              fila("Funciones", t.functions),
+              fila("Líneas", t.lines),
+            ]) console.log(linea);
+          ' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build
         # Va último porque es el paso más lento. Verifica los tipos de paso:

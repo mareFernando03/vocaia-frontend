@@ -21,6 +21,11 @@ export default mergeConfig(
       include: ["src/**/*.test.{ts,tsx}"],
       coverage: {
         provider: "v8",
+        // `text` deja el número en el log; `json-summary` lo escribe en
+        // `coverage/coverage-summary.json`, que es lo que el workflow lee para
+        // publicarlo en el resumen del check sin tener que abrir el log.
+        // Todavía sin umbral: primero se mira el número (VOCAIA-87).
+        reporter: ["text", "json-summary", "html"],
         include: ["src/**/*.{ts,tsx}"],
         exclude: ["src/**/*.test.{ts,tsx}", "src/pruebas/**", "src/main.tsx"],
       },
