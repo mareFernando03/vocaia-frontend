@@ -27,7 +27,19 @@ export default mergeConfig(
         // Todavía sin umbral: primero se mira el número (VOCAIA-87).
         reporter: ["text", "json-summary", "html"],
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/**/*.test.{ts,tsx}", "src/pruebas/**", "src/main.tsx"],
+        // A lo de siempre se suman dos cosas que no son código nuestro y que
+        // v8 cuenta como 0%: las declaraciones `.d.ts`, que no tienen nada
+        // ejecutable, y el cliente que `generar-cliente` deriva de
+        // `openapi.json`. Dejarlas adentro hunde el total sin decir nada sobre
+        // lo que falta probar, justo cuando el número se va a usar para elegir
+        // un umbral.
+        exclude: [
+          "src/**/*.test.{ts,tsx}",
+          "src/pruebas/**",
+          "src/main.tsx",
+          "src/**/*.d.ts",
+          "src/api/generado/**",
+        ],
       },
     },
   }),
