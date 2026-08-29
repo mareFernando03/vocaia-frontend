@@ -105,3 +105,15 @@ Lo más consultado del repositorio académico:
 | Topología de repos y contrato OpenAPI      | `ejecucion/adr/ADR-008-topologia-de-repositorios.md`              |
 | Backlog y criterios de aceptación          | `ejecucion/backlog-producto.md` · `ejecucion/backlog-sprint-1.md` |
 | Reglas de Jira, bitácora de esfuerzo y ADR | `CLAUDE.md` del repositorio académico                             |
+
+## Registro de esfuerzo — también acá
+
+El trabajo en este repositorio se imputa igual que el del repositorio académico. Al cerrar,
+**proponer el registro de trabajo (worklog) en la tarjeta de Jira**: hora de inicio, duración,
+y el **tipo de tarea como primera palabra del comentario** —`andamiaje` · `redaccion` ·
+`procesamiento` · `diseno` · `ceremonia` · `terceros`—. El código es casi siempre `andamiaje`.
+
+Se cuenta el tiempo dedicado, y el tramo en que el agente ejecuta y la persona supervisa
+cuenta como trabajo. La persona carga y corrige lo que quiera, cuando quiera; **el agente
+propone y no escribe horas que nadie confirmó**. El detalle está en `proyecto-final/CLAUDE.md`
+del repositorio académico.
