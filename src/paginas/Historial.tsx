@@ -102,15 +102,15 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVolver }: Propi
                   <span aria-hidden="true">·</span>
                   {/* Mensajes y no intercambios: el backend cuenta los turnos
                       de las dos partes y acá no hay forma de separarlos. */}
+                  {/* No se muestra el estado de la sesion. `derivada` no lo
+                      asigna hoy ninguna parte del dominio, y `cerrada` se
+                      reabre sola en cuanto la persona vuelve a escribir
+                      —lo hace `_reabrir_si_habia_cerrado` del servicio de
+                      conversacion—, asi que la etiqueta no describiria ninguna
+                      diferencia que la persona pueda notar. */}
                   <span className="tabular-nums">
                     {sesion.cantidad_turnos} {sesion.cantidad_turnos === 1 ? "mensaje" : "mensajes"}
                   </span>
-                  {sesion.estado !== "abierta" && (
-                    <>
-                      <span aria-hidden="true">·</span>
-                      <span>{sesion.estado}</span>
-                    </>
-                  )}
                 </span>
                 {/* `line-clamp-2` y no un recorte en JavaScript: cuántas
                     palabras entran depende del ancho de la pantalla, que el
