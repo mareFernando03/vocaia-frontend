@@ -117,3 +117,15 @@ Se cuenta el tiempo dedicado, y el tramo en que el agente ejecuta y la persona s
 cuenta como trabajo. La persona carga y corrige lo que quiera, cuando quiera; **el agente
 propone y no escribe horas que nadie confirmó**. El detalle está en `proyecto-final/CLAUDE.md`
 del repositorio académico.
+
+## Revisar un Pull Request
+
+`.claude/skills/revisar-pr/` corre cinco revisores en paralelo sobre el diff:
+corrección, lenguaje, accesibilidad, datos personales y definición de terminado.
+Se pide en lenguaje natural —«revisá este PR»— y no hace falta invocarlo por nombre.
+
+**Corre el portón automático primero y no repite lo que él ya mira.** Los cinco están
+para lo que compila, pasa las pruebas y aun así está mal: viven en `.claude/agents/` y
+cada uno declara qué busca. El de accesibilidad mira, entre otras cosas, el par de
+colores que nadie declaró en el verificador, que es donde su verde no significa nada.
+Ninguno escribe código ni comenta en GitHub: proponen, y la persona decide qué entra.
