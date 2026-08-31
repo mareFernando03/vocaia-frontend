@@ -67,6 +67,19 @@ export async function leerDetalle(respuesta: Response): Promise<string> {
   return `El servidor respondió ${respuesta.status}.`;
 }
 
+/**
+ * El texto que se le muestra a una persona cuando un pedido falla.
+ *
+ * Vive acá y no en cada pantalla porque un fallo de red no trae nada legible
+ * —`TypeError: Failed to fetch` no le dice nada a nadie— y esa traducción tiene
+ * que decir lo mismo en toda la aplicación.
+ */
+export function describir(fallo: unknown): string {
+  if (fallo instanceof SesionVencida) return fallo.message;
+  if (fallo instanceof ErrorDeApi) return fallo.message;
+  return "No se pudo conectar con el servidor. Revisá tu conexión y probá de nuevo.";
+}
+
 export interface Usuario {
   identificador_opaco: string;
   proveedor: string;

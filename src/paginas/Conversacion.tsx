@@ -14,9 +14,10 @@ import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
+  alVerHistorial: () => void;
 }
 
-export default function Conversacion({ alSalir }: Propiedades) {
+export default function Conversacion({ alSalir, alVerHistorial }: Propiedades) {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -58,6 +59,17 @@ export default function Conversacion({ alSalir }: Propiedades) {
               {intercambios} {intercambios === 1 ? "intercambio" : "intercambios"}
             </span>
           )}
+          {/* La puerta al historial (HU-12). Va acá y no como pantalla de
+              entrada: quien está conversando tiene que poder buscar una charla
+              anterior, pero recargar en medio de esta tiene que devolver a
+              esta. */}
+          <button
+            type="button"
+            onClick={alVerHistorial}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Tus conversaciones
+          </button>
           <button
             type="button"
             onClick={() => void alSalir()}
