@@ -11,12 +11,24 @@
  * Lo que no se traduce es la evidencia: se cita literal. Es la respuesta a «en
  * qué se basa esto» (RNF-05) y parafrasearla la arruinaría, porque lo que la
  * persona tiene que poder reconocer —o desconocer— es algo que escribió ella.
+ *
+ * Desconocerlo es S2-12: cada dimensión se puede objetar. La objeción no
+ * corrige el perfil ni lo tacha —el rasgo sigue mostrándose con los mismos
+ * números—, porque lo que se registra es el desacuerdo entre lo que el sistema
+ * infiere y lo que la persona reconoce, y corregirlo en silencio haría
+ * desaparecer justamente eso.
  */
 
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
-import { obtenerPerfil, type Evidencia, type Perfil as PerfilApi, type Rasgo } from "../api/perfil";
+import {
+  objetar,
+  obtenerPerfil,
+  type Evidencia,
+  type Perfil as PerfilApi,
+  type Rasgo,
+} from "../api/perfil";
 
 export default function Perfil() {
   const [perfil, setPerfil] = useState<PerfilApi | null>(null);
@@ -43,6 +55,18 @@ export default function Perfil() {
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  /**
+   * Registra la objeción y vuelve a pedir el perfil.
+   *
+   * Se recarga en lugar de parchear el rasgo en memoria: lo que la pantalla
+   * tiene que mostrar es la objeción tal como quedó guardada, no la que
+   * acabamos de mandar. Si el registro no fuera recuperable, acá se vería.
+   */
+  const registrarObjecion = useCallback(async (dimension: string, motivo: string) => {
+    await objetar(dimension, motivo);
+    setPerfil(await obtenerPerfil());
+  }, []);
 
   if (cargando) {
     return (
@@ -86,7 +110,7 @@ export default function Perfil() {
         <ul className="flex flex-col gap-4">
           {ordenados.map((rasgo) => (
             <li key={rasgo.dimension}>
-              <Tarjeta rasgo={rasgo} />
+              <Tarjeta rasgo={rasgo} alObjetar={registrarObjecion} />
             </li>
           ))}
         </ul>
@@ -157,7 +181,12 @@ function Encabezado({ perfil, conRasgos }: { perfil: PerfilApi; conRasgos: numbe
   );
 }
 
-function Tarjeta({ rasgo }: { rasgo: Rasgo }) {
+interface PropiedadesTarjeta {
+  rasgo: Rasgo;
+  alObjetar: (dimension: string, motivo: string) => Promise<void>;
+}
+
+function Tarjeta({ rasgo, alObjetar }: PropiedadesTarjeta) {
   return (
     <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -181,7 +210,110 @@ function Tarjeta({ rasgo }: { rasgo: Rasgo }) {
           </ul>
         </details>
       )}
+
+      <Objecion rasgo={rasgo} alObjetar={alObjetar} />
     </article>
+  );
+}
+
+/**
+ * «Esto no me representa» (S2-12).
+ *
+ * Va en cada tarjeta y no en un lugar aparte porque el desacuerdo es con algo
+ * concreto que se está leyendo: mandar a la persona a otra pantalla a elegir de
+ * una lista qué objeta convierte un reflejo en un trámite, y el trámite no se
+ * hace.
+ */
+function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [registrando, setRegistrando] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
+
+  if (rasgo.objecion != null) {
+    return (
+      <p className="border-border text-muted-foreground border-t pt-2 text-sm">
+        Marcaste que esto no te representa el {fecha(rasgo.objecion.registrada_en)}.
+        {rasgo.objecion.motivo !== "" && <> Anotaste: «{rasgo.objecion.motivo}»</>}
+        {/* Y el rasgo se sigue mostrando arriba, con los mismos números. Que
+            la persona no se reconozca no borra lo que dijo, y esconderlo haría
+            desaparecer la discrepancia, que es el dato que hay que conservar. */}
+      </p>
+    );
+  }
+
+  if (!abierto) {
+    return (
+      <div className="border-border border-t pt-2">
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
+        >
+          Esto no me representa
+        </button>
+      </div>
+    );
+  }
+
+  async function registrar() {
+    setRegistrando(true);
+    setFallo(null);
+    try {
+      await alObjetar(rasgo.dimension, motivo.trim());
+    } catch (error) {
+      setRegistrando(false);
+      setFallo(
+        error instanceof ErrorDeApi ? error.message : "No se pudo registrar. Probá de nuevo.",
+      );
+    }
+    // Sin `finally`: si salió bien, el perfil se recargó y este componente ya
+    // no existe. Tocarle el estado ahí sería escribirle a algo desmontado.
+  }
+
+  const campo = `motivo-${rasgo.dimension}`;
+  return (
+    <form
+      className="border-border flex flex-col gap-2 border-t pt-2 text-sm"
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        void registrar();
+      }}
+    >
+      <label htmlFor={campo} className="font-medium">
+        ¿Querés contarme por qué? Es opcional.
+      </label>
+      <textarea
+        id={campo}
+        rows={2}
+        value={motivo}
+        disabled={registrando}
+        onChange={(evento) => setMotivo(evento.target.value)}
+        placeholder="Por ejemplo: lo hago por obligación, no porque me guste."
+        className="border-input bg-surface min-h-11 resize-none rounded-md border p-3"
+      />
+      {fallo !== null && (
+        <p role="alert" className="text-destructive">
+          {fallo}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={registrando}
+          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-md px-4 font-medium disabled:opacity-50"
+        >
+          Registrar
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbierto(false)}
+          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
