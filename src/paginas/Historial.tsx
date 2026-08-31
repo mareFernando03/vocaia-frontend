@@ -97,21 +97,20 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVolver }: Propi
                 // uno de los pares que `verificar-contraste` ya mide.
                 className="border-border bg-surface hover:bg-background flex w-full flex-col items-start gap-1 rounded-md border p-3 text-left"
               >
-                <span className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-                  <span>{FECHA.format(new Date(sesion.actualizada_en))}</span>
-                  <span aria-hidden="true">·</span>
-                  {/* Mensajes y no intercambios: el backend cuenta los turnos
-                      de las dos partes y acá no hay forma de separarlos. */}
-                  {/* No se muestra el estado de la sesion. `derivada` no lo
-                      asigna hoy ninguna parte del dominio, y `cerrada` se
-                      reabre sola en cuanto la persona vuelve a escribir
-                      —lo hace `_reabrir_si_habia_cerrado` del servicio de
-                      conversacion—, asi que la etiqueta no describiria ninguna
-                      diferencia que la persona pueda notar. */}
-                  <span className="tabular-nums">
-                    {sesion.cantidad_turnos} {sesion.cantidad_turnos === 1 ? "mensaje" : "mensajes"}
-                  </span>
-                </span>
+                {/* Una sola cadena y no tres elementos con separadores
+                    ocultos: el nombre accesible del boton concatena los hijos
+                    sin espacios, asi que «2026» y «2 mensajes» se pegaban y el
+                    lector de pantalla leia «20262 mensajes». Mensajes y no
+                    intercambios: el backend cuenta los turnos de las dos partes
+                    y aca no hay forma de separarlos. */}
+                <span className="text-muted-foreground text-sm">
+                  {`${FECHA.format(new Date(sesion.actualizada_en))} · ${sesion.cantidad_turnos} ${
+                    sesion.cantidad_turnos === 1 ? "mensaje" : "mensajes"
+                  }`}
+                </span>{" "}
+                {/* El espacio de arriba no se dibuja —flex descarta los nodos
+                    de solo espacio— pero sí entra en el nombre accesible, que
+                    si no leería «2 mensajesEstoy entre…». */}
                 {/* `line-clamp-2` y no un recorte en JavaScript: cuántas
                     palabras entran depende del ancho de la pantalla, que el
                     código no conoce y el navegador sí. */}

@@ -128,6 +128,52 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     expect(window.sessionStorage.getItem(CLAVE)).toBeNull();
   });
 
+  it("el listado se opera con teclado de punta a punta", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(listarSesiones).mockResolvedValue([
+      resumen(ANTERIOR, "Estoy entre sistemas y diseño"),
+    ]);
+    vi.mocked(obtenerHistorial).mockResolvedValue(
+      historial(ANTERIOR, [turno(1, "usuario", "Estoy entre sistemas y diseño")]),
+    );
+
+    render(<Autenticado alSalir={salir} />);
+    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await screen.findByRole("button", { name: /entre sistemas y diseño/ });
+
+    // El orden de tabulación sigue al del documento: primero volver, después
+    // las conversaciones. Si alguien mueve el botón en el marcado, esto lo caza.
+    await usuario.tab();
+    expect(screen.getByRole("button", { name: /^volver$/i })).toHaveFocus();
+    await usuario.tab();
+    const item = screen.getByRole("button", { name: /entre sistemas y diseño/ });
+    expect(item).toHaveFocus();
+
+    // Y se activa con Enter, no sólo con el mouse: cada ítem es un botón de
+    // verdad y no un div con un manejador de clic encima.
+    await usuario.keyboard("{Enter}");
+
+    await waitFor(() => expect(obtenerHistorial).toHaveBeenCalledWith(ANTERIOR));
+  });
+
+  it("cada conversación se anuncia como un solo objetivo, con su fecha y su tamaño", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(listarSesiones).mockResolvedValue([
+      resumen(ANTERIOR, "Estoy entre sistemas y diseño"),
+    ]);
+
+    render(<Autenticado alSalir={salir} />);
+    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+
+    // Un solo botón por conversación, con todo adentro: quien usa lector de
+    // pantalla oye «28 de agosto de 2026, 2 mensajes, Estoy entre…» de una vez,
+    // en lugar de tres elementos sueltos que hay que juntar mentalmente.
+    const item = await screen.findByRole("button", { name: /entre sistemas y diseño/ });
+    expect(item).toHaveAccessibleName(
+      /^24 de agosto de 2026 · 2 mensajes Estoy entre sistemas y diseño$/,
+    );
+  });
+
   it("sin conversaciones previas lo dice, en vez de mostrar una lista vacía", async () => {
     const usuario = userEvent.setup();
     vi.mocked(listarSesiones).mockResolvedValue([]);
