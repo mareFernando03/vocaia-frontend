@@ -39,6 +39,10 @@ const PARES = [
   ["Texto secundario sobre tarjeta", "muted-foreground", "surface", 4.5],
   // Fondo de la sección de ayuda del aviso y del hover de los botones neutros.
   ["Texto normal sobre el azul claro", "foreground", "primary-soft", 4.5],
+  // La salvedad del perfil todavía no publicable va sobre el ámbar suave. Es
+  // lo que evita que alguien lea un bosquejo como una recomendación, así que
+  // tiene que ser legible: es de las cosas que no se pueden pasar por alto.
+  ["Texto de la salvedad sobre el ámbar suave", "accent-foreground", "accent-soft", 4.5],
   // 1.4.11: el borde de un campo es información necesaria para identificarlo.
   ["Borde de campos sobre el fondo", "input", "background", 3.0],
   // El anillo de foco tiene que verse, o la navegación por teclado se pierde.

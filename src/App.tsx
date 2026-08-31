@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
@@ -6,6 +6,7 @@ import { AVISO } from "./contenido/aviso-ia";
 import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
 import Conversacion from "./paginas/Conversacion";
 import Ingresar from "./paginas/Ingresar";
+import Perfil from "./paginas/Perfil";
 
 export default function App() {
   const { aceptado, aceptar } = useAvisoAceptado();
@@ -107,6 +108,78 @@ function Contenido({ sesion, alIngresar, alSalir }: PropiedadesContenido) {
   }
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
-  // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
-  return <Conversacion alSalir={alSalir} />;
+  // el aviso ya se leyó, y lo que queda es lo que la persona vino a hacer.
+  return <Autenticado alSalir={alSalir} />;
+}
+
+type Vista = "conversacion" | "perfil";
+
+/**
+ * Las dos pantallas de quien ya entró, con el interruptor para pasar de una a
+ * la otra (HU-06, HU-07, HU-13).
+ *
+ * El destino vive en un estado y no en la URL a propósito: son dos pantallas y
+ * ninguna se comparte por enlace ni se abre en una pestaña nueva. Traer un
+ * enrutador para esto sería una dependencia por dos botones.
+ */
+function Autenticado({ alSalir }: { alSalir: () => Promise<void> }) {
+  const [vista, setVista] = useState<Vista>("conversacion");
+
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <nav aria-label="Secciones" className="flex flex-wrap items-center justify-between gap-2">
+        <ul className="flex gap-1">
+          <li>
+            <Pestana activa={vista === "conversacion"} alElegir={() => setVista("conversacion")}>
+              Conversación
+            </Pestana>
+          </li>
+          <li>
+            <Pestana activa={vista === "perfil"} alElegir={() => setVista("perfil")}>
+              Tu perfil
+            </Pestana>
+          </li>
+        </ul>
+        <button
+          type="button"
+          onClick={() => void alSalir()}
+          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+        >
+          Cerrar sesión
+        </button>
+      </nav>
+
+      {/* `min-h-0` para que la lista de la conversación pueda desbordar y
+          scrollear adentro: sin esto un contenedor flex se estira con su
+          contenido y el scroll se lo lleva la página entera. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {vista === "conversacion" ? <Conversacion /> : <Perfil />}
+      </div>
+    </div>
+  );
+}
+
+interface PropiedadesPestana {
+  activa: boolean;
+  alElegir: () => void;
+  children: ReactNode;
+}
+
+function Pestana({ activa, alElegir, children }: PropiedadesPestana) {
+  return (
+    <button
+      type="button"
+      onClick={alElegir}
+      // `aria-current` y no solo el color: quien usa lector de pantalla no ve
+      // cuál está resaltada.
+      aria-current={activa ? "page" : undefined}
+      className={
+        activa
+          ? "bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium"
+          : "border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-full border px-4 text-sm"
+      }
+    >
+      {children}
+    </button>
+  );
 }

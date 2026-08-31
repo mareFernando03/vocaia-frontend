@@ -12,11 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Fuente } from "../api/conversacion";
 import { useConversacion } from "../hooks/useConversacion";
 
-interface Propiedades {
-  alSalir: () => Promise<void>;
-}
-
-export default function Conversacion({ alSalir }: Propiedades) {
+export default function Conversacion() {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -58,13 +54,6 @@ export default function Conversacion({ alSalir }: Propiedades) {
               {intercambios} {intercambios === 1 ? "intercambio" : "intercambios"}
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => void alSalir()}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Cerrar sesión
-          </button>
         </div>
       </div>
 
