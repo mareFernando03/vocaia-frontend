@@ -95,6 +95,20 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     expect(screen.getByRole("heading", { name: "Investigador" })).toBeInTheDocument();
   });
 
+  it("no dice «más de una vez» de algo que la persona contó una sola vez", async () => {
+    // Una lectura sola y contundente alcanza para confianza alta, así que la
+    // frase de respaldo no puede hablar de cantidad: la cantidad la dice la
+    // línea de al lado, y las dos juntas se contradecían.
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({ rasgos: [rasgo({ confianza: "alta", unidades: 1, soporte: 3 })] }),
+    );
+
+    render(<Perfil />);
+
+    expect(await screen.findByText(/sale de una sola cosa que me contaste/i)).toBeInTheDocument();
+    expect(screen.queryByText(/más de una vez/i)).not.toBeInTheDocument();
+  });
+
   it("dice en qué se basa con la cita textual de la persona", async () => {
     const usuario = userEvent.setup();
     vi.mocked(obtenerPerfil).mockResolvedValue(
