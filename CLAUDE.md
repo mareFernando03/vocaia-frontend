@@ -124,6 +124,10 @@ del repositorio académico.
 corrección, lenguaje, accesibilidad, datos personales y definición de terminado.
 Se pide en lenguaje natural —«revisá este PR»— y no hace falta invocarlo por nombre.
 
+**Se corre antes de sacar el PR de borrador**, que es cuando se asigna el revisor y
+empieza a correr el plazo de 24 horas hábiles. Cada hallazgo se arregla o se declara
+en el cuerpo del PR. Está en `equipo/acuerdos.md` §1.3 del repositorio académico.
+
 **Corre el portón automático primero y no repite lo que él ya mira.** Los cinco están
 para lo que compila, pasa las pruebas y aun así está mal: viven en `.claude/agents/` y
 cada uno declara qué busca. El de accesibilidad mira, entre otras cosas, el par de

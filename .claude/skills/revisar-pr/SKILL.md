@@ -16,6 +16,12 @@ no sean dos días distintos.
 revisores: acá no hay puertos ni capas, y sí hay una persona del otro lado de
 la pantalla.
 
+**Se corre antes de sacar el PR de borrador**, no después de pedir la revisión.
+Así la persona que revisa recibe un PR con lo de máquina ya atendido y le quedan
+las cuatro cosas que ninguna máquina puede juzgar: si esto es lo que la tarjeta
+pide, las decisiones de diseño, si la deuda declarada es aceptable, y los
+hallazgos que quedaron como sospecha. Es `equipo/acuerdos.md` §1.3.
+
 ## Antes que nada: el portón automático
 
 **No gastes un revisor en lo que la máquina ya mira.** Corré esto primero y, si
@@ -57,6 +63,12 @@ escribe código: reportan.
 **Si el diff no toca el área de un revisor, contesta «nada que observar».** Un
 revisor que siempre encuentra algo enseña a ignorarlo.
 
+> **Si no podés lanzar subagentes**, no hagas la revisión de un solo hilo y
+> sigas como si nada: **decilo en el informe, en la primera línea**. Cinco
+> miradas independientes y una sola pasada leyendo el mismo diff no son lo
+> mismo, y esta skill degradaría sin fallar —que es la forma más cara de
+> romperse—. Quien lee la revisión tiene que saber cuál de las dos recibió.
+
 ## Cómo se consolida
 
 Una lista ordenada por gravedad. Por hallazgo: qué está mal, dónde, qué pasa si
@@ -69,5 +81,11 @@ la pantalla, comprobalo.
 
 ## Después de la revisión
 
-Los hallazgos se le proponen a la persona. El comentario en el PR, el merge y la
-transición del tablero los hace ella.
+- Con cada hallazgo se hace una de dos cosas, y no hay una tercera: **se arregla,
+  o se declara en el cuerpo del PR** (`equipo/acuerdos.md` §1.3 del repositorio
+  académico). Un incumplimiento declarado es una decisión que el equipo puede
+  discutir; uno silencioso es un hallazgo del cierre del sprint.
+- Los hallazgos se le **proponen a la persona**, no se aplican solos.
+- Podés dejarlos como **comentario del PR, firmado como agente**, para que
+  queden a la vista de los tres. Lo que no hacés es **aprobar, mergear, mover el
+  tablero ni cerrar una conversación que abrió otro**.
