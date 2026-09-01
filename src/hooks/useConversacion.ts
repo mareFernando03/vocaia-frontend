@@ -27,7 +27,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { describir } from "../api/cliente";
 import { enviarMensaje, type Fuente, obtenerHistorial, type Turno } from "../api/conversacion";
 import { alCambiarSesion } from "../auth/sesion";
 
@@ -43,7 +43,13 @@ function sesionGuardada(): string | null {
   }
 }
 
-function recordarSesion(id: string): void {
+/**
+ * Se exportan las dos de abajo porque la pantalla de historial (HU-12) es la
+ * otra cosa que decide cuál es la sesión activa: retomar una previa la escribe,
+ * empezar una nueva la borra. La conversación se remonta después y la lee acá,
+ * que es el único lugar que conoce la clave.
+ */
+export function recordarSesion(id: string): void {
   try {
     window.sessionStorage.setItem(CLAVE, id);
   } catch {
@@ -51,7 +57,7 @@ function recordarSesion(id: string): void {
   }
 }
 
-function olvidarSesion(): void {
+export function olvidarSesion(): void {
   try {
     window.sessionStorage.removeItem(CLAVE);
   } catch {
@@ -196,12 +202,4 @@ export function useConversacion(): Conversacion {
     enviar,
     reintentar: () => void cargar(),
   };
-}
-
-function describir(fallo: unknown): string {
-  if (fallo instanceof SesionVencida) return fallo.message;
-  if (fallo instanceof ErrorDeApi) return fallo.message;
-  // Un fallo de red no trae nada legible: `TypeError: Failed to fetch` no le
-  // dice nada a nadie.
-  return "No se pudo conectar con el servidor. Revisá tu conexión y probá de nuevo.";
 }
