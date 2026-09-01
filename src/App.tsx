@@ -4,7 +4,7 @@ import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
 import { AVISO } from "./contenido/aviso-ia";
 import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
-import Conversacion from "./paginas/Conversacion";
+import Autenticado from "./paginas/Autenticado";
 import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
@@ -108,5 +108,5 @@ function Contenido({ sesion, alIngresar, alSalir }: PropiedadesContenido) {
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
   // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
-  return <Conversacion alSalir={alSalir} />;
+  return <Autenticado alSalir={alSalir} />;
 }

@@ -14,9 +14,10 @@ import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
+  alVerHistorial: () => void;
 }
 
-export default function Conversacion({ alSalir }: Propiedades) {
+export default function Conversacion({ alSalir, alVerHistorial }: Propiedades) {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -44,9 +45,13 @@ export default function Conversacion({ alSalir }: Propiedades) {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-4">
+      {/* `flex-wrap` en las dos filas: a 360 px el titulo mas los dos
+          botones no entran en una linea, y sin envolver la pagina scrollea
+          en horizontal. La franja de divulgacion de `App` ya envuelve por lo
+          mismo. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h1 className="text-xl font-semibold">Tu conversación</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Se cuentan intercambios y no turnos: en la base cada intervención
               es un turno, así que "turno 7" sería el cuarto que escribió la
               persona y nadie lo leería así. No se muestra un objetivo —"7 de
@@ -58,6 +63,17 @@ export default function Conversacion({ alSalir }: Propiedades) {
               {intercambios} {intercambios === 1 ? "intercambio" : "intercambios"}
             </span>
           )}
+          {/* La puerta al historial (HU-12). Va acá y no como pantalla de
+              entrada: quien está conversando tiene que poder buscar una charla
+              anterior, pero recargar en medio de esta tiene que devolver a
+              esta. */}
+          <button
+            type="button"
+            onClick={alVerHistorial}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Tus conversaciones
+          </button>
           <button
             type="button"
             onClick={() => void alSalir()}

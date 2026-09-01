@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+  "/api/conversacion": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar las sesiones de la persona autenticada
+     * @description Devuelve las sesiones de quien consulta, de la más reciente a la más vieja.
+     *
+     *     El listado no toma ningún parámetro de a quién pertenecen las sesiones: el
+     *     identificador sale de la credencial verificada y no de la petición, así que
+     *     no hay forma de pedir el historial de otra persona.
+     */
+    get: operations["listar_sesiones_api_conversacion_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/conversacion/{sesion_id}": {
     parameters: {
       query?: never;
@@ -226,6 +250,42 @@ export interface components {
       contenido: string;
     };
     /**
+     * ResumenSesionSalida
+     * @description Una sesión en el listado del historial, sin sus turnos.
+     */
+    ResumenSesionSalida: {
+      /**
+       * Actualizada En
+       * Format: date-time
+       */
+      actualizada_en: string;
+      /**
+       * Cantidad Turnos
+       * @description Turnos persistidos, de la persona y del agente.
+       */
+      cantidad_turnos: number;
+      /**
+       * Estado
+       * @description `abierta`, `cerrada` o `derivada`.
+       */
+      estado: string;
+      /**
+       * Iniciada En
+       * Format: date-time
+       */
+      iniciada_en: string;
+      /**
+       * Sesion Id
+       * Format: uuid
+       */
+      sesion_id: string;
+      /**
+       * Vista Previa
+       * @description Primer mensaje de la persona en esa sesión, para poder reconocerla en la lista. Es `null` si la sesión sólo tiene el mensaje de encuadre del agente.
+       */
+      vista_previa?: string | null;
+    };
+    /**
      * TurnoSalida
      * @description Una intervención del historial.
      */
@@ -288,6 +348,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  listar_sesiones_api_conversacion_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResumenSesionSalida"][];
+        };
+      };
+    };
+  };
   obtener_historial_api_conversacion__sesion_id__get: {
     parameters: {
       query?: never;
@@ -352,6 +432,13 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+      /** @description La sesión alcanzó el techo de turnos de la ventana de 24 horas. No es un error: la conversación puede retomarse más tarde. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
