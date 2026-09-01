@@ -38,4 +38,7 @@ jobs:
         env:
           # PAT (scope repo) porque GITHUB_TOKEN no ve el repo del back.
           GH_TOKEN: ${{ secrets.REVIEW_TOKEN }}
-          LOAD_REPOS: LucaElbio/vocaia-backend,mareFernando03/vocaia-frontend
+          # Los tres repositorios: 5to tambien tiene este workflow desde
+          # VOCAIA-69, y es donde mas PRs se abren. Contar la carga sin el
+          # subestimaba a quien venia revisando documentacion toda la semana.
+          LOAD_REPOS: FabriQuinteros/5to,LucaElbio/vocaia-backend,mareFernando03/vocaia-frontend
