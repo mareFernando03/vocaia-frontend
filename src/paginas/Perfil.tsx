@@ -345,9 +345,14 @@ function comoTeCae(intensidad: number): string {
 
 /** Qué tan asentado está lo que el perfil afirma de una dimensión. */
 const RESPALDO: Record<string, string> = {
-  alta: "Lo contaste con ejemplos concretos más de una vez.",
-  media: "Volvió a aparecer varias veces en lo que me contaste.",
-  baja: "Lo mencionaste poco, así que puede cambiar en cuanto sigamos hablando.",
+  // Ninguna de las tres frases afirma cuántas veces la persona lo dijo: eso lo
+  // dice `cuantas`, y decirlo dos veces las hace contradecirse. Una lectura
+  // sola y contundente alcanza para confianza alta, y «lo contaste más de una
+  // vez» al lado de «sale de una sola cosa que me contaste» es un absurdo que
+  // le hace perder credibilidad a todo lo demás que la pantalla afirma.
+  alta: "Lo contaste con ejemplos concretos.",
+  media: "Aparece con claridad en lo que me contaste.",
+  baja: "Lo mencionaste al pasar, así que puede cambiar en cuanto sigamos hablando.",
 };
 
 function cuantas(unidades: number): string {
