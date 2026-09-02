@@ -72,7 +72,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await screen.findByRole("heading", { name: /lo que fui entendiendo/i });
 
     // La lista es la de los nombres que el backend usa para pensar el perfil.
@@ -103,7 +103,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       perfil({ rasgos: [rasgo({ confianza: "alta", unidades: 1, soporte: 3 })] }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
 
     expect(await screen.findByText(/sale de una sola cosa que me contaste/i)).toBeInTheDocument();
     expect(screen.queryByText(/más de una vez/i)).not.toBeInTheDocument();
@@ -119,7 +119,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByText(/en qué me baso/i));
 
     // Literal y no parafraseada: lo que la persona tiene que poder reconocer
@@ -147,7 +147,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await screen.findByText(/de esto todavía no hablamos/i);
 
     // «Realista» aparece en la sección de lo no conversado, y no como una
@@ -161,7 +161,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
   it("cuando no alcanza para recomendar carreras, lo dice sin que haya que desplegar nada", async () => {
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ publicable: false, rasgos: [rasgo()] }));
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
 
     const salvedad = await screen.findByText(/para recomendarte carreras/i);
     expect(salvedad).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
   it("quien todavía no conversó recibe una invitación, no una pantalla vacía", async () => {
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ actualizado_en: null, rasgos: [] }));
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
 
     expect(await screen.findByText(/conversá un rato y volvé/i)).toBeInTheDocument();
   });
@@ -182,7 +182,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       .mockRejectedValueOnce(new ErrorDeApi(500, "El servidor respondió 500."))
       .mockResolvedValueOnce(perfil({ rasgos: [rasgo()] }));
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /reintentar/i }));
 
     await waitFor(() =>

@@ -12,7 +12,13 @@ import { useEffect, useRef, useState } from "react";
 import type { Fuente } from "../api/conversacion";
 import { useConversacion } from "../hooks/useConversacion";
 
-export default function Conversacion() {
+interface Propiedades {
+  alSalir: () => Promise<void>;
+  alVerHistorial: () => void;
+  alVerPerfil: () => void;
+}
+
+export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: Propiedades) {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -40,9 +46,13 @@ export default function Conversacion() {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-4">
+      {/* `flex-wrap` en las dos filas: a 360 px el titulo mas los dos
+          botones no entran en una linea, y sin envolver la pagina scrollea
+          en horizontal. La franja de divulgacion de `App` ya envuelve por lo
+          mismo. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-4">
         <h1 className="text-xl font-semibold">Tu conversación</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Se cuentan intercambios y no turnos: en la base cada intervención
               es un turno, así que "turno 7" sería el cuarto que escribió la
               persona y nadie lo leería así. No se muestra un objetivo —"7 de
@@ -54,6 +64,34 @@ export default function Conversacion() {
               {intercambios} {intercambios === 1 ? "intercambio" : "intercambios"}
             </span>
           )}
+          {/* La puerta al historial (HU-12). Va acá y no como pantalla de
+              entrada: quien está conversando tiene que poder buscar una charla
+              anterior, pero recargar en medio de esta tiene que devolver a
+              esta. */}
+          <button
+            type="button"
+            onClick={alVerHistorial}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Tus conversaciones
+          </button>
+          {/* El perfil es el otro desvío (HU-13). Va al lado del historial y
+              no como pestaña: los dos se leen desde la conversación y se
+              vuelve a ella, que es lo que HU-07 pide al recargar. */}
+          <button
+            type="button"
+            onClick={alVerPerfil}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Tu perfil
+          </button>
+          <button
+            type="button"
+            onClick={() => void alSalir()}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
 

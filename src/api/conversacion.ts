@@ -19,6 +19,17 @@ import type { components } from "./generado/esquema";
 
 export type Historial = components["schemas"]["HistorialSalida"];
 export type Turno = components["schemas"]["TurnoSalida"];
+export type ResumenSesion = components["schemas"]["ResumenSesionSalida"];
+
+/**
+ * Las sesiones de quien consulta, de la más reciente a la más vieja (HU-12).
+ *
+ * No lleva a quién pertenecen: el backend lo saca de la credencial y no de la
+ * petición, así que no hay forma de pedir el historial de otra persona.
+ */
+export function listarSesiones(): Promise<ResumenSesion[]> {
+  return pedir<ResumenSesion[]>("/api/conversacion");
+}
 
 /**
  * El historial de la sesión, o `null` si el backend todavía no la conoce.
