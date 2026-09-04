@@ -215,7 +215,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockResolvedValue(objecion());
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.type(screen.getByLabelText(/por qué/i), "lo estudio por mi viejo");
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
@@ -230,7 +230,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockResolvedValue(objecion());
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -246,7 +246,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       );
     vi.mocked(objetar).mockResolvedValue(objecion({ motivo: "lo hago por obligación" }));
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -268,7 +268,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await screen.findByText(/marcaste que esto no te representa/i);
 
     // El desacuerdo entre lo que el sistema infiere y lo que la persona
@@ -285,7 +285,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockRejectedValue(new ErrorDeApi(500, "El servidor respondió 500."));
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -298,7 +298,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       perfil({ rasgos: [rasgo({ objecion: objecion() })] }),
     );
 
-    render(<Perfil />);
+    render(<Perfil alVolver={() => {}} />);
     await screen.findByText(/marcaste que esto no te representa/i);
 
     expect(screen.queryByRole("button", { name: /no me representa/i })).not.toBeInTheDocument();
