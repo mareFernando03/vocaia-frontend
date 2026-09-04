@@ -30,7 +30,11 @@ import {
   type Rasgo,
 } from "../api/perfil";
 
-export default function Perfil() {
+interface Propiedades {
+  alVolver: () => void;
+}
+
+export default function Perfil({ alVolver }: Propiedades) {
   const [perfil, setPerfil] = useState<PerfilApi | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +106,16 @@ export default function Perfil() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-xl font-semibold">Lo que fui entendiendo de vos</h1>
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h1 className="text-xl font-semibold">Lo que fui entendiendo de vos</h1>
+          <button
+            type="button"
+            onClick={alVolver}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Volver
+          </button>
+        </div>
         <Encabezado perfil={perfil} conRasgos={contados.length} />
       </div>
 
