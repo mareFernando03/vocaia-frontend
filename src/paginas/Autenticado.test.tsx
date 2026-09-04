@@ -21,7 +21,10 @@ vi.mock("../api/conversacion", () => ({
   enviarMensaje: vi.fn(),
 }));
 
+vi.mock("../api/perfil", () => ({ obtenerPerfil: vi.fn() }));
+
 const { listarSesiones, obtenerHistorial, enviarMensaje } = await import("../api/conversacion");
+const { obtenerPerfil } = await import("../api/perfil");
 const { default: Autenticado } = await import("./Autenticado");
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -202,5 +205,38 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       await screen.findByRole("button", { name: /terminando el secundario/ }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("se entra al perfil desde la conversación y se vuelve a la misma charla", async () => {
+    // HU-13 comparte navegación con HU-12: los dos son desvíos, no pestañas.
+    // Lo que se puede romper en silencio es la vuelta — que el perfil deje a la
+    // persona en una conversación en blanco en vez de en la que venía.
+    const usuario = userEvent.setup();
+    window.sessionStorage.setItem(CLAVE, ANTERIOR);
+    vi.mocked(obtenerHistorial).mockResolvedValue(
+      historial(ANTERIOR, [turno(1, "usuario", "Estoy entre sistemas y diseño")]),
+    );
+    vi.mocked(obtenerPerfil).mockResolvedValue({
+      actualizado_en: "2026-09-01T12:00:00Z",
+      version_instrumento: "instrumento-v1",
+      rasgos: [],
+    } as never);
+
+    render(<Autenticado alSalir={salir} />);
+    await screen.findByText("Estoy entre sistemas y diseño");
+
+    await usuario.click(screen.getByRole("button", { name: /tu perfil/i }));
+    expect(
+      await screen.findByRole("heading", { name: /lo que fui entendiendo/i }),
+    ).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
+
+    // Vuelve a la charla que venía y no a una en blanco: al desmontarse para
+    // mostrar el perfil, la conversación se vuelve a montar y relee la sesión
+    // guardada, igual que después de un F5. Lo que importa es que sea la misma.
+    expect(screen.getByText("Estoy entre sistemas y diseño")).toBeInTheDocument();
+    expect(vi.mocked(obtenerHistorial).mock.lastCall).toEqual([ANTERIOR]);
+    expect(window.sessionStorage.getItem(CLAVE)).toBe(ANTERIOR);
   });
 });

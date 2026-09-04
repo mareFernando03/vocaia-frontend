@@ -150,6 +150,35 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/perfil": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar mi perfil vocacional y en qué se basa
+     * @description Devuelve el perfil de quien consulta, con los fragmentos que lo sostienen.
+     *
+     *     **Siempre devuelve un perfil, nunca un 404.** Quien todavía no conversó
+     *     recibe uno donde ninguna dimensión afirma nada, que es exactamente lo que el
+     *     sistema sabe de esa persona. Un error obligaría al cliente a distinguir dos
+     *     casos que para quien lo lee son el mismo.
+     *
+     *     El perfil se devuelve aunque no alcance para recomendar carreras: `publicable`
+     *     dice si llegó a ese umbral, y por debajo lo que corresponde es proponer
+     *     seguir explorando, no esconder lo que hay.
+     */
+    get: operations["obtener_perfil_api_perfil_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/salud": {
     parameters: {
       query?: never;
@@ -201,6 +230,53 @@ export interface components {
       /** Version */
       version: string;
     };
+    /**
+     * EvidenciaSalida
+     * @description Un fragmento textual que sostiene un rasgo.
+     *
+     *     Es la respuesta a «en qué se basa esto» (RNF-05). El fragmento es literal:
+     *     sale tal cual de algo que la persona escribió, y por eso puede leerlo y
+     *     decir que no la representa.
+     */
+    EvidenciaSalida: {
+      /**
+       * Confianza
+       * @description Cómo declaró el extractor esta lectura.
+       */
+      confianza: string;
+      /**
+       * Confianza Degradada
+       * @description La lectura quedó en duda por un marcador de influencia externa. No se descarta: pesa menos.
+       */
+      confianza_degradada: boolean;
+      /**
+       * Emitida En
+       * Format: date-time
+       */
+      emitida_en: string;
+      /**
+       * Fragmento
+       * @description Cita literal de lo que la persona escribió.
+       */
+      fragmento: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Sesion Id
+       * Format: uuid
+       */
+      sesion_id: string;
+      /** Turno */
+      turno: number;
+      /**
+       * Valencia
+       * @description De -2 (rechazo) a 2 (interés fuerte).
+       */
+      valencia: number;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -248,6 +324,66 @@ export interface components {
        * @description Texto del mensaje. No puede estar vacío.
        */
       contenido: string;
+    };
+    /**
+     * PerfilSalida
+     * @description El perfil completo de una persona.
+     *
+     *     Incluye las dimensiones sin evidencia, con `confianza: insuficiente`. Quien
+     *     lo muestre tiene que poder decir «de esto todavía no hablamos», que no es lo
+     *     mismo que un cero.
+     */
+    PerfilSalida: {
+      /** Actualizado En */
+      actualizado_en: string | null;
+      /**
+       * Publicable
+       * @description Si el perfil alcanza para recomendar carreras. Por debajo del umbral se muestra igual y lo que corresponde es proponer seguir explorando.
+       */
+      publicable: boolean;
+      /** Rasgos */
+      rasgos: components["schemas"]["RasgoSalida"][];
+      /**
+       * Sesiones
+       * @description Las sesiones cuya evidencia entró en el cálculo.
+       */
+      sesiones: string[];
+      /**
+       * Version Instrumento
+       * @description Con qué versión de reglas se construyó. Dos perfiles con versiones distintas no son comparables.
+       */
+      version_instrumento: string;
+    };
+    /**
+     * RasgoSalida
+     * @description Una dimensión del perfil, con nombre legible y su respaldo.
+     */
+    RasgoSalida: {
+      /**
+       * Confianza
+       * @description `insuficiente`, `baja`, `media` o `alta`. `insuficiente` no es un valor bajo: es que la persona no habló de esto y el sistema no infiere nada.
+       */
+      confianza: string;
+      /** Descripcion */
+      descripcion: string;
+      /**
+       * Dimension
+       * @description Código de la dimensión en el instrumento.
+       */
+      dimension: string;
+      /** Evidencias */
+      evidencias: components["schemas"]["EvidenciaSalida"][];
+      /**
+       * Intensidad
+       * @description De -2 a 2, en la misma escala que la valencia.
+       */
+      intensidad: number;
+      /** Nombre */
+      nombre: string;
+      /** Soporte */
+      soporte: number;
+      /** Unidades */
+      unidades: number;
     };
     /**
      * ResumenSesionSalida
@@ -538,6 +674,26 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  obtener_perfil_api_perfil_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PerfilSalida"];
+        };
       };
     };
   };

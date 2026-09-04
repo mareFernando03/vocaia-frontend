@@ -15,9 +15,10 @@ import { useConversacion } from "../hooks/useConversacion";
 interface Propiedades {
   alSalir: () => Promise<void>;
   alVerHistorial: () => void;
+  alVerPerfil: () => void;
 }
 
-export default function Conversacion({ alSalir, alVerHistorial }: Propiedades) {
+export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: Propiedades) {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -73,6 +74,16 @@ export default function Conversacion({ alSalir, alVerHistorial }: Propiedades) {
             className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
           >
             Tus conversaciones
+          </button>
+          {/* El perfil es el otro desvío (HU-13). Va al lado del historial y
+              no como pestaña: los dos se leen desde la conversación y se
+              vuelve a ella, que es lo que HU-07 pide al recargar. */}
+          <button
+            type="button"
+            onClick={alVerPerfil}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Tu perfil
           </button>
           <button
             type="button"

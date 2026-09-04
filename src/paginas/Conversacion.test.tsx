@@ -46,6 +46,7 @@ function flujo(...eventos: EventoConversacion[]) {
 
 const salir = () => Promise.resolve();
 const verHistorial = () => {};
+const verPerfil = () => {};
 
 describe("Conversacion · continuidad de la sesión (HU-07)", () => {
   beforeEach(() => {
@@ -54,7 +55,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
   });
 
   it("una sesión nueva no le pregunta al backend por algo que no existe", () => {
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
 
     expect(obtenerHistorial).not.toHaveBeenCalled();
     expect(screen.getByText(/contame por dónde andás/i)).toBeInTheDocument();
@@ -78,7 +79,9 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    const primera = render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    const primera = render(
+      <Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />,
+    );
     await usuario.type(
       screen.getByLabelText(/escribí tu mensaje/i),
       "Estoy terminando el secundario",
@@ -92,7 +95,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     // El F5: se cae todo el árbol y se vuelve a montar con el mismo almacenamiento.
     primera.unmount();
     vi.mocked(obtenerHistorial).mockClear();
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
 
     await waitFor(() => expect(screen.getByText("Contame más.")).toBeInTheDocument());
     expect(screen.getByText("Estoy terminando el secundario")).toBeInTheDocument();
@@ -104,7 +107,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     window.sessionStorage.setItem(CLAVE, "11111111-1111-4111-8111-111111111111");
     vi.mocked(obtenerHistorial).mockResolvedValue(null);
 
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
 
     await waitFor(() => expect(screen.getByText(/contame por dónde andás/i)).toBeInTheDocument());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -137,7 +140,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cuánto dura sistemas?");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -167,7 +170,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -184,7 +187,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       Promise.resolve(historial(id, [turno(1, "usuario", "Hola")])),
     );
 
-    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} />);
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
