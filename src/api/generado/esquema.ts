@@ -179,6 +179,35 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/perfil/objeciones": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Marcar que una inferencia del perfil no me representa
+     * @description Registra el desacuerdo de la persona con lo que el perfil dice de una dimensión.
+     *
+     *     **No corrige el perfil.** El motor va a seguir calculando lo mismo, porque
+     *     lo que la persona contó no cambió. Lo que queda asentado es que no se
+     *     reconoce en lo que se infirió de eso, y esa discrepancia es un dato que
+     *     tacharlo haría desaparecer.
+     *
+     *     Es idempotente por dimensión: volver a objetar la misma actualiza el motivo
+     *     y la fecha en lugar de apilar registros. La objeción se recupera después en
+     *     `GET /api/perfil`, dentro del rasgo al que corresponde.
+     */
+    post: operations["objetar_api_perfil_objeciones_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/salud": {
     parameters: {
       query?: never;
@@ -326,6 +355,47 @@ export interface components {
       contenido: string;
     };
     /**
+     * ObjecionEntrada
+     * @description Lo que manda quien dice que una inferencia no lo representa.
+     */
+    ObjecionEntrada: {
+      /**
+       * Dimension
+       * @description Código de la dimensión del perfil que se objeta.
+       */
+      dimension: string;
+      /**
+       * Motivo
+       * @description Por qué no representa a la persona. Opcional: exigirlo convertiría en trámite algo que tiene que costar un clic, y una objeción sin explicación sigue siendo una objeción.
+       * @default
+       */
+      motivo: string;
+    };
+    /**
+     * ObjecionSalida
+     * @description Una objeción registrada.
+     *
+     *     No lleva identificador propio: para quien la lee es «esta dimensión, que
+     *     dije que no me representa», y la dimensión ya la identifica —hay una sola
+     *     objeción vigente por dimensión—.
+     */
+    ObjecionSalida: {
+      /** Dimension */
+      dimension: string;
+      /** Motivo */
+      motivo: string;
+      /**
+       * Registrada En
+       * Format: date-time
+       */
+      registrada_en: string;
+      /**
+       * Version Instrumento
+       * @description Con qué versión de reglas estaba armado el perfil que la persona vio al objetar. La objeción es sobre lo que vio, no sobre lo que se calcule después.
+       */
+      version_instrumento: string;
+    };
+    /**
      * PerfilSalida
      * @description El perfil completo de una persona.
      *
@@ -380,6 +450,8 @@ export interface components {
       intensidad: number;
       /** Nombre */
       nombre: string;
+      /** @description La persona declaró que esto no la representa. El rasgo se devuelve igual y con los mismos números: lo que la objeción registra es el desacuerdo, no una corrección. Quien muestre el perfil tiene que mostrar las dos cosas. */
+      objecion?: components["schemas"]["ObjecionSalida"] | null;
       /** Soporte */
       soporte: number;
       /** Unidades */
@@ -693,6 +765,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PerfilSalida"];
+        };
+      };
+    };
+  };
+  objetar_api_perfil_objeciones_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ObjecionEntrada"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ObjecionSalida"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Evidencia, Perfil as PerfilApi, Rasgo } from "../api/perfil";
+import type { Evidencia, Objecion, Perfil as PerfilApi, Rasgo } from "../api/perfil";
 
 /**
  * S2-11 · el perfil se entiende sin saber cómo está hecho.
@@ -15,9 +15,10 @@ import type { Evidencia, Perfil as PerfilApi, Rasgo } from "../api/perfil";
 vi.mock("../api/perfil", async (original) => ({
   ...(await original<typeof import("../api/perfil")>()),
   obtenerPerfil: vi.fn(),
+  objetar: vi.fn(),
 }));
 
-const { obtenerPerfil } = await import("../api/perfil");
+const { obtenerPerfil, objetar } = await import("../api/perfil");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");
 
@@ -45,6 +46,17 @@ function rasgo(extra: Partial<Rasgo> = {}): Rasgo {
     unidades: 2,
     confianza: "alta",
     evidencias: [],
+    objecion: null,
+    ...extra,
+  };
+}
+
+function objecion(extra: Partial<Objecion> = {}): Objecion {
+  return {
+    dimension: "I",
+    motivo: "",
+    version_instrumento: "instrumento-v1",
+    registrada_en: "2026-08-31T09:00:00Z",
     ...extra,
   };
 }
@@ -63,6 +75,7 @@ function perfil(extra: Partial<PerfilApi> = {}): PerfilApi {
 describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", () => {
   beforeEach(() => {
     vi.mocked(obtenerPerfil).mockReset();
+    vi.mocked(objetar).mockReset();
   });
 
   it("no muestra ni un término del vocabulario con el que está hecho", async () => {
@@ -188,5 +201,106 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Investigador" })).toBeInTheDocument(),
     );
+  });
+});
+
+describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)", () => {
+  beforeEach(() => {
+    vi.mocked(obtenerPerfil).mockReset();
+    vi.mocked(objetar).mockReset();
+  });
+
+  it("registra la objeción contra la dimensión que se está leyendo", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
+    vi.mocked(objetar).mockResolvedValue(objecion());
+
+    render(<Perfil alVolver={() => {}} />);
+    await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
+    await usuario.type(screen.getByLabelText(/por qué/i), "lo estudio por mi viejo");
+    await usuario.click(screen.getByRole("button", { name: /registrar/i }));
+
+    // Contra «I», que es la dimensión de la tarjeta: el desacuerdo es con algo
+    // concreto que la persona está leyendo, no con el perfil en general.
+    await waitFor(() => expect(objetar).toHaveBeenCalledWith("I", "lo estudio por mi viejo"));
+  });
+
+  it("el motivo es opcional: objetar sin explicar sigue siendo objetar", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
+    vi.mocked(objetar).mockResolvedValue(objecion());
+
+    render(<Perfil alVolver={() => {}} />);
+    await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
+    await usuario.click(screen.getByRole("button", { name: /registrar/i }));
+
+    await waitFor(() => expect(objetar).toHaveBeenCalledWith("I", ""));
+  });
+
+  it("la objeción queda a la vista al volver a traer el perfil", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil)
+      .mockResolvedValueOnce(perfil({ rasgos: [rasgo()] }))
+      .mockResolvedValueOnce(
+        perfil({ rasgos: [rasgo({ objecion: objecion({ motivo: "lo hago por obligación" }) })] }),
+      );
+    vi.mocked(objetar).mockResolvedValue(objecion({ motivo: "lo hago por obligación" }));
+
+    render(<Perfil alVolver={() => {}} />);
+    await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
+    await usuario.click(screen.getByRole("button", { name: /registrar/i }));
+
+    // Recuperable, que es el criterio de aceptación: lo que se muestra es lo
+    // que quedó guardado del otro lado, no lo que acabamos de mandar.
+    expect(await screen.findByText(/marcaste que esto no te representa/i)).toBeInTheDocument();
+    expect(screen.getByText(/lo hago por obligación/)).toBeInTheDocument();
+  });
+
+  it("objetar no tacha el rasgo ni esconde las citas que lo sostienen", async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            objecion: objecion(),
+            evidencias: [evidencia("Me pasé el finde entero leyendo sobre eso.")],
+          }),
+        ],
+      }),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+    await screen.findByText(/marcaste que esto no te representa/i);
+
+    // El desacuerdo entre lo que el sistema infiere y lo que la persona
+    // reconoce es el dato que hay que conservar. Tachar el rasgo lo borraría.
+    expect(screen.getByRole("heading", { name: "Investigador" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/volvió a aparecer|ejemplos concretos|mencionaste poco/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/en qué me baso/i)).toBeInTheDocument();
+  });
+
+  it("si el registro falla, lo dice y no finge que quedó guardado", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
+    vi.mocked(objetar).mockRejectedValue(new ErrorDeApi(500, "El servidor respondió 500."));
+
+    render(<Perfil alVolver={() => {}} />);
+    await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
+    await usuario.click(screen.getByRole("button", { name: /registrar/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("El servidor respondió 500.");
+    expect(screen.queryByText(/marcaste que esto no te representa/i)).not.toBeInTheDocument();
+  });
+
+  it("una dimensión ya objetada no vuelve a ofrecer el botón", async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({ rasgos: [rasgo({ objecion: objecion() })] }),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+    await screen.findByText(/marcaste que esto no te representa/i);
+
+    expect(screen.queryByRole("button", { name: /no me representa/i })).not.toBeInTheDocument();
   });
 });
