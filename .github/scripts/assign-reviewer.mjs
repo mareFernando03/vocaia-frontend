@@ -18,6 +18,15 @@ export const score = (c) =>
 export const pick = (loads) =>
   [...loads].sort((a, b) => score(a) - score(b) || a.login.localeCompare(b.login))[0];
 
+// GitHub saca a quien revisa de requested_reviewers apenas manda su review, asi
+// que la lista vacia no significa "nadie lo reviso" sino "no queda nada pedido".
+// Sin mirar tambien las reviews, el push siguiente veia el PR sin reviewer y le
+// encajaba un segundo revisor encima del que ya venia trabajando (paso en 5to#40).
+// Comentarse el propio PR no cuenta como revisado.
+export const yaTieneReviewer = (pr, reviews = []) =>
+  !!pr.requested_reviewers?.length ||
+  reviews.some(r => r.user?.login && r.user.login !== pr.user.login);
+
 // ---------------------------------------------------------------------------
 
 const TOKEN = process.env.GH_TOKEN;
@@ -50,7 +59,12 @@ async function main() {
     body: JSON.stringify({ assignees: [author] }),
   });
 
-  if (pr.requested_reviewers?.length) return console.log('Ya tiene reviewer, no toco nada.');
+  // Si ya hay reviewer —pedido, o que ya dejo su review— no se toca nada. Es lo
+  // que hace que la reasignación a mano de acuerdos.md §1.4 —cuando al bot le
+  // tocó quien depende de esa historia— no la pise el siguiente push. Asignar de
+  // a dos o mas revisores se hace a mano; el script pone uno y solo si no hay.
+  const reviews = await api(`/repos/${repo}/pulls/${pr.number}/reviews?per_page=100`);
+  if (yaTieneReviewer(pr, reviews)) return console.log('Ya tiene reviewer, no toco nada.');
 
   const collabs = await api(`/repos/${repo}/collaborators?per_page=100`);
   const candidates = collabs
@@ -99,6 +113,13 @@ async function test() {
     { login: 'x', pendingReview: 1, openAuthored: 1, doneReviews: 0, mergedPRs: 0 }, // 5
     { login: 'y', pendingReview: 0, openAuthored: 1, doneReviews: 1, mergedPRs: 1 }, // 4
   ]).login, 'y');
+
+  // Ya revisado != sin reviewer: la lista vacia no habilita un segundo revisor.
+  const prDe = (login, req = []) => ({ user: { login }, requested_reviewers: req });
+  assert.equal(yaTieneReviewer(prDe('luca'), [{ user: { login: 'fabri' } }]), true);
+  assert.equal(yaTieneReviewer(prDe('luca'), []), false);
+  assert.equal(yaTieneReviewer(prDe('luca'), [{ user: { login: 'luca' } }]), false, 'comentarse el propio PR no es revisarlo');
+  assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'x' }]), []), true);
 
   console.log('ok');
 }
