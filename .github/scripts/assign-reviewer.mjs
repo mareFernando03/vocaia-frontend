@@ -1,5 +1,9 @@
-// Asigna autor + 1 reviewer (el de menor carga) cruzando backend y frontend.
+// Asigna autor + 1 reviewer (el de menor carga) cruzando los tres repositorios.
 // Uso: node assign-reviewer.mjs   |   node assign-reviewer.mjs --test
+//
+// Es el mismo archivo en 5to, vocaia-backend y vocaia-frontend. Si se toca,
+// se toca en los tres: la carga se cuenta cruzada y dos criterios distintos
+// asignarian distinto segun por que repositorio entro el PR.
 
 const REPOS = (process.env.LOAD_REPOS || '').split(',').map(s => s.trim()).filter(Boolean);
 const WINDOW_DAYS = 30;
@@ -18,14 +22,19 @@ export const score = (c) =>
 export const pick = (loads) =>
   [...loads].sort((a, b) => score(a) - score(b) || a.login.localeCompare(b.login))[0];
 
+// Un reviewer que cuenta es una persona. Copilot se pide solo al abrir el PR y
+// deja su review en segundos; contarlo dejaba el PR sin revision humana y el
+// script informando "ya tiene reviewer" (paso en 5to#52 a #55).
+const esPersona = (u) => !!u?.login && u.type !== 'Bot' && !u.login.endsWith('[bot]');
+
 // GitHub saca a quien revisa de requested_reviewers apenas manda su review, asi
 // que la lista vacia no significa "nadie lo reviso" sino "no queda nada pedido".
 // Sin mirar tambien las reviews, el push siguiente veia el PR sin reviewer y le
 // encajaba un segundo revisor encima del que ya venia trabajando (paso en 5to#40).
 // Comentarse el propio PR no cuenta como revisado.
 export const yaTieneReviewer = (pr, reviews = []) =>
-  !!pr.requested_reviewers?.length ||
-  reviews.some(r => r.user?.login && r.user.login !== pr.user.login);
+  !!pr.requested_reviewers?.some(esPersona) ||
+  reviews.some(r => esPersona(r.user) && r.user.login !== pr.user.login);
 
 // ---------------------------------------------------------------------------
 
@@ -119,7 +128,13 @@ async function test() {
   assert.equal(yaTieneReviewer(prDe('luca'), [{ user: { login: 'fabri' } }]), true);
   assert.equal(yaTieneReviewer(prDe('luca'), []), false);
   assert.equal(yaTieneReviewer(prDe('luca'), [{ user: { login: 'luca' } }]), false, 'comentarse el propio PR no es revisarlo');
-  assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'x' }]), []), true);
+  assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'x', type: 'User' }]), []), true);
+
+  // Un bot no es reviewer: ni pedido ni habiendo dejado su review.
+  const copilot = { login: 'copilot-pull-request-reviewer[bot]', type: 'Bot' };
+  assert.equal(yaTieneReviewer(prDe('luca'), [{ user: copilot }]), false, 'la review de Copilot no cuenta');
+  assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'Copilot', type: 'Bot' }]), []), false, 'Copilot pedido no cuenta');
+  assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'Copilot', type: 'Bot' }]), [{ user: { login: 'fabri', type: 'User' } }]), true);
 
   console.log('ok');
 }
