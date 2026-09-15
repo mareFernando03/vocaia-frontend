@@ -10,15 +10,22 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Fuente } from "../api/conversacion";
+import { Referencia } from "../componentes/Referencia";
 import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
   alVerHistorial: () => void;
   alVerPerfil: () => void;
+  alVerCarreras: () => void;
 }
 
-export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: Propiedades) {
+export default function Conversacion({
+  alSalir,
+  alVerHistorial,
+  alVerPerfil,
+  alVerCarreras,
+}: Propiedades) {
   const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
     useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -84,6 +91,15 @@ export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: P
             className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
           >
             Tu perfil
+          </button>
+          {/* Otro desvío del mismo tipo: se consulta el corpus de carreras
+              directo y se vuelve a la charla (HU-15). */}
+          <button
+            type="button"
+            onClick={alVerCarreras}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Carreras
           </button>
           <button
             type="button"
@@ -183,9 +199,6 @@ export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: P
   );
 }
 
-/** Separa la ubicación del final del texto de la fuente, si la trae. */
-const UBICACION = /\s+—\s+(\S+)$/;
-
 function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
     <div className="border-border bg-surface rounded-md border p-3 text-sm">
@@ -219,25 +232,6 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
         </ul>
       </details>
     </div>
-  );
-}
-
-function Referencia({ texto }: { texto: string }) {
-  const ubicacion = UBICACION.exec(texto);
-  // Sin ubicación reconocible se muestra el texto entero y listo: una fuente
-  // sin enlace se sigue pudiendo leer, y una fuente que no se muestra, no.
-  if (ubicacion === null || !ubicacion[1].startsWith("http")) {
-    return <span className="text-muted-foreground">{texto}</span>;
-  }
-  return (
-    <a
-      href={ubicacion[1]}
-      target="_blank"
-      rel="noreferrer"
-      className="text-primary underline underline-offset-2"
-    >
-      {texto.slice(0, ubicacion.index)}
-    </a>
   );
 }
 
