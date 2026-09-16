@@ -27,12 +27,26 @@ import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesi
 export type EstadoSesion =
   { estado: "verificando" } | { estado: "anonimo" } | { estado: "autenticado"; usuario: Usuario };
 
+export const INGRESO_RECHAZADO =
+  "No pudimos validar tu ingreso. Probá de nuevo; si vuelve a fallar, puede ser que el reloj " +
+  "de tu computadora esté desfasado.";
+/**
+ * Lo que se le dice a alguien cuya credencial el backend rechazó.
+ *
+ * No se le muestra el motivo técnico —qué reclamo falló, qué respondió el
+ * proveedor— porque no lo puede accionar, pero sí lo único que sí puede
+ * revisar. Es el defecto VOCAIA-131: el ingreso fallaba en silencio y el
+ * motivo aparecía sólo en el registro del servidor.
+ */
+
 export function useSesion(): {
   sesion: EstadoSesion;
+  error: string | null;
   ingresar: (token: string) => void;
   salir: () => Promise<void>;
 } {
   const [sesion, setSesion] = useState<EstadoSesion>({ estado: "verificando" });
+  const [error, setError] = useState<string | null>(null);
 
   const verificar = useCallback(async () => {
     if (!obtenerToken()) {
@@ -41,6 +55,7 @@ export function useSesion(): {
     }
     try {
       setSesion({ estado: "autenticado", usuario: await consultarUsuario() });
+      setError(null);
       return;
     } catch (error) {
       // 403 es «la credencial vale pero falta el consentimiento» (HU-03a), y
@@ -62,7 +77,13 @@ export function useSesion(): {
     }
     // `pedir` ya borró el token si fue un 401. Ante cualquier otro fallo
     // tampoco se puede afirmar que haya sesión.
+    //
+    // Había un token y no sirvió, así que esto no es «todavía no ingresó»:
+    // es un intento rechazado, y la pantalla de ingreso tiene que poder
+    // decirlo. Volver a anónimo sin más es lo que hacía que la persona
+    // reintentara creyendo que el botón estaba roto.
     setSesion({ estado: "anonimo" });
+    setError(INGRESO_RECHAZADO);
   }, []);
 
   useEffect(() => {
@@ -71,6 +92,9 @@ export function useSesion(): {
   }, [verificar]);
 
   const ingresar = useCallback((token: string) => {
+    // Se limpia antes de reintentar: dejar el mensaje del intento anterior
+    // mientras este se verifica diría que ya falló, y todavía no se sabe.
+    setError(null);
     // `guardarToken` notifica y eso dispara la verificación de arriba.
     guardarToken(token);
   }, []);
@@ -85,5 +109,5 @@ export function useSesion(): {
     }
   }, []);
 
-  return { sesion, ingresar, salir };
+  return { sesion, error, ingresar, salir };
 }

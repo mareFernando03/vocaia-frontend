@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDeApi } from "../api/cliente";
 import { guardarToken } from "./sesion";
-import { useSesion } from "./useSesion";
+import { INGRESO_RECHAZADO, useSesion } from "./useSesion";
 
 /**
  * El enganche del consentimiento (HU-03a).
@@ -70,5 +70,45 @@ describe("useSesion · consentimiento", () => {
 
     await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
     expect(registrarConsentimiento).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * VOCAIA-131 · un ingreso rechazado dejaba de verse.
+ *
+ * Volver a «anónimo» es correcto —no hay sesión— pero es indistinguible de no
+ * haber ingresado nunca, y eso es lo que dejaba a la persona reintentando sin
+ * saber por qué. Lo que se prueba es que quede el motivo para mostrar.
+ */
+describe("useSesion · un intento rechazado se puede contar", () => {
+  it("deja el motivo cuando el backend rechaza la credencial", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockRejectedValue(new ErrorDeApi(401, "Credencial inválida."));
+
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.error).toBe(INGRESO_RECHAZADO);
+  });
+
+  it("sin token no hay intento que contar", async () => {
+    // Quien entra por primera vez no tiene que leer un error.
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.error).toBeNull();
+  });
+
+  it("al reintentar se limpia el mensaje del intento anterior", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockRejectedValue(new ErrorDeApi(401, "Credencial inválida."));
+    const { result } = renderHook(() => useSesion());
+    await waitFor(() => expect(result.current.error).toBe(INGRESO_RECHAZADO));
+
+    consultarUsuario.mockResolvedValue(USUARIO);
+    result.current.ingresar("otro-token");
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    expect(result.current.error).toBeNull();
   });
 });
