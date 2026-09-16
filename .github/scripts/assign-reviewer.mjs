@@ -6,15 +6,33 @@
 // asignarian distinto segun por que repositorio entro el PR.
 
 const REPOS = (process.env.LOAD_REPOS || '').split(',').map(s => s.trim()).filter(Boolean);
-const WINDOW_DAYS = 30;
-
+const WINDOW_DAYS = 15; // un sprint: el reparto se empareja dentro de cada uno
 const TOPE_PENDIENTES = 3;
+const PLAZO_HORAS_HABILES = 24; // acuerdos.md §1.4
+const ARGENTINA = -3 * 3600e3;
+
+// Horas de lunes a viernes, hora argentina, entre dos instantes.
+// ponytail: cuenta de a una hora; una revision de un mes son ~700 vueltas.
+export const horasHabiles = (desde, hasta) => {
+  let h = 0;
+  for (let t = +desde; t + 3600e3 <= +hasta; t += 3600e3) {
+    const dia = new Date(t + ARGENTINA).getUTCDay();
+    if (dia !== 0 && dia !== 6) h++;
+  }
+  return h;
+};
+
+// Una revision vencida no cuenta ni para el tope ni para el total: si contara,
+// acumular revisiones sin hacer seria la forma de dejar de recibir.
+export const vencida = (pedidaEn, ahora = new Date()) =>
+  horasHabiles(new Date(pedidaEn), ahora) >= PLAZO_HORAS_HABILES;
 
 // Se reparten revisiones, no trabajo: el trabajo propio ya se balancea al
 // planificar el sprint. Contar PRs mergeados como carga libraba de revisar a
 // quien parte su trabajo en PRs chicos, y con 30-50 en la ventana tapaban a
 // los pendientes: el 16/09 a Luca le toco la novena revision sin hacer.
 //
+// pendingReview son solo las pendientes dentro del plazo.
 // Asignadas = pendientes + hechas, para que revisar rapido no te traiga mas:
 // la revision solo pasa de una columna a la otra. Contar solo pendientes le
 // daria todo al que revisa en el dia.
@@ -92,11 +110,31 @@ async function main() {
   const scope = REPOS.map(r => `repo:${r}`).join(' ');
   const since = new Date(Date.now() - WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
 
-  const loads = await Promise.all(candidates.map(async login => ({
-    login,
-    pendingReview: await count(`${scope} is:pr is:open review-requested:${login}`),
-    doneReviews: await count(`${scope} is:pr reviewed-by:${login} updated:>=${since}`),
-  })));
+  // Cuando se pidio cada revision pendiente. La busqueda no lo dice; sale del
+  // ultimo review_requested a esa persona en el historial del PR. Sin evento
+  // (historial de mas de 100) se toma como dentro del plazo.
+  const pedidas = async (login) => {
+    const q = `${scope} is:pr is:open review-requested:${login}`;
+    const { items } = await api(`/search/issues?per_page=100&q=${encodeURIComponent(q)}`);
+    return Promise.all(items.map(async it => {
+      const repoPr = it.repository_url.split('/repos/')[1];
+      const eventos = await api(`/repos/${repoPr}/issues/${it.number}/timeline?per_page=100`);
+      return eventos
+        .filter(e => e.event === 'review_requested' && e.requested_reviewer?.login === login)
+        .at(-1)?.created_at;
+    }));
+  };
+
+  const loads = await Promise.all(candidates.map(async login => {
+    const fechas = await pedidas(login);
+    const vencidas = fechas.filter(f => f && vencida(f)).length;
+    return {
+      login,
+      pendingReview: fechas.length - vencidas,
+      vencidas,
+      doneReviews: await count(`${scope} is:pr reviewed-by:${login} updated:>=${since}`),
+    };
+  }));
 
   console.table(loads.map(l => ({ ...l, asignadas: asignadas(l) })));
   const winner = pick(loads);
@@ -131,6 +169,16 @@ async function test() {
   assert.deepEqual(tocaron, { mare: 3, luca: 3 });
   // Luca quedo en el tope: el septimo va a mare aunque tenga mas asignadas.
   assert.equal(pick([c('mare', 0, 23), c('luca', 3, 0)]).login, 'mare');
+
+  // Acumular no protege: con las 5 vencidas fuera, luca sigue recibiendo.
+  assert.equal(pick([c('mare', 1, 15), c('luca', 0, 10)]).login, 'luca');
+
+  // Plazo en horas habiles, hora argentina. Viernes 18:00 -> lunes 18:00 son
+  // 24 (6 del viernes + 18 del lunes): vence. Miercoles 10:00 -> jueves 9:00 no.
+  assert.equal(horasHabiles(new Date('2026-09-18T21:00Z'), new Date('2026-09-21T21:00Z')), 24);
+  assert.equal(vencida('2026-09-18T21:00Z', new Date('2026-09-21T21:00Z')), true);
+  assert.equal(vencida('2026-09-18T21:00Z', new Date('2026-09-21T20:00Z')), false);
+  assert.equal(vencida('2026-09-16T13:00Z', new Date('2026-09-17T12:00Z')), false);
 
   // Si todos estan en el tope, igual se asigna a alguien.
   assert.equal(pick([c('a', 4, 10), c('b', 3, 20)]).login, 'a');
