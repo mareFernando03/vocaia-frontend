@@ -13,9 +13,18 @@ const URL_SCRIPT = "https://accounts.google.com/gsi/client";
 
 interface Propiedades {
   alIngresar: (token: string) => void;
+  /**
+   * Por qué falló el último intento, si falló.
+   *
+   * Lo decide quien verifica la credencial contra el backend, no esta
+   * pantalla: acá el ingreso «salió bien» —Google devolvió un token— y el
+   * rechazo ocurre después. Sin este dato la persona vuelve a ver la misma
+   * pantalla intacta y no tiene forma de saber que algo falló (VOCAIA-131).
+   */
+  error?: string | null;
 }
 
-export default function Ingresar({ alIngresar }: Propiedades) {
+export default function Ingresar({ alIngresar, error: errorDeIngreso = null }: Propiedades) {
   const contenedorBoton = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +83,15 @@ export default function Ingresar({ alIngresar }: Propiedades) {
       </p>
 
       <div ref={contenedorBoton} className="mt-8 flex justify-center" />
+
+      {/* El de la verificación va primero: si los dos aparecen, el que le
+          importa a quien acaba de apretar el botón es por qué lo rechazaron,
+          no que el script tarde. */}
+      {errorDeIngreso && (
+        <p role="alert" className="text-destructive mt-6 text-sm">
+          {errorDeIngreso}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="text-destructive mt-6 text-sm">
