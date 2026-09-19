@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Fuente } from "../api/conversacion";
+import { Referencia, Trazabilidad } from "../componentes/Trazabilidad";
 import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
@@ -19,8 +20,18 @@ interface Propiedades {
 }
 
 export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: Propiedades) {
-  const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
-    useConversacion();
+  const {
+    sesionId,
+    turnos,
+    enCurso,
+    cargando,
+    enviando,
+    error,
+    fuentes,
+    intercambios,
+    enviar,
+    reintentar,
+  } = useConversacion();
   const [borrador, setBorrador] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
   const finDeLista = useRef<HTMLLIElement>(null);
@@ -115,7 +126,12 @@ export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: P
         )}
 
         {turnos.map((turno) => (
-          <Burbuja key={turno.numero} rol={turno.rol} texto={turno.contenido} />
+          <Burbuja
+            key={turno.numero}
+            rol={turno.rol}
+            texto={turno.contenido}
+            traza={turno.rol === "agente" ? { sesionId, turno: turno.numero } : undefined}
+          />
         ))}
 
         {enCurso !== null && (
@@ -183,9 +199,6 @@ export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: P
   );
 }
 
-/** Separa la ubicación del final del texto de la fuente, si la trae. */
-const UBICACION = /\s+—\s+(\S+)$/;
-
 function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
     <div className="border-border bg-surface rounded-md border p-3 text-sm">
@@ -222,33 +235,19 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
   );
 }
 
-function Referencia({ texto }: { texto: string }) {
-  const ubicacion = UBICACION.exec(texto);
-  // Sin ubicación reconocible se muestra el texto entero y listo: una fuente
-  // sin enlace se sigue pudiendo leer, y una fuente que no se muestra, no.
-  if (ubicacion === null || !ubicacion[1].startsWith("http")) {
-    return <span className="text-muted-foreground">{texto}</span>;
-  }
-  return (
-    <a
-      href={ubicacion[1]}
-      target="_blank"
-      rel="noreferrer"
-      className="text-primary underline underline-offset-2"
-    >
-      {texto.slice(0, ubicacion.index)}
-    </a>
-  );
-}
-
 interface PropiedadesBurbuja {
   rol: string;
   texto: string;
   escribiendo?: boolean;
+  /** Sólo en respuestas confirmadas: la que se está escribiendo no tiene número todavía. */
+  traza?: { sesionId: string; turno: number };
 }
 
-function Burbuja({ rol, texto, escribiendo = false }: PropiedadesBurbuja) {
+function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja) {
   const esPersona = rol === "usuario";
+  // La traza se pide al abrir y no al dibujar: una conversación larga haría un
+  // pedido por respuesta para algo que casi nadie despliega.
+  const [abierta, setAbierta] = useState(false);
   return (
     <li className={esPersona ? "flex justify-end" : "flex justify-start"}>
       <div
@@ -266,6 +265,21 @@ function Burbuja({ rol, texto, escribiendo = false }: PropiedadesBurbuja) {
           <span className="text-muted-foreground">Escribiendo…</span>
         ) : (
           <p className="whitespace-pre-wrap">{texto}</p>
+        )}
+        {traza !== undefined && (
+          <details
+            className="border-border mt-3 border-t pt-2"
+            onToggle={(evento) => setAbierta(evento.currentTarget.open)}
+          >
+            <summary className="text-primary cursor-pointer text-sm font-medium">
+              ¿De dónde salió esto?
+            </summary>
+            {abierta && (
+              <div className="mt-2">
+                <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
+              </div>
+            )}
+          </details>
         )}
       </div>
     </li>

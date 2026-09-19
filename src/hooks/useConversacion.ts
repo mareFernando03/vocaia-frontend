@@ -72,6 +72,8 @@ export interface TurnoEnCurso {
 }
 
 export interface Conversacion {
+  /** Hace falta para pedir la traza de una respuesta (HU-18). */
+  sesionId: string;
   /** Turnos confirmados. Vienen del backend, nunca se arman acá. */
   turnos: Turno[];
   enCurso: TurnoEnCurso | null;
@@ -192,6 +194,7 @@ export function useConversacion(): Conversacion {
   const intercambios = turnos.filter((turno) => turno.rol === "usuario").length;
 
   return {
+    sesionId: sesion.id,
     turnos,
     enCurso,
     cargando,
