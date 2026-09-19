@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDeApi } from "../api/cliente";
 import { guardarToken } from "./sesion";
-import { INGRESO_RECHAZADO, useSesion } from "./useSesion";
+import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
 
 /**
  * El enganche del consentimiento (HU-03a).
@@ -110,5 +110,31 @@ describe("useSesion · un intento rechazado se puede contar", () => {
 
     await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
     expect(result.current.error).toBeNull();
+  });
+});
+
+describe("useSesion · un servidor que no contesta no es una credencial rechazada", () => {
+  it("cuando no hubo respuesta lo dice, y no manda a mirar el reloj", async () => {
+    guardarToken("token-de-prueba");
+    // Lo que levanta `fetch` cuando no hay con quién hablar no es un `ErrorDeApi`.
+    consultarUsuario.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.error).toBe(SIN_RESPUESTA);
+    expect(result.current.error).not.toContain("reloj");
+  });
+
+  it("si el consentimiento se cae sin respuesta, tampoco culpa a la credencial", async () => {
+    guardarToken("token-de-prueba");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+    consultarUsuario.mockRejectedValue(new ErrorDeApi(403, "falta consentimiento"));
+    registrarConsentimiento.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.error).toBe(SIN_RESPUESTA);
   });
 });
