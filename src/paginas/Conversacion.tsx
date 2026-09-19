@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Fuente } from "../api/conversacion";
+import { Prosa } from "../componentes/Prosa";
 import { Referencia } from "../componentes/Referencia";
 import { useConversacion } from "../hooks/useConversacion";
 
@@ -258,8 +259,10 @@ function Burbuja({ rol, texto, escribiendo = false }: PropiedadesBurbuja) {
         <span className="sr-only">{esPersona ? "Vos:" : "VocaIA:"}</span>
         {escribiendo ? (
           <span className="text-muted-foreground">Escribiendo…</span>
-        ) : (
+        ) : esPersona ? (
           <p className="whitespace-pre-wrap">{texto}</p>
+        ) : (
+          <Prosa texto={texto} />
         )}
       </div>
     </li>

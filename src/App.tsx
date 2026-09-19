@@ -9,7 +9,7 @@ import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
   const { aceptado, aceptar } = useAvisoAceptado();
-  const { sesion, ingresar, salir } = useSesion();
+  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion();
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 
@@ -74,7 +74,12 @@ export default function App() {
           tabIndex={-1}
           className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-4 outline-none sm:p-6"
         >
-          <Contenido sesion={sesion} alIngresar={ingresar} alSalir={salir} />
+          <Contenido
+            sesion={sesion}
+            errorDeIngreso={errorDeIngreso}
+            alIngresar={ingresar}
+            alSalir={salir}
+          />
         </main>
       </div>
 
@@ -87,6 +92,7 @@ export default function App() {
 
 interface PropiedadesContenido {
   sesion: ReturnType<typeof useSesion>["sesion"];
+  errorDeIngreso: string | null;
   alIngresar: (token: string) => void;
   alSalir: () => Promise<void>;
 }
@@ -97,13 +103,13 @@ interface PropiedadesContenido {
  * Vive dentro del armazón de arriba y no lo reemplaza: la franja de
  * divulgación tiene que quedar a la vista en los tres estados.
  */
-function Contenido({ sesion, alIngresar, alSalir }: PropiedadesContenido) {
+function Contenido({ sesion, errorDeIngreso, alIngresar, alSalir }: PropiedadesContenido) {
   if (sesion.estado === "verificando") {
     return <p className="text-muted-foreground text-sm">Verificando la sesión…</p>;
   }
 
   if (sesion.estado === "anonimo") {
-    return <Ingresar alIngresar={alIngresar} />;
+    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} />;
   }
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
