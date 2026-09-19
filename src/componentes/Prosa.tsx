@@ -7,10 +7,17 @@
  * se lee con los asteriscos a la vista y cortado donde lo cortó el archivo, que
  * no es donde termina la pantalla de quien lee.
  *
- * Se interpreta un subconjunto mínimo y a propósito: párrafos y negrita. No hay
- * enlaces ni HTML, así que no hay nada que sanear —React escapa todo lo que no
- * sean los dos nodos que arma esto— y cualquier otra marca que aparezca se
+ * Se interpreta un subconjunto mínimo y a propósito: párrafos, negrita y listas.
+ * No hay enlaces ni HTML, así que no hay nada que sanear —React escapa todo lo
+ * que no sean los nodos que arma esto— y cualquier otra marca que aparezca se
  * muestra tal cual en vez de desaparecer de la pantalla.
+ *
+ * **Las listas están acá porque el corte de renglón no siempre es del archivo.**
+ * Adentro de un párrafo se junta, porque ahí el corte lo puso quien escribió el
+ * archivo a 75 columnas. En una lista lo puso el que la escribió para que se
+ * lean separados, y juntarlos convierte la devolución del cierre en un párrafo
+ * corrido con guiones adentro. El prompt de sistema desalienta las listas pero
+ * no las prohíbe, y en la corrida del 19/09 uno de los tres perfiles las usó.
  *
  * **Lo que escribe la persona no pasa por acá.** Su mensaje se muestra como lo
  * escribió: si puso asteriscos, quiso poner asteriscos.
@@ -21,10 +28,12 @@ import type { ReactNode } from "react";
 /** Un párrafo termina donde hay un renglón en blanco, como en markdown. */
 const CORTE_DE_PARRAFO = /\n\s*\n/;
 
-/** Adentro de un párrafo, el corte de renglón es del archivo y no del texto. */
-const CORTE_DE_RENGLON = /\s*\n\s*/g;
+/** Un ítem de lista, con cualquiera de las tres marcas que usa el modelo. */
+const ITEM_DE_LISTA = /^\s*[-*•]\s+(.+)$/;
 
 const NEGRITA = /\*\*(.+?)\*\*/g;
+
+type Bloque = { tipo: "parrafo"; texto: string } | { tipo: "lista"; items: string[] };
 
 function enfatizar(parrafo: string): ReactNode[] {
   const nodos: ReactNode[] = [];
@@ -45,19 +54,64 @@ function enfatizar(parrafo: string): ReactNode[] {
   return nodos;
 }
 
-export function Prosa({ texto }: { texto: string }) {
-  const parrafos = texto
-    .split(CORTE_DE_PARRAFO)
-    .map((parrafo) => parrafo.replace(CORTE_DE_RENGLON, " ").trim())
-    .filter((parrafo) => parrafo !== "");
+/**
+ * Parte el texto en párrafos y listas.
+ *
+ * Un mismo bloque puede tener las dos cosas: el modelo abre con un renglón de
+ * entrada —«De lo que me contaste, me quedó esto:»— y sigue con los ítems sin
+ * dejar un renglón en blanco en el medio.
+ */
+function bloques(texto: string): Bloque[] {
+  const resultado: Bloque[] = [];
 
+  for (const crudo of texto.split(CORTE_DE_PARRAFO)) {
+    let renglones: string[] = [];
+    let items: string[] = [];
+
+    const cerrarParrafo = () => {
+      const junto = renglones.join(" ").trim();
+      if (junto !== "") resultado.push({ tipo: "parrafo", texto: junto });
+      renglones = [];
+    };
+    const cerrarLista = () => {
+      if (items.length > 0) resultado.push({ tipo: "lista", items });
+      items = [];
+    };
+
+    for (const renglon of crudo.split("\n")) {
+      const item = ITEM_DE_LISTA.exec(renglon);
+      if (item) {
+        cerrarParrafo();
+        items.push(item[1].trim());
+      } else if (renglon.trim() !== "") {
+        cerrarLista();
+        renglones.push(renglon.trim());
+      }
+    }
+
+    cerrarParrafo();
+    cerrarLista();
+  }
+
+  return resultado;
+}
+
+export function Prosa({ texto }: { texto: string }) {
   return (
     <>
-      {parrafos.map((parrafo, indice) => (
-        <p key={parrafo.slice(0, 40) + indice} className={indice === 0 ? undefined : "mt-3"}>
-          {enfatizar(parrafo)}
-        </p>
-      ))}
+      {bloques(texto).map((bloque, indice) =>
+        bloque.tipo === "lista" ? (
+          <ul key={indice} className="mt-3 list-disc space-y-1 ps-5">
+            {bloque.items.map((item, posicion) => (
+              <li key={item.slice(0, 40) + posicion}>{enfatizar(item)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={indice} className={indice === 0 ? undefined : "mt-3"}>
+            {enfatizar(bloque.texto)}
+          </p>
+        ),
+      )}
     </>
   );
 }
