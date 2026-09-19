@@ -4,6 +4,87 @@
  */
 
 export interface paths {
+  "/api/carreras": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Listar las carreras de la Facultad
+     * @description El catálogo completo, ordenado por identificador.
+     *
+     *     **Devuelve una lista vacía si el corpus no está indexado, y no un error.**
+     *     Es la misma decisión que toma el armado del servicio de recuperación: la
+     *     aplicación tiene que levantar en una base recién migrada, y para quien
+     *     consulta «todavía no hay corpus» y «no hay carreras de ese nivel» se
+     *     contestan igual.
+     *
+     *     No pagina: son doce fragmentos y paginarlos sería inventar un problema.
+     */
+    get: operations["listar_carreras_api_carreras_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/carreras/buscar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Buscar carreras por lo que la persona describe
+     * @description Las carreras más cercanas a una descripción, de mayor a menor parecido.
+     *
+     *     Es la puerta para quien no sabe cómo se llama lo que busca. El `puntaje`
+     *     ordena y **no es un porcentaje de acierto**: el índice devuelve
+     *     `1 - distancia_coseno`, que puede ser negativo.
+     *
+     *     Va antes que `/{id_carrera}` en el archivo a propósito: FastAPI resuelve las
+     *     rutas en orden, y declarada después, `buscar` la capturaría el parámetro de
+     *     camino y se iría a buscar una carrera llamada «buscar».
+     */
+    get: operations["buscar_carreras_api_carreras_buscar_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/carreras/{id_carrera}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar una carrera y su fuente
+     * @description La ficha institucional de una carrera, con la fuente que la respalda.
+     *
+     *     **Un identificador que no existe es un 404 y no la carrera más parecida.**
+     *     Quien pide una carrera por su id no está buscando: contestarle con otra
+     *     sería contestar una pregunta que no hizo, y en una pantalla que muestra
+     *     información institucional eso se lee como un dato de la Facultad.
+     */
+    get: operations["obtener_carrera_api_carreras__id_carrera__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/conversacion": {
     parameters: {
       query?: never;
@@ -232,6 +313,64 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * CarreraSalida
+     * @description Una carrera del corpus institucional, con la fuente que la respalda.
+     *
+     *     Sale del corpus tal como se indexó: no pasa por el modelo, así que el texto
+     *     es el mismo en cada llamada y no hay nada que verificar contra una fuente
+     *     —la fuente viene pegada—. Es la forma que cumple el primer criterio de
+     *     HU-15 por construcción.
+     */
+    CarreraSalida: {
+      /**
+       * Denominacion
+       * @description Denominación oficial, para mostrar.
+       */
+      denominacion: string;
+      /**
+       * Estado
+       * @description Situación de la carrera, por ejemplo `activa`.
+       */
+      estado: string;
+      /**
+       * Estado Validacion
+       * @description `provisional` mientras la Facultad no valide el contenido (R-002). Quien lo muestre tiene que decirlo: no es información oficial confirmada.
+       */
+      estado_validacion: string;
+      /**
+       * Fuente
+       * @description Denominación de la fuente y su ubicación.
+       */
+      fuente: string;
+      /**
+       * Id
+       * @description Slug estable de la carrera en el corpus.
+       */
+      id: string;
+      /**
+       * Nivel
+       * @description `grado`, `tecnicatura` o `pregrado`.
+       */
+      nivel: string;
+      /**
+       * Texto
+       * @description La descripción institucional completa.
+       */
+      texto: string;
+    };
+    /**
+     * CoincidenciaCarreraSalida
+     * @description Una carrera encontrada por parecido, con cuánto se parece.
+     */
+    CoincidenciaCarreraSalida: {
+      carrera: components["schemas"]["CarreraSalida"];
+      /**
+       * Puntaje
+       * @description Creciente en similitud, 1.0 = idéntico. **No está acotado a [0, 1]**: el índice devuelve `1 - distancia_coseno`, que va de 1 a -1. Sirve para ordenar, no como porcentaje de acierto.
+       */
+      puntaje: number;
+    };
     /**
      * ConsentimientoEntrada
      * @description Versión del aviso que la persona aceptó.
@@ -556,6 +695,110 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  listar_carreras_api_carreras_get: {
+    parameters: {
+      query?: {
+        /** @description Recorta a un nivel: `grado`, `tecnicatura` o `pregrado`. */
+        nivel?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CarreraSalida"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  buscar_carreras_api_carreras_buscar_get: {
+    parameters: {
+      query: {
+        /** @description Lo que la persona busca, con sus palabras. */
+        texto: string;
+        /** @description Recorta a un nivel: `grado`, `tecnicatura` o `pregrado`. */
+        nivel?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoincidenciaCarreraSalida"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  obtener_carrera_api_carreras__id_carrera__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id_carrera: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CarreraSalida"];
+        };
+      };
+      /** @description No hay ninguna carrera con ese identificador. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   listar_sesiones_api_conversacion_get: {
     parameters: {
       query?: never;
