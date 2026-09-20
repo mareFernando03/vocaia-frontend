@@ -104,13 +104,18 @@ describe("Trazabilidad", () => {
     expect(container.textContent).not.toMatch(/1[.,]37|0[.,]82|isi-plan|puntaje|valencia|\[2\]/);
   });
 
-  it("dice que una respuesta sin respaldo no se apoya en nada", async () => {
+  it("dice que de una respuesta sin traza no quedó registrado respaldo, sin afirmar que no lo tuvo", async () => {
     vi.mocked(obtenerTrazabilidad).mockResolvedValue(
       traza({ sin_respaldo: true, conversacional: [], institucional: [] }),
     );
     render(<Trazabilidad sesionId={SESION} turno={4} />);
 
-    expect(await screen.findByText(/no se apoya en nada/)).toBeInTheDocument();
+    // El texto está partido por el <strong>, así que se mira el párrafo entero.
+    const aviso = (await screen.findByText(/no quedó registrado/)).closest("p");
+    // Los turnos anteriores a que se registrara la recuperación llegan acá con
+    // la parte institucional vacía aunque hayan consultado el corpus.
+    expect(aviso).toHaveTextContent(/anterior a que VocaIA empezara a registrarlo/);
+    expect(screen.queryByText(/no se apoya en nada/)).toBeNull();
     expect(screen.queryByRole("heading")).toBeNull();
   });
 
@@ -127,6 +132,6 @@ describe("Trazabilidad", () => {
     render(<Trazabilidad sesionId={SESION} turno={0} />);
 
     expect(await screen.findByText(/mensaje de bienvenida/)).toBeInTheDocument();
-    expect(screen.queryByText(/no se apoya en nada/)).toBeNull();
+    expect(screen.queryByText(/no quedó registrado/)).toBeNull();
   });
 });

@@ -196,3 +196,30 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     );
   });
 });
+
+describe("Conversacion · el markdown del agente (VOCAIA-132)", () => {
+  beforeEach(() => {
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(enviarMensaje).mockReset();
+    window.sessionStorage.setItem(CLAVE, "22222222-2222-4222-8222-222222222222");
+  });
+
+  it("la respuesta del agente se muestra formateada y el mensaje de la persona, tal cual", async () => {
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [
+          turno(1, "agente", "**Soy un sistema de inteligencia artificial**, no una persona."),
+          turno(2, "usuario", "Dale, **gracias**"),
+        ]),
+      ),
+    );
+
+    render(<Conversacion alSalir={salir} alVerHistorial={verHistorial} alVerPerfil={verPerfil} />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Soy un sistema de inteligencia artificial").tagName).toBe("STRONG"),
+    );
+    // Lo que escribió la persona no se interpreta: si puso asteriscos, los puso.
+    expect(screen.getByText("Dale, **gracias**")).toBeInTheDocument();
+  });
+});

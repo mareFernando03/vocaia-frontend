@@ -8,9 +8,10 @@
  * - **Se distingue lo que contó ella de lo que dice la Facultad.** Dos bloques
  *   con rótulo propio, no una lista mezclada: el color ayuda, pero el rótulo es
  *   lo que lo dice, porque el color solo no le llega a quien no lo ve.
- * - **Lo que no tiene respaldo se ve como tal.** Una respuesta sin nada detrás
- *   lo dice en voz alta, en lugar de mostrar dos bloques vacíos que se leen como
- *   «no cargó».
+ * - **Lo que no tiene respaldo registrado se ve como tal.** Una respuesta sin
+ *   nada detrás lo dice en voz alta, en lugar de mostrar dos bloques vacíos que
+ *   se leen como «no cargó». Dice «no quedó registrado» y no «no hay respaldo»
+ *   porque son dos cosas distintas y el contrato todavía no las separa.
  *
  * Va pegado a la burbuja y no en otra pantalla, por lo mismo que la evidencia
  * del perfil va dentro de cada rasgo: la fuente al lado de lo que sostiene.
@@ -75,10 +76,20 @@ export function Trazabilidad({ sesionId, turno }: Propiedades) {
         </p>
       );
     }
+    // Que no haya traza no prueba que no haya habido respaldo: los turnos
+    // anteriores a que se empezara a registrar la recuperación llegan acá con
+    // la parte institucional vacía aunque hayan consultado el corpus. En la
+    // pantalla que existe para decir de dónde salió cada cosa, afirmar «no se
+    // apoya en nada» sería justamente lo que no se puede afirmar sin el dato.
+    // Distinguir los dos casos necesita una marca del backend, que hoy no
+    // existe en el contrato: el dato está en los metadatos de
+    // `TURNO_REGISTRADO` y la traza no los expone.
     return (
       <p className="bg-accent-soft text-accent-foreground rounded-md p-3 text-sm">
-        Esta respuesta <strong>no se apoya en nada</strong>: ni en algo que hayas contado ni en
-        material de la Facultad. Tomala como una opinión de VocaIA, no como un dato.
+        De esta respuesta <strong>no quedó registrado</strong> ningún respaldo: ni algo que hayas
+        contado ni material de la Facultad. Puede que no se haya apoyado en nada, o que sea
+        anterior a que VocaIA empezara a registrarlo. Tomala como una opinión de VocaIA, no como un
+        dato.
       </p>
     );
   }
