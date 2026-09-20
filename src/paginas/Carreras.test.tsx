@@ -94,4 +94,15 @@ describe("Carreras", () => {
 
     expect(await screen.findByText(/no encontramos carreras/i)).toBeInTheDocument();
   });
+
+  it("el catálogo vacío no afirma que el corpus no esté cargado", async () => {
+    // El backend contesta lista vacía tanto si el corpus no está indexado como
+    // si sus carreras están retenidas sin validar: la pantalla no puede elegir
+    // una de las dos causas y no tiene que elegirla.
+    vi.mocked(listarCarreras).mockResolvedValue([]);
+    render(<Carreras alVolver={() => {}} />);
+
+    const aviso = await screen.findByText(/por ahora no hay carreras para mostrar/i);
+    expect(aviso).toHaveTextContent(/esperando la validación de la Facultad/i);
+  });
 });

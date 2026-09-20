@@ -142,7 +142,7 @@ export default function Carreras({ alVolver }: Propiedades) {
         <p className="text-muted-foreground text-sm">
           {buscado
             ? `No encontramos carreras con respaldo institucional para «${buscado}».`
-            : "Todavía no hay información institucional de carreras cargada."}
+            : "Por ahora no hay carreras para mostrar. Puede ser que el corpus institucional todavía no esté cargado, o que lo que hay esté esperando la validación de la Facultad."}
         </p>
       )}
 
@@ -185,7 +185,7 @@ function Ficha({ carrera }: { carrera: Carrera }) {
 }
 
 function Validacion({ estado }: { estado: string }) {
-  // ponytail: hoy el corpus entero es `provisional`; cuando el backend publique
+  // Hoy el corpus entero es `provisional`; cuando el backend publique
   // los otros estados, cada uno lleva su frase en vez del valor crudo.
   if (estado !== "provisional") {
     return <p className="text-muted-foreground">Estado de validación: {estado}</p>;
