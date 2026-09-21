@@ -87,9 +87,8 @@ export function Trazabilidad({ sesionId, turno }: Propiedades) {
     return (
       <p className="bg-accent-soft text-accent-foreground rounded-md p-3 text-sm">
         De esta respuesta <strong>no quedó registrado</strong> ningún respaldo: ni algo que hayas
-        contado ni material de la Facultad. Puede que no se haya apoyado en nada, o que sea
-        anterior a que VocaIA empezara a registrarlo. Tomala como una opinión de VocaIA, no como un
-        dato.
+        contado ni material de la Facultad. Puede que no se haya apoyado en nada, o que sea anterior
+        a que VocaIA empezara a registrarlo. Tomala como una opinión de VocaIA, no como un dato.
       </p>
     );
   }
