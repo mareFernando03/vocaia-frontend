@@ -18,6 +18,7 @@
 import { useState } from "react";
 
 import { olvidarSesion, recordarSesion } from "../hooks/useConversacion";
+import Carreras from "./Carreras";
 import Conversacion from "./Conversacion";
 import Historial from "./Historial";
 import Perfil from "./Perfil";
@@ -26,7 +27,7 @@ interface Propiedades {
   alSalir: () => Promise<void>;
 }
 
-type Desvio = "historial" | "perfil";
+type Desvio = "historial" | "perfil" | "carreras";
 
 export default function Autenticado({ alSalir }: Propiedades) {
   const [desvio, setDesvio] = useState<Desvio | null>(null);
@@ -52,12 +53,17 @@ export default function Autenticado({ alSalir }: Propiedades) {
     return <Perfil alVolver={() => setDesvio(null)} />;
   }
 
+  if (desvio === "carreras") {
+    return <Carreras alVolver={() => setDesvio(null)} />;
+  }
+
   return (
     <Conversacion
       key={epoca}
       alSalir={alSalir}
       alVerHistorial={() => setDesvio("historial")}
       alVerPerfil={() => setDesvio("perfil")}
+      alVerCarreras={() => setDesvio("carreras")}
     />
   );
 }
