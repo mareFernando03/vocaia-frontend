@@ -26,6 +26,7 @@ import {
   type RespaldoInstitucional,
   type Traza,
 } from "../api/trazabilidad";
+import { Referencia } from "./Referencia";
 
 interface Propiedades {
   sesionId: string;
@@ -173,28 +174,6 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
         </>
       )}
     </section>
-  );
-}
-
-/** Separa la ubicación del final del texto de la fuente, si la trae. */
-const UBICACION = /\s+—\s+(\S+)$/;
-
-export function Referencia({ texto }: { texto: string }) {
-  const ubicacion = UBICACION.exec(texto);
-  // Sin ubicación reconocible se muestra el texto entero y listo: una fuente
-  // sin enlace se sigue pudiendo leer, y una fuente que no se muestra, no.
-  if (ubicacion === null || !ubicacion[1].startsWith("http")) {
-    return <span className="text-muted-foreground">{texto}</span>;
-  }
-  return (
-    <a
-      href={ubicacion[1]}
-      target="_blank"
-      rel="noreferrer"
-      className="text-primary underline underline-offset-2"
-    >
-      {texto.slice(0, ubicacion.index)}
-    </a>
   );
 }
 

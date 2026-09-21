@@ -11,16 +11,23 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
-import { Referencia, Trazabilidad } from "../componentes/Trazabilidad";
+import { Referencia } from "../componentes/Referencia";
+import { Trazabilidad } from "../componentes/Trazabilidad";
 import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
   alVerHistorial: () => void;
   alVerPerfil: () => void;
+  alVerCarreras: () => void;
 }
 
-export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: Propiedades) {
+export default function Conversacion({
+  alSalir,
+  alVerHistorial,
+  alVerPerfil,
+  alVerCarreras,
+}: Propiedades) {
   const {
     sesionId,
     turnos,
@@ -96,6 +103,15 @@ export default function Conversacion({ alSalir, alVerHistorial, alVerPerfil }: P
             className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
           >
             Tu perfil
+          </button>
+          {/* Otro desvío del mismo tipo: se consulta el corpus de carreras
+              directo y se vuelve a la charla (HU-15). */}
+          <button
+            type="button"
+            onClick={alVerCarreras}
+            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+          >
+            Carreras
           </button>
           <button
             type="button"

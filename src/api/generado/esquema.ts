@@ -79,6 +79,10 @@ export interface paths {
      *     **Una carrera retenida por validación es un 409 y no un 404**, porque no es
      *     lo mismo que no exista. Tampoco un 403: el frontend lee el 403 como
      *     consentimiento pendiente (HU-03a) y reabriría el aviso.
+     *
+     *     **Sólo la ficha anota `carrera_consultada`** (VOCAIA-60), y sólo si se
+     *     devolvió: listar y buscar son el camino hasta la ficha, y un 404 o un 409 no
+     *     es una carrera leída.
      */
     get: operations["obtener_carrera_api_carreras__id_carrera__get"];
     put?: never;
