@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
 import { Referencia } from "../componentes/Referencia";
+import { Trazabilidad } from "../componentes/Trazabilidad";
 import { useConversacion } from "../hooks/useConversacion";
 
 interface Propiedades {
@@ -27,8 +28,18 @@ export default function Conversacion({
   alVerPerfil,
   alVerCarreras,
 }: Propiedades) {
-  const { turnos, enCurso, cargando, enviando, error, fuentes, intercambios, enviar, reintentar } =
-    useConversacion();
+  const {
+    sesionId,
+    turnos,
+    enCurso,
+    cargando,
+    enviando,
+    error,
+    fuentes,
+    intercambios,
+    enviar,
+    reintentar,
+  } = useConversacion();
   const [borrador, setBorrador] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
   const finDeLista = useRef<HTMLLIElement>(null);
@@ -132,7 +143,12 @@ export default function Conversacion({
         )}
 
         {turnos.map((turno) => (
-          <Burbuja key={turno.numero} rol={turno.rol} texto={turno.contenido} />
+          <Burbuja
+            key={turno.numero}
+            rol={turno.rol}
+            texto={turno.contenido}
+            traza={turno.rol === "agente" ? { sesionId, turno: turno.numero } : undefined}
+          />
         ))}
 
         {enCurso !== null && (
@@ -240,10 +256,15 @@ interface PropiedadesBurbuja {
   rol: string;
   texto: string;
   escribiendo?: boolean;
+  /** Sólo en respuestas confirmadas: la que se está escribiendo no tiene número todavía. */
+  traza?: { sesionId: string; turno: number };
 }
 
-function Burbuja({ rol, texto, escribiendo = false }: PropiedadesBurbuja) {
+function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja) {
   const esPersona = rol === "usuario";
+  // La traza se pide al abrir y no al dibujar: una conversación larga haría un
+  // pedido por respuesta para algo que casi nadie despliega.
+  const [abierta, setAbierta] = useState(false);
   return (
     <li className={esPersona ? "flex justify-end" : "flex justify-start"}>
       <div
@@ -263,6 +284,21 @@ function Burbuja({ rol, texto, escribiendo = false }: PropiedadesBurbuja) {
           <p className="whitespace-pre-wrap">{texto}</p>
         ) : (
           <Prosa texto={texto} />
+        )}
+        {traza !== undefined && (
+          <details
+            className="border-border mt-3 border-t pt-2"
+            onToggle={(evento) => setAbierta(evento.currentTarget.open)}
+          >
+            <summary className="text-primary cursor-pointer text-sm font-medium">
+              ¿De dónde salió esto?
+            </summary>
+            {abierta && (
+              <div className="mt-2">
+                <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
+              </div>
+            )}
+          </details>
         )}
       </div>
     </li>
