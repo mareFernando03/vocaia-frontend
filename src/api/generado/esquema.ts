@@ -47,6 +47,12 @@ export interface paths {
      *     ordena y **no es un porcentaje de acierto**: el índice devuelve
      *     `1 - distancia_coseno`, que puede ser negativo.
      *
+     *     **Puede devolver una lista vacía para una búsqueda bien formada**, y no es
+     *     un error: desde S3-01 la recuperación tiene un piso de puntaje calibrado
+     *     contra el corpus, y lo que no lo alcanza no vuelve. Quien consuma esto tiene
+     *     que distinguir «no encontramos nada parecido» de «todavía no hay corpus»,
+     *     que también devuelve la lista vacía.
+     *
      *     Va antes que `/{id_carrera}` en el archivo a propósito: FastAPI resuelve las
      *     rutas en orden, y declarada después, `buscar` la capturaría el parámetro de
      *     camino y se iría a buscar una carrera llamada «buscar».
@@ -263,6 +269,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/informe/{sesion_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar el informe del cierre de mi sesión
+     * @description El informe del último cierre de la sesión. Leerlo no lo recalcula.
+     *
+     *     La ajena se contesta con el mismo 404 que la inexistente, como el historial.
+     *
+     *     **Si el cierre ya se midió y el informe no está, se arma acá.** Quiere decir
+     *     que el armado del cierre falló, y sin esto la sesión quedaría sin informe
+     *     para siempre: nada vuelve a medir un cierre ya medido. Antes de esa medición
+     *     no se arma, porque el perfil todavía sería el anterior al cierre.
+     */
+    get: operations["obtener_informe_api_informe__sesion_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/perfil": {
     parameters: {
       query?: never;
@@ -321,6 +354,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/recomendacion/{sesion_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar las carreras que sostiene mi perfil, con su respaldo
+     * @description Cada carrera con su justificación y los fragmentos del corpus que la citan.
+     *
+     *     **Un perfil que no alcanza no es un error**, igual que en `GET /api/perfil`:
+     *     se devuelve vacío, con `publicable` en falso y las notas del servicio, que
+     *     dicen qué falta. Quien lo muestre propone seguir explorando.
+     *
+     *     El perfil es de la persona, no de la sesión, y se recalcula al cerrar una:
+     *     con la sesión todavía abierta, lo que se recomienda sale del último cierre, y
+     *     `perfil_actualizado_en` dice cuál. La sesión se pide para que nadie consulte
+     *     desde una que no es suya, y la ajena se contesta con el mismo 404 que la
+     *     inexistente, como el historial.
+     *
+     *     **Toda recomendación que sale queda asentada** en la bitácora de la sesión.
+     *     Si no se puede asentar, la consulta falla: una recomendación entregada sin
+     *     registro incumple RNF-05 sin que nadie se entere, y es la misma decisión que
+     *     toma la traza de cada turno de la conversación.
+     */
+    get: operations["recomendar_api_recomendacion__sesion_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/salud": {
     parameters: {
       query?: never;
@@ -345,6 +413,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** CarreraInformeSalida */
+    CarreraInformeSalida: {
+      /**
+       * Carrera
+       * @description Slug de la carrera en el corpus.
+       */
+      carrera: string;
+      /**
+       * Fuentes
+       * @description Fragmentos del corpus citados, copiados como estaban al cierre.
+       */
+      fuentes: components["schemas"]["RespaldoRecomendacionSalida"][];
+      /** @description Vacío en una alternativa: los habilitantes son de la carrera recomendada. */
+      habilitantes?: components["schemas"]["HabilitantesSalida"] | null;
+      /** Justificacion */
+      justificacion: string;
+      /**
+       * Puntaje
+       * @description Sirve para ordenar, no es un porcentaje de acierto.
+       */
+      puntaje: number;
+      /** Titulo */
+      titulo: string;
+    };
     /**
      * CarreraSalida
      * @description Una carrera del corpus institucional, con la fuente que la respalda.
@@ -391,6 +483,32 @@ export interface components {
        */
       texto: string;
     };
+    /** CitaSalida */
+    CitaSalida: {
+      /**
+       * Evidencia Id
+       * Format: uuid
+       */
+      evidencia_id: string;
+      /**
+       * Sesion Id
+       * Format: uuid
+       * @description De qué sesión salió: el perfil junta todas.
+       */
+      sesion_id: string;
+      /**
+       * Texto
+       * @description Lo que la persona dijo, literal.
+       */
+      texto: string;
+      /** Turno */
+      turno: number;
+      /**
+       * Valencia
+       * @description De -2 a 2. Negativa: la frase expresa rechazo.
+       */
+      valencia: number;
+    };
     /**
      * CoincidenciaCarreraSalida
      * @description Una carrera encontrada por parecido, con cuánto se parece.
@@ -429,6 +547,30 @@ export interface components {
       estado: string;
       /** Version */
       version: string;
+    };
+    /**
+     * EvidenciaInformeSalida
+     * @description Una dimensión del perfil, con las citas de la conversación que la sostienen.
+     */
+    EvidenciaInformeSalida: {
+      /** Citas */
+      citas: components["schemas"]["CitaSalida"][];
+      /** Confianza */
+      confianza: string;
+      /** Dimension */
+      dimension: string;
+      /**
+       * Intensidad
+       * @description De -2 a 2, con signo: por debajo de cero la persona mostró rechazo.
+       */
+      intensidad: number;
+      /** Nombre */
+      nombre: string;
+      /**
+       * Objecion
+       * @description Si no es nulo, la persona dijo que esta dimensión no la representa (texto vacío si no explicó por qué). Se muestra al lado, no se esconde.
+       */
+      objecion?: string | null;
     };
     /**
      * EvidenciaSalida
@@ -477,10 +619,87 @@ export interface components {
        */
       valencia: number;
     };
+    /** FuenteHabilitanteSalida */
+    FuenteHabilitanteSalida: {
+      /** Denominacion */
+      denominacion: string;
+      /** Estado Validacion */
+      estado_validacion: string;
+      /**
+       * Fecha Documento
+       * @description Se muestra siempre al citar.
+       */
+      fecha_documento?: string | null;
+      /** Url */
+      url?: string | null;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * HabilitanteSalida
+     * @description Un habilitante ofrecido, con la forma de `HabilitanteOfrecido` de S4-07 (VOCAIA-140).
+     */
+    HabilitanteSalida: {
+      /** Aplicabilidad Confirmada */
+      aplicabilidad_confirmada: boolean;
+      /** Denominacion */
+      denominacion: string;
+      /**
+       * Fuentes
+       * @default []
+       */
+      fuentes: components["schemas"]["FuenteHabilitanteSalida"][];
+      /** Id */
+      id: string;
+      /** Organismo */
+      organismo: string;
+      /** Vigencia Confirmada */
+      vigencia_confirmada: boolean;
+    };
+    /**
+     * HabilitantesPorRestriccionSalida
+     * @description Lo que corresponde a una restricción declarada, para esta carrera.
+     */
+    HabilitantesPorRestriccionSalida: {
+      /**
+       * No Verificados
+       * @default []
+       */
+      no_verificados: components["schemas"]["HabilitanteSalida"][];
+      /** Restriccion */
+      restriccion: string;
+      /**
+       * Sin Habilitante
+       * @description Por qué no hay habilitante para la restricción, si no hay.
+       */
+      sin_habilitante?: string | null;
+      /**
+       * Verificados
+       * @default []
+       */
+      verificados: components["schemas"]["HabilitanteSalida"][];
+    };
+    /** HabilitantesSalida */
+    HabilitantesSalida: {
+      /**
+       * Alternativas
+       * @description Carreras cercanas cuando una restricción deja afuera esta.
+       * @default []
+       */
+      alternativas: components["schemas"]["CarreraInformeSalida"][];
+      /**
+       * Nota
+       * @description Por qué las listas vienen vacías, si es por falta de datos.
+       */
+      nota?: string | null;
+      /**
+       * Por Restriccion
+       * @default []
+       */
+      por_restriccion: components["schemas"]["HabilitantesPorRestriccionSalida"][];
     };
     /**
      * HistorialSalida
@@ -513,6 +732,46 @@ export interface components {
       version_instrumento: string;
       /** Version Prompt */
       version_prompt: string;
+    };
+    /**
+     * InformeSalida
+     * @description El informe armado al cierre de la sesión (HU-16, S4-03).
+     *
+     *     Es la foto del cierre: leerlo no lo recalcula. **Sin carreras no es un
+     *     error**: `publicable` en falso dice que el perfil no alcanzó, y `notas` dice
+     *     por qué, en palabras para la persona.
+     *
+     *     Lo guardado en formatos anteriores también se lee: un campo nuevo entra con
+     *     valor por defecto, o los informes viejos dejan de poder abrirse.
+     */
+    InformeSalida: {
+      /** Evidencia */
+      evidencia: components["schemas"]["EvidenciaInformeSalida"][];
+      /**
+       * Formato
+       * @default 1
+       */
+      formato: number;
+      /**
+       * Generado En
+       * Format: date-time
+       */
+      generado_en: string;
+      /** Notas */
+      notas: string[];
+      /** Perfil Actualizado En */
+      perfil_actualizado_en: string | null;
+      /** Publicable */
+      publicable: boolean;
+      /** Recomendaciones */
+      recomendaciones: components["schemas"]["CarreraInformeSalida"][];
+      /**
+       * Sesion Id
+       * Format: uuid
+       */
+      sesion_id: string;
+      /** Version Instrumento */
+      version_instrumento: string;
     };
     /**
      * MensajeEntrada
@@ -629,6 +888,28 @@ export interface components {
       unidades: number;
     };
     /**
+     * RecomendacionSalida
+     * @description Una carrera sugerida, con por qué y con qué fuentes lo sostiene.
+     */
+    RecomendacionSalida: {
+      /**
+       * Carrera
+       * @description Slug de la carrera en el corpus, el mismo que usan derivación y habilitantes.
+       */
+      carrera: string;
+      /** Justificacion */
+      justificacion: string;
+      /**
+       * Puntaje
+       * @description Sirve para ordenar, no es un porcentaje de acierto.
+       */
+      puntaje: number;
+      /** Respaldo */
+      respaldo: components["schemas"]["RespaldoRecomendacionSalida"][];
+      /** Titulo */
+      titulo: string;
+    };
+    /**
      * RespaldoConversacionalSalida
      * @description Algo que la persona contó, que el sistema tenía leído al responder.
      *
@@ -727,6 +1008,70 @@ export interface components {
        * @description Creciente en similitud, 1.0 = idéntico. **No está acotado a [0, 1]**: sirve para ordenar, no como porcentaje de acierto.
        */
       puntaje: number;
+    };
+    /**
+     * RespaldoRecomendacionSalida
+     * @description Un fragmento del corpus que sostiene una recomendación, para citarlo.
+     */
+    RespaldoRecomendacionSalida: {
+      /**
+       * Estado Validacion
+       * @description `provisional` mientras la Facultad no valide el contenido (R-002). Quien lo muestre tiene que decirlo: no es información oficial confirmada.
+       */
+      estado_validacion: string;
+      /**
+       * Fuente
+       * @description Denominación de la fuente institucional y su ubicación.
+       */
+      fuente: string;
+      /**
+       * Id
+       * @description Slug del fragmento en el corpus.
+       */
+      id: string;
+      /**
+       * Texto
+       * @description Lo que dice la fuente, tal como se indexó.
+       */
+      texto: string;
+    };
+    /**
+     * ResultadoRecomendacionSalida
+     * @description Las carreras que el perfil sostiene, para la sesión desde la que se piden (HU-16).
+     *
+     *     **Vacío no es un error.** `publicable` en falso dice que el perfil todavía no
+     *     alcanza y corresponde proponer seguir explorando; en verdadero, que alcanza
+     *     pero ninguna carrera tiene respaldo en el corpus. En los dos casos `notas`
+     *     dice por qué, en palabras para la persona.
+     */
+    ResultadoRecomendacionSalida: {
+      /** Generado En */
+      generado_en: string | null;
+      /** Notas */
+      notas: string[];
+      /**
+       * Perfil Actualizado En
+       * @description Cuándo se calculó ese perfil. Vacío si todavía no hubo ningún cierre de sesión.
+       */
+      perfil_actualizado_en: string | null;
+      /**
+       * Publicable
+       * @description Si el perfil alcanza para recomendar. Es el mismo dato que `GET /api/perfil`.
+       */
+      publicable: boolean;
+      /** Recomendaciones */
+      recomendaciones: components["schemas"]["RecomendacionSalida"][];
+      /**
+       * Sesion Id
+       * Format: uuid
+       * @description La sesión desde la que se pidió. Controla el acceso: el perfil es de la persona, y cualquier sesión suya devuelve el mismo resultado.
+       */
+      sesion_id: string;
+      /**
+       * Version Instrumento
+       * @description Con qué versión de reglas se armó el perfil sobre el que se recomendó.
+       */
+      version_instrumento: string;
     };
     /**
      * ResumenSesionSalida
@@ -1044,7 +1389,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto—, y `{'error': '...'}` si la generación se corta. */
+      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error—, y `{'error': '...'}` si la generación se corta. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1210,6 +1555,51 @@ export interface operations {
       };
     };
   };
+  obtener_informe_api_informe__sesion_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sesion_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InformeSalida"];
+        };
+      };
+      /** @description La sesión no existe o es de otra persona. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Todavía no hay informe. Con `Retry-After`, la sesión cerró y el informe se está armando: reintentar en esos segundos. Sin él, la sesión no cerró. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   obtener_perfil_api_perfil_get: {
     parameters: {
       query?: never;
@@ -1251,6 +1641,44 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["ObjecionSalida"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  recomendar_api_recomendacion__sesion_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sesion_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResultadoRecomendacionSalida"];
+        };
+      };
+      /** @description La sesión no existe o es de otra persona. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
