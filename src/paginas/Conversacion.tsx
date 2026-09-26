@@ -40,19 +40,24 @@ export default function Conversacion({
     fuentes,
     intercambios,
     estado,
+    tieneInforme,
     enviar,
     reintentar,
   } = useConversacion();
   const [borrador, setBorrador] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
+  const botonInforme = useRef<HTMLButtonElement>(null);
   const finDeLista = useRef<HTMLLIElement>(null);
 
   // El foco vuelve al campo cuando termina el envío. Sin esto, quien escribe
   // con teclado queda sin punto de partida después de cada respuesta y tiene
-  // que tabular desde el principio de la página.
+  // que tabular desde el principio de la página. Si esa respuesta cerró la
+  // conversación, va al informe: devolverlo al campo lo deja escribiendo en
+  // una charla que terminó sin enterarse.
   useEffect(() => {
-    if (!enviando) campo.current?.focus();
-  }, [enviando]);
+    if (enviando) return;
+    (estado === "cerrada" ? botonInforme : campo).current?.focus();
+  }, [enviando, estado]);
 
   useEffect(() => {
     finDeLista.current?.scrollIntoView({ block: "end", behavior: "smooth" });
@@ -107,6 +112,17 @@ export default function Conversacion({
           >
             Tu perfil
           </button>
+          {/* Una sesión reabierta sigue teniendo el informe de su cierre
+              anterior; recién cerrada, el acceso es el aviso de abajo. */}
+          {tieneInforme && estado !== "cerrada" && (
+            <button
+              type="button"
+              onClick={() => alVerInforme(sesionId)}
+              className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
+            >
+              Tu informe
+            </button>
+          )}
           {/* Otro desvío del mismo tipo: se consulta el corpus de carreras
               directo y se vuelve a la charla (HU-15). */}
           <button
@@ -166,21 +182,31 @@ export default function Conversacion({
 
       {fuentes.length > 0 && !enviando && <Fuentes fuentes={fuentes} />}
 
-      {/* El campo de abajo no se deshabilita: seguir escribiendo reabre la
+      {/* La región viva existe siempre y lo que cambia es su contenido: una
+          que aparece ya llena no se anuncia en todos los lectores. Sin el
+          anuncio, quien no ve la pantalla no se entera de que terminó.
+
+          No dice «listo»: el informe se arma después de la última respuesta
+          y puede tardar unos segundos; la pantalla del informe lo espera.
+
+          El campo de abajo no se deshabilita: seguir escribiendo reabre la
           sesión del otro lado sin perder lo que ya contó, y el informe del
-          cierre queda igual. */}
-      {estado === "cerrada" && !enviando && (
-        <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
-          <p>La conversación terminó. Tu informe está listo.</p>
-          <button
-            type="button"
-            onClick={() => alVerInforme(sesionId)}
-            className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium"
-          >
-            Ver tu informe
-          </button>
-        </div>
-      )}
+          cierre se sigue pudiendo leer desde la cabecera. */}
+      <div role="status">
+        {estado === "cerrada" && !enviando && (
+          <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
+            <p>La conversación terminó.</p>
+            <button
+              ref={botonInforme}
+              type="button"
+              onClick={() => alVerInforme(sesionId)}
+              className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium"
+            >
+              Ver tu informe
+            </button>
+          </div>
+        )}
+      </div>
 
       {error !== null && (
         <p role="alert" className="text-destructive flex items-center gap-3 text-sm">

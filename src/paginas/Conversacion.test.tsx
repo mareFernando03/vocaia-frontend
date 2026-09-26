@@ -35,6 +35,7 @@ function historial(sesionId: string, turnos: Turno[]): Historial {
     actualizada_en: "2026-08-24T12:00:00Z",
     version_instrumento: "v1",
     version_prompt: "sistema-v3",
+    tiene_informe: false,
   };
 }
 
@@ -283,5 +284,62 @@ describe("Conversacion · el markdown del agente (VOCAIA-132)", () => {
     );
     // Lo que escribió la persona no se interpreta: si puso asteriscos, los puso.
     expect(screen.getByText("Dale, **gracias**")).toBeInTheDocument();
+  });
+});
+
+describe("Conversacion · el cierre y el informe (S4-04)", () => {
+  beforeEach(() => {
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(enviarMensaje).mockReset();
+  });
+
+  function montar() {
+    render(
+      <Conversacion
+        alSalir={salir}
+        alVerHistorial={verHistorial}
+        alVerPerfil={verPerfil}
+        alVerCarreras={() => {}}
+        alVerInforme={() => {}}
+      />,
+    );
+  }
+
+  it("la respuesta que cierra lleva el foco al informe y lo anuncia", async () => {
+    // Si el foco volviera al campo como en cualquier turno, quien usa teclado o
+    // lector de pantalla seguiría escribiendo sin enterarse de que terminó.
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo({ delta: "Gracias." }, { fin: true, turno_usuario: 1, turno_agente: 2, fuentes: [] }),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "Nada más"), turno(2, "agente", "Gracias.")]),
+        estado: "cerrada",
+      }),
+    );
+    montar();
+
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Nada más");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    const boton = await screen.findByRole("button", { name: "Ver tu informe" });
+    await waitFor(() => expect(boton).toHaveFocus());
+    expect(screen.getByRole("status")).toHaveTextContent(/la conversación terminó/i);
+  });
+
+  it("una sesión reabierta sigue dando acceso al informe del cierre anterior", async () => {
+    window.sessionStorage.setItem(CLAVE, "33333333-3333-4333-8333-333333333333");
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "Sigo pensando")]),
+        estado: "abierta",
+        tiene_informe: true,
+      }),
+    );
+    montar();
+
+    expect(await screen.findByRole("button", { name: "Tu informe" })).toBeInTheDocument();
+    expect(screen.queryByText(/la conversación terminó/i)).not.toBeInTheDocument();
   });
 });

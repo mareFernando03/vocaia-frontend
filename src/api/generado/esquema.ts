@@ -726,6 +726,11 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
+      /**
+       * Tiene Informe
+       * @description Si algún cierre de la sesión dejó un informe para leer en `GET /api/informe`. No se deduce de `estado`: una sesión reabierta sigue sirviendo el del cierre anterior, y una recién `cerrada` puede estar armando el suyo (el informe responde 409 con `Retry-After`).
+       */
+      tiene_informe: boolean;
       /** Turnos */
       turnos: components["schemas"]["TurnoSalida"][];
       /** Version Instrumento */
@@ -1103,6 +1108,11 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
+      /**
+       * Tiene Informe
+       * @description Si algún cierre de la sesión dejó un informe para leer en `GET /api/informe`. No se deduce de `estado`: una sesión reabierta sigue sirviendo el del cierre anterior, y una recién `cerrada` puede estar armando el suyo (el informe responde 409 con `Retry-After`).
+       */
+      tiene_informe: boolean;
       /**
        * Vista Previa
        * @description Primer mensaje de la persona en esa sesión, para poder reconocerla en la lista. Es `null` si la sesión sólo tiene el mensaje de encuadre del agente.

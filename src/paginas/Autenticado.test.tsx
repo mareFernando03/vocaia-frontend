@@ -45,6 +45,7 @@ function historial(sesionId: string, turnos: Turno[]): Historial {
     actualizada_en: "2026-08-24T12:00:00Z",
     version_instrumento: "v1",
     version_prompt: "sistema-v3",
+    tiene_informe: false,
   };
 }
 
@@ -56,6 +57,7 @@ function resumen(sesionId: string, vistaPrevia: string): ResumenSesion {
     actualizada_en: "2026-08-24T12:30:00Z",
     cantidad_turnos: 2,
     vista_previa: vistaPrevia,
+    tiene_informe: false,
   };
 }
 

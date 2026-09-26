@@ -25,7 +25,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { describir } from "../api/cliente";
+import { describir, ErrorDeApi } from "../api/cliente";
 import {
   obtenerInforme,
   type CarreraInforme,
@@ -45,22 +45,58 @@ interface Propiedades {
 const BOTON =
   "border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm";
 
+// ponytail: un minuto de espera como tope; si el armado se cae antes de medir el
+// cierre, el backend contesta «se está armando» para siempre.
+const INTENTOS_MIENTRAS_SE_ARMA = 12;
+
+interface Espera {
+  segundos: number;
+  intento: number;
+}
+
 export default function Informe({ sesionId, alVolver }: Propiedades) {
   const [informe, setInforme] = useState<DatosInforme | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Un objeto nuevo por cada 409, aunque diga los mismos segundos: es lo que
+  // hace que el efecto de abajo vuelva a programar el pedido.
+  const [espera, setEspera] = useState<Espera | null>(null);
 
-  const cargar = useCallback(async () => {
-    setError(null);
-    try {
-      setInforme(await obtenerInforme(sesionId));
-    } catch (fallo) {
-      // 404 (no existe o es ajena) y 409 (no cerró, o se está armando) traen
-      // un texto escrito para la persona; `describir` lo deja pasar tal cual.
-      setError(describir(fallo));
-    }
-  }, [sesionId]);
+  const cargar = useCallback(
+    async (intento = 0) => {
+      setError(null);
+      try {
+        setInforme(await obtenerInforme(sesionId));
+        setEspera(null);
+      } catch (fallo) {
+        // Recién cerrada, el informe se arma después de la última respuesta:
+        // es una espera, no un error. Sólo ese 409 trae `Retry-After`; el de
+        // una sesión que no cerró, y el 404 de una ajena, sí son un error y
+        // traen un texto escrito para la persona.
+        if (
+          fallo instanceof ErrorDeApi &&
+          fallo.reintentarEn !== null &&
+          intento < INTENTOS_MIENTRAS_SE_ARMA
+        ) {
+          setEspera({ segundos: fallo.reintentarEn, intento: intento + 1 });
+          return;
+        }
+        setEspera(null);
+        setError(describir(fallo));
+      }
+    },
+    [sesionId],
+  );
 
   useEffect(() => void cargar(), [cargar]);
+
+  useEffect(() => {
+    if (espera === null) return;
+    const temporizador = window.setTimeout(
+      () => void cargar(espera.intento),
+      espera.segundos * 1000,
+    );
+    return () => window.clearTimeout(temporizador);
+  }, [espera, cargar]);
 
   return (
     <article className="flex flex-col gap-6">
@@ -78,11 +114,15 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
         </div>
       </div>
 
-      {informe === null && error === null && (
-        <p aria-live="polite" className="text-muted-foreground text-sm">
-          Buscando tu informe…
-        </p>
-      )}
+      {/* Siempre presente, para que el cambio de «buscando» a «se está
+          armando» se anuncie. */}
+      <p role="status" className="text-muted-foreground text-sm empty:hidden">
+        {informe === null &&
+          error === null &&
+          (espera === null
+            ? "Buscando tu informe…"
+            : "Tu informe se está armando con lo último que contaste. Tarda unos segundos…")}
+      </p>
 
       {error !== null && (
         <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
@@ -117,7 +157,8 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         </p>
         <p>
           Lo armó una <strong>inteligencia artificial</strong> a partir de tu conversación. No
-          reemplaza a un orientador vocacional.
+          reemplaza a un orientador vocacional, y puede equivocarse: antes de decidir, verificá con
+          la Facultad lo que dice sobre cada carrera.
         </p>
         {provisional && (
           <p className="text-muted-foreground">
@@ -160,7 +201,9 @@ function Contenido({ informe }: { informe: DatosInforme }) {
       )}
 
       <p className="text-muted-foreground border-border border-t pt-3 text-xs">
-        Versión del instrumento: {informe.version_instrumento}.
+        {/* Para quien lo lea después —el asesor, una medición de
+            concordancia—: con qué reglas se armó. */}
+        Armado con la versión {informe.version_instrumento} de las reglas de VocaIA.
         {informe.perfil_actualizado_en !== null &&
           ` Perfil calculado el ${FECHA_LARGA.format(new Date(informe.perfil_actualizado_en))}.`}
       </p>
@@ -285,7 +328,8 @@ function Apoyo({ habilitante, verificado }: { habilitante: Habilitante; verifica
               )}
               {fuente.fecha_documento != null &&
                 `, documento del ${FECHA_LARGA.format(new Date(`${fuente.fecha_documento}T00:00`))}`}
-              {fuente.estado_validacion === "provisional" && " (provisional)"}
+              {fuente.estado_validacion === "provisional" &&
+                ". Dato provisional: la fuente todavía no fue validada"}
             </li>
           ))}
         </ul>

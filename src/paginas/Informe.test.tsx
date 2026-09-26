@@ -195,6 +195,24 @@ describe("Informe", () => {
     imprimir.mockRestore();
   });
 
+  it("recién cerrada, espera a que el informe se arme sin mostrar un error", async () => {
+    // El informe se arma después de la última respuesta: tocar «Ver tu informe»
+    // enseguida da un 409 con Retry-After, que es un «todavía», no un «no».
+    vi.mocked(obtenerInforme)
+      .mockRejectedValueOnce(
+        new ErrorDeApi(409, "La conversación cerró y el informe se está armando.", 0.01),
+      )
+      .mockResolvedValueOnce(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(await screen.findByText(/se está armando con lo último/i)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Ingeniería en Sistemas de Información" }),
+    ).toBeInTheDocument();
+    expect(obtenerInforme).toHaveBeenCalledTimes(2);
+  });
+
   it("una sesión ajena o inexistente muestra el error del backend y deja reintentar", async () => {
     vi.mocked(obtenerInforme)
       .mockRejectedValueOnce(new ErrorDeApi(404, "No existe esa sesión."))
