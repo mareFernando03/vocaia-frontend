@@ -42,7 +42,9 @@ export default function App() {
             La franja va afuera del ingreso a propósito: la puerta de HU-02 se
             atraviesa antes de identificarse, así que quien todavía no entró
             también lee de qué se trata el sistema. */}
-        <header className="border-border bg-surface border-b">
+        {/* No se imprime: el informe lleva su propia salvedad, que en papel
+            es la que tiene que quedar junto al contenido. */}
+        <header className="border-border bg-surface border-b print:hidden">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
             <p className="text-sm">
               Estás hablando con una{" "}

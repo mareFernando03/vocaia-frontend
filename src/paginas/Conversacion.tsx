@@ -20,6 +20,7 @@ interface Propiedades {
   alVerHistorial: () => void;
   alVerPerfil: () => void;
   alVerCarreras: () => void;
+  alVerInforme: (sesionId: string) => void;
 }
 
 export default function Conversacion({
@@ -27,6 +28,7 @@ export default function Conversacion({
   alVerHistorial,
   alVerPerfil,
   alVerCarreras,
+  alVerInforme,
 }: Propiedades) {
   const {
     sesionId,
@@ -37,6 +39,7 @@ export default function Conversacion({
     error,
     fuentes,
     intercambios,
+    estado,
     enviar,
     reintentar,
   } = useConversacion();
@@ -162,6 +165,22 @@ export default function Conversacion({
       </ol>
 
       {fuentes.length > 0 && !enviando && <Fuentes fuentes={fuentes} />}
+
+      {/* El campo de abajo no se deshabilita: seguir escribiendo reabre la
+          sesión del otro lado sin perder lo que ya contó, y el informe del
+          cierre queda igual. */}
+      {estado === "cerrada" && !enviando && (
+        <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
+          <p>La conversación terminó. Tu informe está listo.</p>
+          <button
+            type="button"
+            onClick={() => alVerInforme(sesionId)}
+            className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium"
+          >
+            Ver tu informe
+          </button>
+        </div>
+      )}
 
       {error !== null && (
         <p role="alert" className="text-destructive flex items-center gap-3 text-sm">

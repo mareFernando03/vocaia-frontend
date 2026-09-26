@@ -22,11 +22,17 @@ interface Propiedades {
   alRetomar: (sesionId: string) => void;
   alEmpezarNueva: () => void;
   alVolver: () => void;
+  alVerInforme: (sesionId: string) => void;
 }
 
 const FECHA = new Intl.DateTimeFormat("es-AR", { dateStyle: "long" });
 
-export default function Historial({ alRetomar, alEmpezarNueva, alVolver }: Propiedades) {
+export default function Historial({
+  alRetomar,
+  alEmpezarNueva,
+  alVolver,
+  alVerInforme,
+}: Propiedades) {
   const [sesiones, setSesiones] = useState<ResumenSesion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +124,18 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVolver }: Propi
                   {sesion.vista_previa ?? "Conversación sin mensajes tuyos todavía"}
                 </span>
               </button>
+              {/* Al lado y no adentro del botón de retomar: un botón dentro
+                  de otro no es HTML válido y el lector de pantalla leería los
+                  dos nombres pegados. */}
+              {sesion.estado === "cerrada" && (
+                <button
+                  type="button"
+                  onClick={() => alVerInforme(sesion.sesion_id)}
+                  className="text-primary mt-1 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-2"
+                >
+                  Ver el informe de esta conversación
+                </button>
+              )}
             </li>
           ))}
         </ul>

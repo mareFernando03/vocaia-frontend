@@ -21,6 +21,7 @@ import { olvidarSesion, recordarSesion } from "../hooks/useConversacion";
 import Carreras from "./Carreras";
 import Conversacion from "./Conversacion";
 import Historial from "./Historial";
+import Informe from "./Informe";
 import Perfil from "./Perfil";
 
 interface Propiedades {
@@ -32,11 +33,19 @@ type Desvio = "historial" | "perfil" | "carreras";
 export default function Autenticado({ alSalir }: Propiedades) {
   const [desvio, setDesvio] = useState<Desvio | null>(null);
   const [epoca, setEpoca] = useState(0);
+  // El informe va aparte del desvío porque se abre encima de la pantalla de la
+  // que se vino: al cerrarlo, el desvío sigue ahí y se vuelve al historial o a
+  // la conversación sin tener que recordar cuál era.
+  const [informe, setInforme] = useState<string | null>(null);
 
   function cambiarDeSesion(elegir: () => void) {
     elegir();
     setEpoca((anterior) => anterior + 1);
     setDesvio(null);
+  }
+
+  if (informe !== null) {
+    return <Informe sesionId={informe} alVolver={() => setInforme(null)} />;
   }
 
   if (desvio === "historial") {
@@ -45,6 +54,7 @@ export default function Autenticado({ alSalir }: Propiedades) {
         alRetomar={(sesionId) => cambiarDeSesion(() => recordarSesion(sesionId))}
         alEmpezarNueva={() => cambiarDeSesion(olvidarSesion)}
         alVolver={() => setDesvio(null)}
+        alVerInforme={setInforme}
       />
     );
   }
@@ -64,6 +74,7 @@ export default function Autenticado({ alSalir }: Propiedades) {
       alVerHistorial={() => setDesvio("historial")}
       alVerPerfil={() => setDesvio("perfil")}
       alVerCarreras={() => setDesvio("carreras")}
+      alVerInforme={setInforme}
     />
   );
 }

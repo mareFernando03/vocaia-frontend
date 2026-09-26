@@ -61,6 +61,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
 
@@ -92,6 +93,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
     await usuario.type(
@@ -113,6 +115,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
 
@@ -132,6 +135,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
 
@@ -172,6 +176,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cuánto dura sistemas?");
@@ -209,6 +214,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
@@ -233,6 +239,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
@@ -267,6 +274,7 @@ describe("Conversacion · el markdown del agente (VOCAIA-132)", () => {
         alVerHistorial={verHistorial}
         alVerPerfil={verPerfil}
         alVerCarreras={() => {}}
+        alVerInforme={() => {}}
       />,
     );
 
