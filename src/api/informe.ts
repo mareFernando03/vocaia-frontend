@@ -14,6 +14,7 @@ export type CarreraInforme = components["schemas"]["CarreraInformeSalida"];
 export type EvidenciaInforme = components["schemas"]["EvidenciaInformeSalida"];
 export type Habilitantes = components["schemas"]["HabilitantesSalida"];
 export type Habilitante = components["schemas"]["HabilitanteSalida"];
+export type Derivacion = components["schemas"]["DerivacionSalida"];
 
 /**
  * El 404 (inexistente o ajena) y el 409 (todavía no cerró, o se está armando)

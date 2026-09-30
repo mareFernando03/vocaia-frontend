@@ -190,6 +190,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/derivacion/{id_carrera}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Con quién de la Facultad hablar sobre una carrera
+     * @description El contacto de la Facultad para consultar por esa carrera, si está validado.
+     *
+     *     **Un contacto sin validar devuelve `disponible: false` y no un error.**
+     *     **Una carrera que no existe sí es un 404**, porque no es lo mismo que no
+     *     tener a quién derivar.
+     */
+    get: operations["obtener_derivacion_api_derivacion__id_carrera__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/identidad/consentimiento": {
     parameters: {
       query?: never;
@@ -423,6 +447,8 @@ export interface components {
        * @description Slug de la carrera en el corpus.
        */
       carrera: string;
+      /** @description Con quién de la Facultad hablar sobre esta carrera (HU-19). No se guarda con el informe: se agrega al leerlo con el contacto vigente, porque es un dato institucional y no de la persona. `disponible` en falso si no está validado. */
+      derivacion?: components["schemas"]["DerivacionSalida"] | null;
       /**
        * Fuentes
        * @description Fragmentos del corpus citados, copiados como estaban al cierre.
@@ -538,6 +564,36 @@ export interface components {
        * @description Identificador de la versión del aviso aceptada.
        */
       version: string;
+    };
+    /**
+     * ContactoDerivacionSalida
+     * @description El área de la Facultad a la que se deriva, con sus canales institucionales.
+     */
+    ContactoDerivacionSalida: {
+      /** Area */
+      area: string;
+      /** Correo */
+      correo: string;
+      /** Telefono */
+      telefono?: string | null;
+      /** Whatsapp */
+      whatsapp?: string | null;
+    };
+    /**
+     * DerivacionSalida
+     * @description Con quién de la Facultad puede hablar la persona sobre una carrera (HU-19).
+     *
+     *     Hoy es el mismo contacto de área para todas las carreras: así lo definió la
+     *     Secretaría. `disponible` en falso no es un error: es que el contacto cargado
+     *     no está validado por la Facultad. La pantalla tiene que decirlo así, y no
+     *     inventar uno.
+     */
+    DerivacionSalida: {
+      /** Carrera */
+      carrera: string;
+      contacto: components["schemas"]["ContactoDerivacionSalida"] | null;
+      /** Disponible */
+      disponible: boolean;
     };
     /**
      * EstadoServicio
@@ -1452,6 +1508,44 @@ export interface operations {
         };
       };
       /** @description No hay una respuesta del sistema con ese número en una sesión de esta persona: la sesión no existe, es de otra persona, o el turno es un mensaje de la persona. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  obtener_derivacion_api_derivacion__id_carrera__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id_carrera: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DerivacionSalida"];
+        };
+      };
+      /** @description No hay ninguna carrera con ese identificador. */
       404: {
         headers: {
           [name: string]: unknown;

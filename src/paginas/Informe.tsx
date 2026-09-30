@@ -4,7 +4,7 @@
  * Es lo que la persona se lleva: por eso se descarga, y por eso el orden es el
  * de alguien que lo lee sin haber estado en la conversación. Primero las
  * carreras, que es lo que vino a buscar; en cada una, por qué, qué dice la
- * Facultad y qué hay si algo la frena. Después lo que contó, que es el
+ * Facultad, qué hay si algo la frena y con quién hablar. Después lo que contó, que es el
  * respaldo de todo lo anterior. Al pie, con qué versión se armó, para que el
  * PDF quede fechado.
  *
@@ -29,6 +29,7 @@ import { describir, ErrorDeApi } from "../api/cliente";
 import {
   obtenerInforme,
   type CarreraInforme,
+  type Derivacion,
   type EvidenciaInforme,
   type Habilitante,
   type Habilitantes,
@@ -237,7 +238,52 @@ function Carrera({ carrera }: { carrera: CarreraInforme }) {
       )}
 
       {carrera.habilitantes != null && <SiAlgoTeFrena habilitantes={carrera.habilitantes} />}
+
+      {carrera.derivacion != null && <ConQuienHablar derivacion={carrera.derivacion} />}
     </article>
+  );
+}
+
+/**
+ * Con quién de la Facultad seguir hablando de la carrera (HU-19). Es el mismo
+ * contacto de área para todas, y sólo llega si la Facultad lo validó: sin
+ * validar se dice eso, y no se inventa uno.
+ */
+function ConQuienHablar({ derivacion }: { derivacion: Derivacion }) {
+  const { contacto } = derivacion;
+  return (
+    <div className="break-inside-avoid">
+      <h4 className="font-medium">Con quién hablar</h4>
+      {derivacion.disponible && contacto != null ? (
+        <>
+          <p className="mt-1">
+            Si querés hablar con alguien de la Facultad sobre esta carrera: {contacto.area}.
+          </p>
+          <ul className="mt-1 flex flex-col gap-1">
+            <li>
+              Correo: <a href={`mailto:${contacto.correo}`}>{contacto.correo}</a>
+            </li>
+            {contacto.telefono != null && (
+              <li>
+                Teléfono: <a href={`tel:${contacto.telefono}`}>{contacto.telefono}</a>
+              </li>
+            )}
+            {contacto.whatsapp != null && (
+              <li>
+                WhatsApp:{" "}
+                <a href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, "")}`}>
+                  {contacto.whatsapp}
+                </a>
+              </li>
+            )}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-1">
+          Todavía no tenemos un contacto de la Facultad confirmado para esta carrera.
+        </p>
+      )}
+    </div>
   );
 }
 

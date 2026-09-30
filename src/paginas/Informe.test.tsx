@@ -104,6 +104,60 @@ describe("Informe", () => {
     expect(screen.queryByText(/0[.,]8/)).not.toBeInTheDocument();
   });
 
+  it("al lado de cada carrera dice con quién de la Facultad hablar", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            derivacion: {
+              carrera: "ingenieria-en-sistemas-de-informacion",
+              disponible: true,
+              contacto: {
+                area: "Secretaría de Coordinación y Políticas Universitarias",
+                correo: "secretaria@ejemplo.edu.ar",
+                telefono: null,
+                whatsapp: "+54 9 342 000-0000",
+              },
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(await screen.findByRole("heading", { name: "Con quién hablar" })).toBeInTheDocument();
+    expect(screen.getByText(/Secretaría de Coordinación/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "secretaria@ejemplo.edu.ar" })).toHaveAttribute(
+      "href",
+      "mailto:secretaria@ejemplo.edu.ar",
+    );
+    expect(screen.getByRole("link", { name: "+54 9 342 000-0000" })).toHaveAttribute(
+      "href",
+      "https://wa.me/5493420000000",
+    );
+    expect(screen.queryByText(/Teléfono:/)).toBeNull();
+  });
+
+  it("si el contacto no está validado lo dice y no muestra ninguno", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            derivacion: {
+              carrera: "ingenieria-en-sistemas-de-informacion",
+              disponible: false,
+              contacto: null,
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(await screen.findByText(/todavía no tenemos un contacto/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /@/ })).toBeNull();
+  });
+
   it("un informe sin carreras muestra la nota del backend y no un error", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({
