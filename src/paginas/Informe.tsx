@@ -45,9 +45,10 @@ interface Propiedades {
 const BOTON =
   "border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm";
 
-// ponytail: un minuto de espera como tope; si el armado se cae antes de medir el
-// cierre, el backend contesta «se está armando» para siempre.
-const INTENTOS_MIENTRAS_SE_ARMA = 12;
+// Un minuto y medio de espera como tope. Pasado el minuto, si el trabajo del
+// cierre se cayó, el backend lo rehace al leer; si tampoco puede, se deja de
+// insistir y se dice que vuelva más tarde.
+const INTENTOS_MIENTRAS_SE_ARMA = 18;
 
 interface Espera {
   segundos: number;

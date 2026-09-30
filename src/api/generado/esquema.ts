@@ -286,6 +286,9 @@ export interface paths {
      *     que el armado del cierre falló, y sin esto la sesión quedaría sin informe
      *     para siempre: nada vuelve a medir un cierre ya medido. Antes de esa medición
      *     no se arma, porque el perfil todavía sería el anterior al cierre.
+     *
+     *     **Si pasó más de `ESPERA_DEL_CIERRE` y el cierre sigue sin medir**, el
+     *     recálculo falló: se rehace y se mide acá, y después se arma.
      */
     get: operations["obtener_informe_api_informe__sesion_id__get"];
     put?: never;
