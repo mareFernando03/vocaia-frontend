@@ -92,6 +92,19 @@ export interface Conversacion {
   fuentes: Fuente[];
   /** Intercambios completos: los turnos de la persona son el 1, el 3, el 5… */
   intercambios: number;
+  /**
+   * `abierta`, `cerrada` o `derivada`, según el backend; `null` antes del
+   * primer mensaje. El evento `fin` del streaming no avisa el cierre, pero el
+   * historial que se relee después de cada envío sí lo trae, así que no cuesta
+   * un pedido más.
+   */
+  estado: string | null;
+  /**
+   * Si algún cierre dejó un informe (HU-16). No sale de `estado`: seguir
+   * escribiendo reabre la sesión y el informe anterior se sigue pudiendo leer,
+   * y recién cerrada todavía se está armando.
+   */
+  tieneInforme: boolean;
   enviar: (contenido: string) => Promise<void>;
   reintentar: () => void;
 }
@@ -113,6 +126,8 @@ export function useConversacion(): Conversacion {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fuentes, setFuentes] = useState<Fuente[]>([]);
+  const [estado, setEstado] = useState<string | null>(null);
+  const [tieneInforme, setTieneInforme] = useState(false);
 
   /**
    * Trae los turnos y nada más.
@@ -124,6 +139,8 @@ export function useConversacion(): Conversacion {
   const traer = useCallback(async () => {
     const historial = await obtenerHistorial(sesion.id);
     setTurnos(historial?.turnos ?? []);
+    setEstado(historial?.estado ?? null);
+    setTieneInforme(historial?.tiene_informe ?? false);
   }, [sesion.id]);
 
   const cargar = useCallback(async () => {
@@ -202,6 +219,8 @@ export function useConversacion(): Conversacion {
     error,
     fuentes,
     intercambios,
+    estado,
+    tieneInforme,
     enviar,
     reintentar: () => void cargar(),
   };

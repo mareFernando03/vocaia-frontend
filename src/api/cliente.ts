@@ -30,6 +30,12 @@ export class ErrorDeApi extends Error {
   constructor(
     readonly estado: number,
     mensaje: string,
+    /**
+     * Segundos de `Retry-After`, si vino. Es la diferencia entre «todavía no»
+     * y «no»: el informe responde 409 en los dos casos, y sólo cuando se está
+     * armando dice en cuánto volver a pedirlo.
+     */
+    readonly reintentarEn: number | null = null,
   ) {
     super(mensaje);
     this.name = "ErrorDeApi";
@@ -48,7 +54,12 @@ export async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promis
     throw new SesionVencida();
   }
   if (!respuesta.ok) {
-    throw new ErrorDeApi(respuesta.status, await leerDetalle(respuesta));
+    const reintento = respuesta.headers.get("Retry-After");
+    throw new ErrorDeApi(
+      respuesta.status,
+      await leerDetalle(respuesta),
+      reintento === null ? null : Number(reintento),
+    );
   }
   // 204 y compañía no traen cuerpo: parsearlo tiraría un error de JSON.
   if (respuesta.status === 204) return undefined as T;

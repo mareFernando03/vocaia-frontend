@@ -29,6 +29,7 @@ import {
   type Perfil as PerfilApi,
   type Rasgo,
 } from "../api/perfil";
+import { comoTeCae } from "../contenido/como-te-cae";
 
 interface Propiedades {
   alVolver: () => void;
@@ -345,15 +346,6 @@ function Cita({ evidencia }: { evidencia: Evidencia }) {
       </p>
     </li>
   );
-}
-
-/** Cómo se lee la escala de -2 a 2 sin nombrarla. */
-function comoTeCae(intensidad: number): string {
-  if (intensidad >= 1) return "Te entusiasma";
-  if (intensidad >= 0.25) return "Te interesa";
-  if (intensidad > -0.25) return "Te resulta indistinto";
-  if (intensidad > -1) return "No te termina de cerrar";
-  return "Te desagrada";
 }
 
 /** Qué tan asentado está lo que el perfil afirma de una dimensión. */
