@@ -95,6 +95,33 @@
    * Respeta a quien pidió menos movimiento en su sistema operativo. No es
    * cosmético: para algunas personas la animación provoca mareo o migraña.
    */
+  /*
+   * El informe se descarga imprimiéndolo a PDF (S4-04). En papel un enlace no
+   * se puede seguir: la dirección se escribe después del nombre, o la fuente
+   * citada queda sin forma de encontrarla. Y un título no se queda solo al pie
+   * de una página con su contenido en la siguiente.
+   */
+  @media print {
+    /* El papel es blanco: el fondo apenas cálido de la pantalla sale gris. */
+    body {
+      background-color: var(--color-surface);
+    }
+
+    a[href^="http"]::after {
+      content: " (" attr(href) ")";
+      font-size: 0.85em;
+      overflow-wrap: anywhere;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+      break-after: avoid;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

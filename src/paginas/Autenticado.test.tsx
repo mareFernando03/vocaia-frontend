@@ -22,9 +22,11 @@ vi.mock("../api/conversacion", () => ({
 }));
 
 vi.mock("../api/perfil", () => ({ obtenerPerfil: vi.fn() }));
+vi.mock("../api/informe", () => ({ obtenerInforme: vi.fn() }));
 
 const { listarSesiones, obtenerHistorial, enviarMensaje } = await import("../api/conversacion");
 const { obtenerPerfil } = await import("../api/perfil");
+const { obtenerInforme } = await import("../api/informe");
 const { default: Autenticado } = await import("./Autenticado");
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -43,6 +45,7 @@ function historial(sesionId: string, turnos: Turno[]): Historial {
     actualizada_en: "2026-08-24T12:00:00Z",
     version_instrumento: "v1",
     version_prompt: "sistema-v3",
+    tiene_informe: false,
   };
 }
 
@@ -54,6 +57,7 @@ function resumen(sesionId: string, vistaPrevia: string): ResumenSesion {
     actualizada_en: "2026-08-24T12:30:00Z",
     cantidad_turnos: 2,
     vista_previa: vistaPrevia,
+    tiene_informe: false,
   };
 }
 
@@ -238,5 +242,46 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     expect(screen.getByText("Estoy entre sistemas y diseño")).toBeInTheDocument();
     expect(vi.mocked(obtenerHistorial).mock.lastCall).toEqual([ANTERIOR]);
     expect(window.sessionStorage.getItem(CLAVE)).toBe(ANTERIOR);
+  });
+
+  it("al cerrar la conversación se llega al informe, y desde el historial también", async () => {
+    // S4-04: el evento de fin del streaming no avisa el cierre; lo dice el
+    // estado del historial que la conversación relee. Si esa lectura se rompe,
+    // la persona termina y nunca ve su informe.
+    const usuario = userEvent.setup();
+    window.sessionStorage.setItem(CLAVE, ANTERIOR);
+    vi.mocked(obtenerHistorial).mockResolvedValue({
+      ...historial(ANTERIOR, [turno(1, "usuario", "Estoy entre sistemas y diseño")]),
+      estado: "cerrada",
+    });
+    vi.mocked(listarSesiones).mockResolvedValue([
+      { ...resumen(ANTERIOR, "Estoy entre sistemas y diseño"), estado: "cerrada" },
+    ]);
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      formato: 1,
+      sesion_id: ANTERIOR,
+      generado_en: "2026-09-25T12:00:00Z",
+      publicable: false,
+      version_instrumento: "instrumento-v3",
+      perfil_actualizado_en: null,
+      evidencia: [],
+      recomendaciones: [],
+      notas: ["Todavía no conversamos lo suficiente."],
+    });
+
+    render(<Autenticado alSalir={salir} />);
+    await usuario.click(await screen.findByRole("button", { name: /ver tu informe/i }));
+
+    expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();
+    expect(obtenerInforme).toHaveBeenLastCalledWith(ANTERIOR);
+
+    await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
+    await usuario.click(await screen.findByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(await screen.findByRole("button", { name: /ver el informe/i }));
+    expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();
+
+    // Volver del informe deja en el historial, que es de donde se vino.
+    await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
+    expect(await screen.findByRole("heading", { name: /tus conversaciones/i })).toBeInTheDocument();
   });
 });
