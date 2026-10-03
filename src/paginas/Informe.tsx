@@ -293,7 +293,6 @@ const RESTRICCIONES: Record<string, string> = {
   laboral: "Si lo que te frena es el trabajo",
   academica: "Si lo que te frena es el nivel académico",
   familiar: "Si lo que te frena es la situación familiar",
-  discapacidad: "Si lo que te frena es una discapacidad",
 };
 
 function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
@@ -310,7 +309,9 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
       {por_restriccion.map((grupo) => (
         <div key={grupo.restriccion} className="flex flex-col gap-2">
           <h5 className="font-medium">
-            {RESTRICCIONES[grupo.restriccion] ?? `Restricción: ${grupo.restriccion}`}
+            {/* Un tipo que no conocemos no se nombra: podría ser una categoría
+                sensible, y el informe se imprime y se comparte. */}
+            {RESTRICCIONES[grupo.restriccion] ?? "Otras circunstancias que mencionaste"}
           </h5>
           {grupo.verificados.length + grupo.no_verificados.length > 0 && (
             <ul className="flex flex-col gap-2">
