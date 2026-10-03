@@ -94,6 +94,8 @@ export function describir(fallo: unknown): string {
 export interface Usuario {
   identificador_opaco: string;
   proveedor: string;
+  /** Versión del aviso registrada como consentida (VOCAIA-102). */
+  consentimiento_version?: string | null;
 }
 
 /** Verifica el token contra el backend y devuelve el identificador opaco. */

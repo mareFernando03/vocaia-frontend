@@ -8,8 +8,10 @@ import Autenticado from "./paginas/Autenticado";
 import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
-  const { aceptado, aceptar } = useAvisoAceptado();
-  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion();
+  const { aceptado, version, aceptar } = useAvisoAceptado();
+  // Solo la versión vigente: mientras la puerta esté abierta no hay nada que
+  // registrar, aunque quede guardada una versión anterior.
+  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion(aceptado ? version : null);
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 

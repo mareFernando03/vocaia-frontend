@@ -12,7 +12,7 @@
  * de asumir que sí.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   cerrarSesionEnBackend,
@@ -50,7 +50,12 @@ export const INGRESO_RECHAZADO =
 export const SIN_RESPUESTA =
   "No pudimos conectarnos para validar tu ingreso. Revisá tu conexión y probá de nuevo.";
 
-export function useSesion(): {
+/**
+ * `avisoVigenteAceptado` es la versión del aviso que la persona aceptó en esta
+ * sesión, **solo si es la vigente**, o `null` mientras la puerta siga abierta.
+ * La pasa `App`, que es quien sabe si la puerta se atravesó.
+ */
+export function useSesion(avisoVigenteAceptado: string | null = null): {
   sesion: EstadoSesion;
   error: string | null;
   ingresar: (token: string) => void;
@@ -107,6 +112,39 @@ export function useSesion(): {
     void verificar();
     return alCambiarSesion(() => void verificar());
   }, [verificar]);
+
+  // Registra de nuevo el consentimiento si el aviso cambió (VOCAIA-102).
+  //
+  // El 403 de arriba no alcanza: lo recibe quien nunca consintió, pero quien
+  // aceptó una versión anterior ya tiene identidad y entra sin 403. La puerta
+  // se le vuelve a mostrar y acepta el aviso nuevo, pero el registro seguiría
+  // diciendo que aceptó el viejo. Por eso se compara lo registrado con lo
+  // aceptado, y si difieren se registra lo aceptado.
+  //
+  // Es un efecto y no un paso de `verificar` porque la persona puede aceptar
+  // la puerta con la sesión ya abierta, y ahí no se vuelve a verificar nada.
+  // Solo se registra la versión vigente: una aceptada antes de un cambio del
+  // aviso no es la que la persona tiene delante, y registrarla bajaría la
+  // versión de alguien que ya consintió la nueva en otro dispositivo.
+  //
+  // Se intenta una vez por versión. Si falla, la sesión sigue —la persona ya
+  // está autenticada con un consentimiento válido— y el próximo ingreso lo
+  // vuelve a intentar: cortarle la sesión por un registro que se puede repetir
+  // sería castigarla por un problema de red. Y si el backend no informa la
+  // versión, no se queda registrando en cada render.
+  const intentada = useRef<string | null>(null);
+  const registrada = sesion.estado === "autenticado" ? sesion.usuario.consentimiento_version : null;
+  useEffect(() => {
+    if (sesion.estado !== "autenticado" || avisoVigenteAceptado === null) return;
+    if (registrada === avisoVigenteAceptado || intentada.current === avisoVigenteAceptado) return;
+    intentada.current = avisoVigenteAceptado;
+    registrarConsentimiento(avisoVigenteAceptado).then(
+      (usuario) => setSesion({ estado: "autenticado", usuario }),
+      () => {
+        // Ver arriba: se reintenta en el próximo ingreso.
+      },
+    );
+  }, [sesion.estado, registrada, avisoVigenteAceptado]);
 
   const ingresar = useCallback((token: string) => {
     // Se limpia antes de reintentar: dejar el mensaje del intento anterior

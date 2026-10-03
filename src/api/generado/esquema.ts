@@ -282,7 +282,10 @@ export interface paths {
      * @description Verifica el token y devuelve el identificador opaco.
      *
      *     Es también el endpoint con el que el frontend comprueba que su token sigue
-     *     valiendo, sin tener que iniciar una conversación para averiguarlo.
+     *     valiendo, sin tener que iniciar una conversación para averiguarlo. Devuelve
+     *     también la versión del aviso consentida: el frontend la compara con la que
+     *     la persona aceptó en esta sesión y, si el aviso cambió, la vuelve a
+     *     registrar (VOCAIA-102).
      */
     get: operations["consultar_identidad_api_identidad_yo_get"];
     put?: never;
@@ -1248,6 +1251,11 @@ export interface components {
      *     decorativa.
      */
     UsuarioSalida: {
+      /**
+       * Consentimiento Version
+       * @description Versión del aviso registrada como consentida. Si no coincide con la que la persona acaba de aceptar, el cliente vuelve a registrar el consentimiento.
+       */
+      consentimiento_version?: string | null;
       /**
        * Identificador Opaco
        * @description Identificador estable del usuario. No revela nada sobre la persona.

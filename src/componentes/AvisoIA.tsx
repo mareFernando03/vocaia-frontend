@@ -129,12 +129,23 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
           ))}
         </div>
 
-        {/* Solo se dibuja si hay contactos reales cargados. Ver la nota de G-02
-            en `contenido/aviso-ia.ts`: una sección de ayuda vacía es peor que
-            ninguna. */}
+        {/* Lo que la persona consiente al aceptar (HU-03a). Va antes del botón
+            y dentro del mismo diálogo: se lee antes de aceptar, no después. */}
+        <section className="mt-5">
+          <h3 className="text-base font-semibold">{AVISO.tituloDatos}</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-base leading-relaxed">
+            {AVISO.datos.map((dato) => (
+              <li key={dato}>{dato}</li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Solo se dibuja si hay contactos reales cargados: una sección de
+            ayuda vacía es peor que ninguna. */}
         {AVISO.canales.length > 0 && (
           <section className="bg-primary-soft mt-5 rounded-md p-4">
             <h3 className="text-sm font-semibold">{AVISO.tituloAyuda}</h3>
+            <p className="mt-1 text-sm">{AVISO.presentacionAyuda}</p>
             <ul className="mt-2 space-y-2 text-sm">
               {AVISO.canales.map((canal) => (
                 <li key={canal.nombre}>

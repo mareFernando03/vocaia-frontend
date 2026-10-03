@@ -74,6 +74,87 @@ describe("useSesion · consentimiento", () => {
 });
 
 /**
+ * VOCAIA-102 · quien ya consintió una versión vieja nunca recibe el 403.
+ *
+ * Tiene identidad, así que entra derecho. Lo que lo delata es la versión que
+ * el backend dice tener registrada: si no es la que la persona acaba de
+ * aceptar, hay que registrarla, o el vault dice que consintió un texto que ya
+ * no es el que leyó.
+ */
+describe("useSesion · el registro sigue al aviso vigente", () => {
+  it("si lo registrado es otra versión, registra la aceptada", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledWith("aviso-v2"));
+    await waitFor(() =>
+      expect(result.current.sesion).toEqual({
+        estado: "autenticado",
+        usuario: { ...USUARIO, consentimiento_version: "aviso-v2" },
+      }),
+    );
+    expect(registrarConsentimiento).toHaveBeenCalledTimes(1);
+  });
+
+  it("si coincide, no vuelve a registrar", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
+  });
+
+  it("con la puerta abierta no registra nada", async () => {
+    // Sin la versión vigente aceptada, lo único que hay es lo que la persona
+    // aceptó antes del cambio: registrarlo bajaría la versión de alguien que
+    // quizá ya consintió la nueva en otro dispositivo.
+    guardarToken("token-de-prueba");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+
+    const { result } = renderHook(() => useSesion(null));
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
+  });
+
+  it("registra también si la puerta se acepta con la sesión ya abierta", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+
+    const { result, rerender } = renderHook(({ aviso }) => useSesion(aviso), {
+      initialProps: { aviso: null as string | null },
+    });
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
+
+    rerender({ aviso: "aviso-v2" });
+
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledWith("aviso-v2"));
+  });
+
+  it("si el registro falla, la sesión sigue y no reintenta en cada render", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { result, rerender } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledTimes(1));
+    rerender();
+
+    expect(result.current.sesion.estado).toBe("autenticado");
+    expect(result.current.error).toBeNull();
+    expect(registrarConsentimiento).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
  * VOCAIA-131 · un ingreso rechazado dejaba de verse.
  *
  * Volver a «anónimo» es correcto —no hay sesión— pero es indistinguible de no
