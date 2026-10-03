@@ -4,6 +4,11 @@
 // Es el mismo archivo en 5to, vocaia-backend y vocaia-frontend. Si se toca,
 // se toca en los tres: la carga se cuenta cruzada y dos criterios distintos
 // asignarian distinto segun por que repositorio entro el PR.
+//
+// En 5to, revisiones-vencidas.mjs importa de aca el plazo y las horas habiles:
+// el aviso de revision vencida y el reparto tienen que contar igual.
+
+import { pathToFileURL } from 'node:url';
 
 const REPOS = (process.env.LOAD_REPOS || '').split(',').map(s => s.trim()).filter(Boolean);
 const WINDOW_DAYS = 15; // un sprint: el reparto se empareja dentro de cada uno
@@ -51,7 +56,7 @@ export const pick = (loads) => {
 // Un reviewer que cuenta es una persona. Copilot se pide solo al abrir el PR y
 // deja su review en segundos; contarlo dejaba el PR sin revision humana y el
 // script informando "ya tiene reviewer" (paso en 5to#52 a #55).
-const esPersona = (u) => !!u?.login && u.type !== 'Bot' && !u.login.endsWith('[bot]');
+export const esPersona = (u) => !!u?.login && u.type !== 'Bot' && !u.login.endsWith('[bot]');
 
 // GitHub saca a quien revisa de requested_reviewers apenas manda su review, asi
 // que la lista vacia no significa "nadie lo reviso" sino "no queda nada pedido".
@@ -203,5 +208,9 @@ async function test() {
   console.log('ok');
 }
 
-if (process.argv.includes('--test')) await test();
-else await main();
+// Solo corre si se lo ejecuta. Importado, presta sus funciones y nada mas: sin
+// esta guarda, importarlo disparaba main() y moria buscando el evento del PR.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (process.argv.includes('--test')) await test();
+  else await main();
+}
