@@ -47,8 +47,9 @@ const BOTON =
   "border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm";
 
 // Un minuto y medio de espera como tope. Pasado el minuto, si el trabajo del
-// cierre se cayó, el backend lo rehace al leer; si tampoco puede, se deja de
-// insistir y se dice que vuelva más tarde.
+// cierre se cayó, el backend lo rehace al leer. Al llegar al tope se deja de
+// insistir: la pantalla dice que el informe sigue preparándose, que puede
+// volver desde su historial, y deja volver a intentar a mano.
 const INTENTOS_MIENTRAS_SE_ARMA = 18;
 
 interface Espera {
@@ -62,10 +63,12 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
   // Un objeto nuevo por cada 409, aunque diga los mismos segundos: es lo que
   // hace que el efecto de abajo vuelva a programar el pedido.
   const [espera, setEspera] = useState<Espera | null>(null);
+  const [agotada, setAgotada] = useState(false);
 
   const cargar = useCallback(
     async (intento = 0) => {
       setError(null);
+      setAgotada(false);
       try {
         setInforme(await obtenerInforme(sesionId));
         setEspera(null);
@@ -74,12 +77,13 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
         // es una espera, no un error. Sólo ese 409 trae `Retry-After`; el de
         // una sesión que no cerró, y el 404 de una ajena, sí son un error y
         // traen un texto escrito para la persona.
-        if (
-          fallo instanceof ErrorDeApi &&
-          fallo.reintentarEn !== null &&
-          intento < INTENTOS_MIENTRAS_SE_ARMA
-        ) {
-          setEspera({ segundos: fallo.reintentarEn, intento: intento + 1 });
+        if (fallo instanceof ErrorDeApi && fallo.reintentarEn !== null) {
+          if (intento < INTENTOS_MIENTRAS_SE_ARMA) {
+            setEspera({ segundos: fallo.reintentarEn, intento: intento + 1 });
+          } else {
+            setEspera(null);
+            setAgotada(true);
+          }
           return;
         }
         setEspera(null);
@@ -121,10 +125,22 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
       <p role="status" className="text-muted-foreground text-sm empty:hidden">
         {informe === null &&
           error === null &&
-          (espera === null
-            ? "Buscando tu informe…"
-            : "Tu informe se está armando con lo último que contaste. Tarda unos segundos…")}
+          (agotada
+            ? "Tu informe todavía se está preparando. Podés volver en unos minutos y abrirlo desde «Tus conversaciones»."
+            : espera === null
+              ? "Buscando tu informe…"
+              : "Tu informe se está armando con lo último que contaste. Tarda unos segundos…")}
       </p>
+
+      {agotada && (
+        <button
+          type="button"
+          onClick={() => void cargar()}
+          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center self-start rounded-md border px-3 text-sm print:hidden"
+        >
+          Volver a intentar
+        </button>
+      )}
 
       {error !== null && (
         <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
