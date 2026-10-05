@@ -21,6 +21,7 @@ import {
   registrarConsentimiento,
   type Usuario,
 } from "../api/cliente";
+import { AVISO } from "../contenido/aviso-ia";
 import { versionAceptada } from "../hooks/useAvisoAceptado";
 import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesion";
 
@@ -83,10 +84,15 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
       // se puede resolver sin molestar a nadie: la persona ya lo dio al
       // atravesar la puerta antes de ingresar. Se registra y se reintenta.
       //
-      // Se manda la versión que efectivamente aceptó y no la vigente: si el
-      // aviso cambió, la puerta se le vuelve a mostrar y consiente de nuevo.
+      // Solo si lo aceptado es la versión vigente (VOCAIA-102). Una aceptada
+      // antes de un cambio del aviso no es la que la persona tiene delante, y
+      // registrarla crearía la identidad con un consentimiento a un texto que
+      // ya no se muestra. Con la puerta abierta se espera a que la atraviese.
+      const aceptada = versionAceptada();
       const version =
-        fallo instanceof ErrorDeApi && fallo.estado === 403 ? versionAceptada() : null;
+        fallo instanceof ErrorDeApi && fallo.estado === 403 && aceptada === AVISO.version
+          ? aceptada
+          : null;
       if (version !== null) {
         try {
           setSesion({ estado: "autenticado", usuario: await registrarConsentimiento(version) });
@@ -127,24 +133,44 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
   // aviso no es la que la persona tiene delante, y registrarla bajaría la
   // versión de alguien que ya consintió la nueva en otro dispositivo.
   //
-  // Se intenta una vez por versión. Si falla, la sesión sigue —la persona ya
-  // está autenticada con un consentimiento válido— y el próximo ingreso lo
-  // vuelve a intentar: cortarle la sesión por un registro que se puede repetir
-  // sería castigarla por un problema de red. Y si el backend no informa la
-  // versión, no se queda registrando en cada render.
+  // Se intenta una vez por persona y versión, y la marca se borra al quedar
+  // sin sesión: si no, quien entra después en la misma pestaña —u otra vez la
+  // misma persona, tras un intento fallido— no se registraría nunca. Si falla
+  // por la red, la sesión sigue —la persona ya está autenticada con un
+  // consentimiento válido— y el próximo ingreso lo vuelve a intentar: cortarle
+  // la sesión por un registro que se puede repetir sería castigarla por un
+  // problema de red. Y si el backend no informa la versión, no se queda
+  // registrando en cada render.
+  //
+  // La respuesta se descarta si mientras tanto cambió el token: llegar después
+  // de «salir» y marcar la sesión como abierta mostraría la aplicación sin
+  // credencial.
   const intentada = useRef<string | null>(null);
-  const registrada = sesion.estado === "autenticado" ? sesion.usuario.consentimiento_version : null;
+  const usuario = sesion.estado === "autenticado" ? sesion.usuario : null;
+  const identificador = usuario?.identificador_opaco ?? null;
+  const registrada = usuario?.consentimiento_version ?? null;
   useEffect(() => {
-    if (sesion.estado !== "autenticado" || avisoVigenteAceptado === null) return;
-    if (registrada === avisoVigenteAceptado || intentada.current === avisoVigenteAceptado) return;
-    intentada.current = avisoVigenteAceptado;
+    if (identificador === null) {
+      intentada.current = null;
+      return;
+    }
+    if (avisoVigenteAceptado === null || registrada === avisoVigenteAceptado) return;
+    const clave = `${identificador}:${avisoVigenteAceptado}`;
+    if (intentada.current === clave) return;
+    intentada.current = clave;
+    const token = obtenerToken();
     registrarConsentimiento(avisoVigenteAceptado).then(
-      (usuario) => setSesion({ estado: "autenticado", usuario }),
+      (actualizado) => {
+        if (obtenerToken() === token) setSesion({ estado: "autenticado", usuario: actualizado });
+      },
       () => {
-        // Ver arriba: se reintenta en el próximo ingreso.
+        // Un 401 ya borró el token y la verificación vuelve al ingreso: se le
+        // dice por qué, en vez de sacarla sin explicación. Cualquier otro
+        // fallo se reintenta en el próximo ingreso (ver arriba).
+        if (obtenerToken() === null) setError(INGRESO_RECHAZADO);
       },
     );
-  }, [sesion.estado, registrada, avisoVigenteAceptado]);
+  }, [identificador, registrada, avisoVigenteAceptado]);
 
   const ingresar = useCallback((token: string) => {
     // Se limpia antes de reintentar: dejar el mensaje del intento anterior

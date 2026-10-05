@@ -67,7 +67,7 @@ describe("AvisoIA · derivación a orientación humana", () => {
     );
     expect(screen.getByRole("link", { name: /421147/ })).toHaveAttribute(
       "href",
-      "tel:+543564421147",
+      "tel:+543564421147,116",
     );
     expect(screen.getByRole("link", { name: /236255/ })).toHaveAttribute(
       "href",

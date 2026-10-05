@@ -75,9 +75,9 @@ export const AVISO: AvisoIA = {
   tituloDatos: "Qué pasa con lo que contás",
   datos: [
     "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
-    "Para responderte, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
-    "Tu nombre y tu correo de Google se guardan aparte de la conversación. Sirven para reconocerte cuando volvés a entrar.",
-    "Lo usa solo el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, y para nada más.",
+    "Para responderte y para armar tu perfil, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
+    "Tu nombre y tu correo de Google se guardan aparte de la conversación. El nombre es para hablarte por él; el correo, para avisarte algo importante sobre tus datos.",
+    "Lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
   ],
 
@@ -96,7 +96,7 @@ export const AVISO: AvisoIA = {
       detalle: "scpu@fr.sanfrancisco.utn.edu.ar",
       href: "mailto:scpu@fr.sanfrancisco.utn.edu.ar",
     },
-    { nombre: "Teléfono", detalle: "(03564) 421147, interno 116", href: "tel:+543564421147" },
+    { nombre: "Teléfono", detalle: "(03564) 421147, interno 116", href: "tel:+543564421147,116" },
     { nombre: "WhatsApp", detalle: "3564 236255", href: "https://wa.me/5493564236255" },
   ],
 

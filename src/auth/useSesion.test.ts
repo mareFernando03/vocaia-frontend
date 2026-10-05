@@ -1,8 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ErrorDeApi } from "../api/cliente";
-import { guardarToken } from "./sesion";
+import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { AVISO } from "../contenido/aviso-ia";
+import { borrarToken, guardarToken } from "./sesion";
 import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
 
 /**
@@ -37,15 +38,28 @@ afterEach(() => {
 describe("useSesion · consentimiento", () => {
   it("ante un 403 registra el consentimiento aceptado y reintenta", async () => {
     guardarToken("token-de-prueba");
-    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", AVISO.version);
     consultarUsuario.mockRejectedValue(new ErrorDeApi(403, "Falta el consentimiento."));
     registrarConsentimiento.mockResolvedValue(USUARIO);
 
     const { result } = renderHook(() => useSesion());
 
     await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
-    // Se manda la versión que la persona aceptó, no la vigente por defecto.
-    expect(registrarConsentimiento).toHaveBeenCalledWith("aviso-v1");
+    expect(registrarConsentimiento).toHaveBeenCalledWith(AVISO.version);
+  });
+
+  it("ante un 403, una versión vieja aceptada no se registra (VOCAIA-102)", async () => {
+    // Aceptó el aviso anterior y el registro no llegó. Registrarlo ahora
+    // crearía la identidad con un consentimiento a un texto que ya no se
+    // muestra: se espera a que atraviese la puerta nueva.
+    guardarToken("token-de-prueba");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+    consultarUsuario.mockRejectedValue(new ErrorDeApi(403, "Falta el consentimiento."));
+
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
   });
 
   it("sin aviso aceptado no consiente por su cuenta", async () => {
@@ -139,6 +153,60 @@ describe("useSesion · el registro sigue al aviso vigente", () => {
     await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledWith("aviso-v2"));
   });
 
+  it("quien entra después en la misma pestaña también se registra", async () => {
+    // La marca de «ya se intentó» no puede sobrevivir a la sesión: si A
+    // aceptó y salió, B entra con su propia versión registrada.
+    const PERSONA_B = { identificador_opaco: "opaco-2", proveedor: "google" };
+    guardarToken("token-a");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledTimes(1));
+
+    borrarToken();
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    consultarUsuario.mockResolvedValue({ ...PERSONA_B, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockResolvedValue({ ...PERSONA_B, consentimiento_version: "aviso-v2" });
+    result.current.ingresar("token-b");
+
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledTimes(2));
+  });
+
+  it("una respuesta que llega después de salir no reabre la sesión", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    let responder: (usuario: unknown) => void = () => {};
+    registrarConsentimiento.mockReturnValue(
+      new Promise((resolver) => {
+        responder = resolver;
+      }),
+    );
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledTimes(1));
+
+    borrarToken();
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    responder({ ...USUARIO, consentimiento_version: "aviso-v2" });
+    await new Promise((listo) => setTimeout(listo, 0));
+
+    expect(result.current.sesion.estado).toBe("anonimo");
+  });
+
+  it("si el registro da 401, dice por qué volvió al ingreso", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
+    registrarConsentimiento.mockImplementation(() => {
+      // Es lo que hace `pedir` ante un 401: borra el token y avisa.
+      borrarToken();
+      return Promise.reject(new SesionVencida());
+    });
+
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    await waitFor(() => expect(result.current.error).toBe(INGRESO_RECHAZADO));
+  });
+
   it("si el registro falla, la sesión sigue y no reintenta en cada render", async () => {
     guardarToken("token-de-prueba");
     consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v1" });
@@ -209,7 +277,7 @@ describe("useSesion · un servidor que no contesta no es una credencial rechazad
 
   it("si el consentimiento se cae sin respuesta, tampoco culpa a la credencial", async () => {
     guardarToken("token-de-prueba");
-    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", AVISO.version);
     consultarUsuario.mockRejectedValue(new ErrorDeApi(403, "falta consentimiento"));
     registrarConsentimiento.mockRejectedValue(new TypeError("Failed to fetch"));
 

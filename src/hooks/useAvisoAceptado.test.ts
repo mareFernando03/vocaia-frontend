@@ -51,6 +51,21 @@ describe("useAvisoAceptado", () => {
     expect(result.current.aceptado).toBe(false);
   });
 
+  it("olvidar borra la aceptación y la puerta vuelve (VOCAIA-102)", () => {
+    // Es lo que hace «salir» en App: en una computadora compartida, quien
+    // entra después en la misma pestaña tiene que ver la puerta y consentir
+    // por sí, no heredar lo que aceptó otra persona.
+    const { result } = renderHook(() => useAvisoAceptado());
+    act(() => result.current.aceptar());
+    expect(window.sessionStorage.getItem("vocaia:aviso-ia:aceptado")).toBe(AVISO.version);
+
+    act(() => result.current.olvidar());
+
+    expect(result.current.aceptado).toBe(false);
+    expect(result.current.version).toBeNull();
+    expect(window.sessionStorage.getItem("vocaia:aviso-ia:aceptado")).toBeNull();
+  });
+
   it("si no puede leer el almacenamiento, muestra el aviso igual", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("almacenamiento bloqueado");

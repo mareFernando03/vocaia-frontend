@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
@@ -8,10 +8,19 @@ import Autenticado from "./paginas/Autenticado";
 import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
-  const { aceptado, version, aceptar } = useAvisoAceptado();
+  const { aceptado, version, aceptar, olvidar } = useAvisoAceptado();
   // Solo la versión vigente: mientras la puerta esté abierta no hay nada que
   // registrar, aunque quede guardada una versión anterior.
   const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion(aceptado ? version : null);
+  // Salir también borra la aceptación del aviso: quien use la pestaña después
+  // vuelve a ver la puerta (VOCAIA-102).
+  const salirYOlvidar = useCallback(async () => {
+    try {
+      await salir();
+    } finally {
+      olvidar();
+    }
+  }, [salir, olvidar]);
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 
@@ -82,7 +91,7 @@ export default function App() {
             sesion={sesion}
             errorDeIngreso={errorDeIngreso}
             alIngresar={ingresar}
-            alSalir={salir}
+            alSalir={salirYOlvidar}
           />
         </main>
       </div>

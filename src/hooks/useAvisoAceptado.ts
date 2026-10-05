@@ -37,6 +37,12 @@ export interface AvisoAceptado {
   /** La versión que aceptó, o `null`. Es lo que viaja al backend. */
   version: string | null;
   aceptar: () => void;
+  /**
+   * Borra la aceptación. Se llama al cerrar sesión (VOCAIA-102): en una
+   * computadora compartida, quien entra después en la misma pestaña tiene que
+   * ver la puerta y consentir por sí, no heredar lo que aceptó otra persona.
+   */
+  olvidar: () => void;
 }
 
 export function useAvisoAceptado(): AvisoAceptado {
@@ -53,8 +59,17 @@ export function useAvisoAceptado(): AvisoAceptado {
     setVersion(AVISO.version);
   }, []);
 
+  const olvidar = useCallback(() => {
+    try {
+      window.sessionStorage.removeItem(CLAVE);
+    } catch {
+      // Si no se puede borrar, al menos esta carga vuelve a mostrar la puerta.
+    }
+    setVersion(null);
+  }, []);
+
   // Se compara contra la versión vigente y no contra `null`: si el aviso
   // cambió, lo que la persona aceptó ya no es lo que dice la pantalla y la
   // puerta se vuelve a mostrar. Es para lo que sirve versionarlo.
-  return { aceptado: version === AVISO.version, version, aceptar };
+  return { aceptado: version === AVISO.version, version, aceptar, olvidar };
 }
