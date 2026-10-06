@@ -81,6 +81,9 @@ scripts no existen todavía.
   el trabajo no tiene card, no inventar un número: `chore/` o `fix/` a secas.
 - _Conventional commits_, en español.
 - `main` está protegida: todo entra por pull request con un revisor.
+- **Aprueba y mergea quien revisa**, salvo que el autor haya pedido en el PR
+  mergearlo él (trabajo apilado, orden de entrada). Está en `equipo/acuerdos.md`
+  §1.5 del repositorio académico. Un agente propone el merge; lo ejecuta la persona.
 
 **El tablero de Jira lo leen los otros dos integrantes y es evidencia ante la
 cátedra.** Antes de cualquier escritura —transición, comentario,
