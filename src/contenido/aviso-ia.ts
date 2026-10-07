@@ -1,5 +1,6 @@
 /**
- * Texto del aviso de divulgación (HU-02, RF-11).
+ * Texto del aviso de divulgación (HU-02, RF-11) y del tratamiento de datos
+ * que la persona consiente al aceptarlo (HU-03a).
  *
  * Vive acá como datos y no dentro del componente por la misma razón por la que
  * el prompt de sistema vive en `recursos/prompts/` del backend: es contenido que
@@ -29,7 +30,18 @@ export interface AvisoIA {
   version: string;
   titulo: string;
   parrafos: readonly string[];
+  /**
+   * Qué pasa con lo que la persona cuenta (HU-03a, VOCAIA-102).
+   *
+   * Va en el mismo diálogo y se acepta con el mismo botón: aceptar el aviso
+   * es dar el consentimiento informado, y el art. 6 de la Ley 25.326 pide que
+   * la persona sepa qué consiente antes de hacerlo, no después.
+   */
+  tituloDatos: string;
+  datos: readonly string[];
   tituloAyuda: string;
+  /** Quién atiende en los canales de abajo. Se omite si no hay canales. */
+  presentacionAyuda: string;
   canales: readonly CanalDeAyuda[];
   /** Texto del botón que confirma la lectura. */
   aceptar: string;
@@ -44,7 +56,9 @@ export interface AvisoIA {
  * primera pantalla.
  */
 export const AVISO: AvisoIA = {
-  version: "aviso-v1",
+  // v2 (VOCAIA-102): agrega qué pasa con los datos y los contactos de la
+  // Facultad. Los cuatro párrafos de v1 quedan idénticos.
+  version: "aviso-v2",
 
   titulo: "Antes de empezar, algo importante",
 
@@ -55,15 +69,38 @@ export const AVISO: AvisoIA = {
     "Puede equivocarse. Si algo de lo que te dice sobre una carrera te parece raro, verificalo antes de decidir.",
   ],
 
+  // No dice cuánto tiempo se guarda ni cómo pedir el borrado: eso llega con
+  // HU-04 (Sprint 6), y prometerlo antes sería prometer algo que el sistema no
+  // hace. El destinatario se nombra en genérico, decidido el 03/10. Por lo mismo
+  // no dice para qué es el nombre: hoy ningún prompt ni endpoint lo lee, y la
+  // finalidad se agrega cuando exista.
+  tituloDatos: "Qué pasa con lo que contás",
+  datos: [
+    "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
+    "Para responderte y para armar tu perfil, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
+    "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
+    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
+    "Qué contar lo elegís vos.",
+  ],
+
   tituloAyuda: "Dónde hablar con una persona",
 
-  // PENDIENTE (G-02): los contactos reales de orientación —gabinete
-  // psicopedagógico y consejeros estudiantiles por carrera— son una gestión
-  // institucional sin cerrar, responsable FQ. Hasta que estén, este arreglo
-  // queda vacío y la sección no se renderiza: es preferible no mostrarla a
-  // mostrar un contacto inventado, que es justamente lo que alguien en
-  // problemas intentaría usar.
-  canales: [],
+  // G-02: la Secretaría de Coordinación y Políticas Universitarias contestó
+  // el 24/09 que las consultas de aspirantes van a ella, que asesora o deriva
+  // a cada especialidad. Es un área y no una persona. Los datos son los de
+  // `recursos/corpus/contacto-derivacion-v1.yaml` del backend, que también
+  // muestra el informe: si cambian allá, cambian acá, y con eso la versión.
+  presentacionAyuda:
+    "Si querés hablar con una persona sobre qué estudiar, la Secretaría de Coordinación y Políticas Universitarias de la Facultad atiende a quienes quieren estudiar acá, y te puede asesorar o poner en contacto con quien corresponda.",
+  canales: [
+    {
+      nombre: "Correo",
+      detalle: "scpu@fr.sanfrancisco.utn.edu.ar",
+      href: "mailto:scpu@fr.sanfrancisco.utn.edu.ar",
+    },
+    { nombre: "Teléfono", detalle: "(03564) 421147, interno 116", href: "tel:+543564421147,116" },
+    { nombre: "WhatsApp", detalle: "3564 236255", href: "https://wa.me/5493564236255" },
+  ],
 
   aceptar: "Entendido, empecemos",
   reabrir: "Qué es VocaIA",

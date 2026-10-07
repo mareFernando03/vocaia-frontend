@@ -34,6 +34,17 @@ describe("HU-02 · divulgación de que se conversa con una IA", () => {
     }
   });
 
+  it("dice qué pasa con los datos antes de que se acepte (HU-03a)", () => {
+    render(<App />);
+
+    // Aceptar el aviso es dar el consentimiento informado: lo que se consiente
+    // tiene que estar en la puerta, entero, antes del botón.
+    expect(screen.getByRole("heading", { name: AVISO.tituloDatos })).toBeInTheDocument();
+    for (const dato of AVISO.datos) {
+      expect(screen.getByText(dato)).toBeInTheDocument();
+    }
+  });
+
   it("no se puede esquivar con Escape", async () => {
     const usuario = userEvent.setup();
     render(<App />);
@@ -105,7 +116,13 @@ describe("HU-02 · divulgación de que se conversa con una IA", () => {
 
     // El foco arranca dentro del diálogo, no en la página de atrás.
     expect(screen.getByRole("dialog")).toHaveFocus();
-    await usuario.tab();
+    // Desde aviso-v2 se pasa antes por los enlaces de contacto. Se tabula
+    // hasta el botón, con tope, para que la prueba no dependa de cuántos haya.
+    const aceptar = screen.getByRole("button", { name: AVISO.aceptar });
+    for (let paso = 0; paso < 10 && document.activeElement !== aceptar; paso++) {
+      await usuario.tab();
+    }
+    expect(aceptar).toHaveFocus();
     await usuario.keyboard("{Enter}");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

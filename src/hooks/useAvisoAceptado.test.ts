@@ -40,6 +40,32 @@ describe("useAvisoAceptado", () => {
     expect(result.current.aceptado).toBe(false);
   });
 
+  it("haber aceptado aviso-v1 no da por aceptado aviso-v2 (VOCAIA-102)", () => {
+    // El caso concreto del cambio: v1 no decía nada sobre datos, así que
+    // aceptarlo no es consentir lo que v2 informa.
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v1");
+
+    const { result } = renderHook(() => useAvisoAceptado());
+
+    expect(AVISO.version).toBe("aviso-v2");
+    expect(result.current.aceptado).toBe(false);
+  });
+
+  it("olvidar borra la aceptación y la puerta vuelve (VOCAIA-102)", () => {
+    // Es lo que pasa al perder la sesión: en una computadora compartida, quien
+    // entra después en la misma pestaña tiene que ver la puerta y consentir
+    // por sí, no heredar lo que aceptó otra persona.
+    const { result } = renderHook(() => useAvisoAceptado());
+    act(() => result.current.aceptar());
+    expect(window.sessionStorage.getItem("vocaia:aviso-ia:aceptado")).toBe(AVISO.version);
+
+    act(() => result.current.olvidar());
+
+    expect(result.current.aceptado).toBe(false);
+    expect(result.current.version).toBeNull();
+    expect(window.sessionStorage.getItem("vocaia:aviso-ia:aceptado")).toBeNull();
+  });
+
   it("si no puede leer el almacenamiento, muestra el aviso igual", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("almacenamiento bloqueado");

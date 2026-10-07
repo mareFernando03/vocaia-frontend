@@ -8,8 +8,12 @@ import Autenticado from "./paginas/Autenticado";
 import Ingresar from "./paginas/Ingresar";
 
 export default function App() {
-  const { aceptado, aceptar } = useAvisoAceptado();
-  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion();
+  // La aceptación se olvida sola cuando se pierde la sesión, sea por «Salir»
+  // o por un 401 (VOCAIA-102): no hace falta que «Salir» la borre aparte.
+  const { aceptado, version, aceptar } = useAvisoAceptado();
+  // Solo la versión vigente: mientras la puerta esté abierta no hay nada que
+  // registrar, aunque quede guardada una versión anterior.
+  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion(aceptado ? version : null);
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 

@@ -29,6 +29,11 @@ const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([t
 const CLASES_BOTON =
   "inline-flex min-h-11 items-center justify-center rounded-md px-5 py-2.5 font-medium";
 
+/** Un enlace web sale de VocaIA; uno de correo o de teléfono abre otra aplicación. */
+function externo(href: string): boolean {
+  return /^https?:/.test(href);
+}
+
 export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
   const contenedor = useRef<HTMLDivElement>(null);
   const focoPrevio = useRef<HTMLElement | null>(null);
@@ -129,18 +134,41 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
           ))}
         </div>
 
-        {/* Solo se dibuja si hay contactos reales cargados. Ver la nota de G-02
-            en `contenido/aviso-ia.ts`: una sección de ayuda vacía es peor que
-            ninguna. */}
+        {/* Lo que la persona consiente al aceptar (HU-03a). Va antes del botón
+            y dentro del mismo diálogo: se lee antes de aceptar, no después. */}
+        <section className="mt-5">
+          <h3 className="text-base font-semibold">{AVISO.tituloDatos}</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-base leading-relaxed">
+            {AVISO.datos.map((dato) => (
+              <li key={dato}>{dato}</li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Solo se dibuja si hay contactos reales cargados: una sección de
+            ayuda vacía es peor que ninguna. */}
         {AVISO.canales.length > 0 && (
           <section className="bg-primary-soft mt-5 rounded-md p-4">
             <h3 className="text-sm font-semibold">{AVISO.tituloAyuda}</h3>
+            <p className="mt-1 text-sm">{AVISO.presentacionAyuda}</p>
             <ul className="mt-2 space-y-2 text-sm">
               {AVISO.canales.map((canal) => (
                 <li key={canal.nombre}>
                   <span className="font-medium">{canal.nombre}</span>{" "}
                   {canal.href ? (
-                    <a className="underline underline-offset-2" href={canal.href}>
+                    // El nombre accesible dice el canal: leído solo, «3564 236255»
+                    // no avisa si es un teléfono o un WhatsApp. Lo que no es
+                    // `mailto:` ni `tel:` sale de VocaIA, así que abre en otra
+                    // pestaña y lo dice: si no, la persona pierde el aviso que
+                    // estaba leyendo.
+                    <a
+                      className="inline-flex min-h-11 items-center underline underline-offset-2"
+                      href={canal.href}
+                      aria-label={`${canal.nombre}: ${canal.detalle}${externo(canal.href) ? " (se abre fuera de VocaIA, en otra pestaña)" : ""}`}
+                      {...(externo(canal.href)
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                    >
                       {canal.detalle}
                     </a>
                   ) : (

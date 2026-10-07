@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { alCambiarSesion } from "../auth/sesion";
 import { AVISO } from "../contenido/aviso-ia";
 
 /**
@@ -37,6 +38,13 @@ export interface AvisoAceptado {
   /** La versión que aceptó, o `null`. Es lo que viaja al backend. */
   version: string | null;
   aceptar: () => void;
+  /**
+   * Borra la aceptación. Se llama sola cada vez que la sesión se pierde
+   * (VOCAIA-102): en una computadora compartida, quien entra después en la
+   * misma pestaña tiene que ver la puerta y consentir por sí, no heredar lo que
+   * aceptó otra persona.
+   */
+  olvidar: () => void;
 }
 
 export function useAvisoAceptado(): AvisoAceptado {
@@ -53,8 +61,24 @@ export function useAvisoAceptado(): AvisoAceptado {
     setVersion(AVISO.version);
   }, []);
 
+  const olvidar = useCallback(() => {
+    try {
+      window.sessionStorage.removeItem(CLAVE);
+    } catch {
+      // Si no se puede borrar, al menos esta carga vuelve a mostrar la puerta.
+    }
+    setVersion(null);
+  }, []);
+
+  // Se olvida cada vez que el token pasa a `null`, y no solo con «Salir»: un
+  // 401 —el token de Google vence o se revoca— también deja la pestaña sin
+  // sesión, y si la aceptación quedara, la persona siguiente entraría sin ver
+  // la puerta y su 403 le registraría el consentimiento a un aviso que no
+  // leyó. Es el mismo patrón que `useConversacion`.
+  useEffect(() => alCambiarSesion((token) => token === null && olvidar()), [olvidar]);
+
   // Se compara contra la versión vigente y no contra `null`: si el aviso
   // cambió, lo que la persona aceptó ya no es lo que dice la pantalla y la
   // puerta se vuelve a mostrar. Es para lo que sirve versionarlo.
-  return { aceptado: version === AVISO.version, version, aceptar };
+  return { aceptado: version === AVISO.version, version, aceptar, olvidar };
 }
