@@ -1,8 +1,9 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
 import { AVISO } from "../contenido/aviso-ia";
+import { useAvisoAceptado } from "../hooks/useAvisoAceptado";
 import { borrarToken, guardarToken } from "./sesion";
 import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
 
@@ -170,6 +171,39 @@ describe("useSesion · el registro sigue al aviso vigente", () => {
     result.current.ingresar("token-b");
 
     await waitFor(() => expect(registrarConsentimiento).toHaveBeenCalledTimes(2));
+  });
+
+  it("tras un 401, quien entra después en la pestaña no hereda el consentimiento (VOCAIA-102)", async () => {
+    // A aceptó la puerta y su token vence sin que toque «Salir». Si la
+    // aceptación quedara, B entraría sin ver la puerta y su 403 le registraría
+    // el consentimiento a un aviso que no leyó. Se arman los dos hooks juntos,
+    // como en App, porque el defecto vive en cómo se combinan.
+    const PERSONA_B = { identificador_opaco: "opaco-2", proveedor: "google" };
+    const { result } = renderHook(() => {
+      const aviso = useAvisoAceptado();
+      return { aviso, sesion: useSesion(aviso.aceptado ? aviso.version : null) };
+    });
+    act(() => result.current.aviso.aceptar());
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: AVISO.version });
+    act(() => result.current.sesion.ingresar("token-a"));
+    await waitFor(() => expect(result.current.sesion.sesion.estado).toBe("autenticado"));
+
+    // Es lo que hace `pedir` ante un 401: borra el token y avisa.
+    act(() => borrarToken());
+    await waitFor(() => expect(result.current.sesion.sesion.estado).toBe("anonimo"));
+    expect(result.current.aviso.aceptado).toBe(false);
+
+    consultarUsuario.mockRejectedValue(new ErrorDeApi(403, "Falta el consentimiento."));
+    registrarConsentimiento.mockResolvedValue({
+      ...PERSONA_B,
+      consentimiento_version: AVISO.version,
+    });
+    act(() => result.current.sesion.ingresar("token-b"));
+
+    await waitFor(() => expect(consultarUsuario).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.sesion.sesion.estado).toBe("anonimo"));
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
+    expect(result.current.aviso.aceptado).toBe(false);
   });
 
   it("una respuesta que llega después de salir no reabre la sesión", async () => {

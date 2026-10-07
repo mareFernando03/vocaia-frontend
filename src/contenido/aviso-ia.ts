@@ -71,12 +71,14 @@ export const AVISO: AvisoIA = {
 
   // No dice cuánto tiempo se guarda ni cómo pedir el borrado: eso llega con
   // HU-04 (Sprint 6), y prometerlo antes sería prometer algo que el sistema no
-  // hace. El destinatario se nombra en genérico, decidido el 03/10.
+  // hace. El destinatario se nombra en genérico, decidido el 03/10. Por lo mismo
+  // no dice para qué es el nombre: hoy ningún prompt ni endpoint lo lee, y la
+  // finalidad se agrega cuando exista.
   tituloDatos: "Qué pasa con lo que contás",
   datos: [
     "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
     "Para responderte y para armar tu perfil, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
-    "Tu nombre y tu correo de Google se guardan aparte de la conversación. El nombre es para hablarte por él; el correo, para avisarte algo importante sobre tus datos.",
+    "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
     "Lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
   ],

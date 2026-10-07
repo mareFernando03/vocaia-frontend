@@ -151,7 +151,10 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
                 <li key={canal.nombre}>
                   <span className="font-medium">{canal.nombre}</span>{" "}
                   {canal.href ? (
-                    <a className="underline underline-offset-2" href={canal.href}>
+                    <a
+                      className="inline-flex min-h-11 items-center underline underline-offset-2"
+                      href={canal.href}
+                    >
                       {canal.detalle}
                     </a>
                   ) : (

@@ -52,7 +52,7 @@ describe("useAvisoAceptado", () => {
   });
 
   it("olvidar borra la aceptación y la puerta vuelve (VOCAIA-102)", () => {
-    // Es lo que hace «salir» en App: en una computadora compartida, quien
+    // Es lo que pasa al perder la sesión: en una computadora compartida, quien
     // entra después en la misma pestaña tiene que ver la puerta y consentir
     // por sí, no heredar lo que aceptó otra persona.
     const { result } = renderHook(() => useAvisoAceptado());

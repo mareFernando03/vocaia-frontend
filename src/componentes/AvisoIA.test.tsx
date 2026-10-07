@@ -73,6 +73,9 @@ describe("AvisoIA · derivación a orientación humana", () => {
       "href",
       "https://wa.me/5493564236255",
     );
+    // HU-08: cada enlace llega a los 44 px de alto. Es una prueba de intención,
+    // como la de App: jsdom no mide, así que se verifica la clase.
+    for (const enlace of screen.getAllByRole("link")) expect(enlace).toHaveClass("min-h-11");
   });
 
   it("el diálogo se anuncia con su propio título", () => {
