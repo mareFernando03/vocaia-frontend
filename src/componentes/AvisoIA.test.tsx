@@ -49,7 +49,9 @@ describe("AvisoIA · derivación a orientación humana", () => {
     const titulo = screen.getByRole("heading", { name: /dónde hablar/i });
     const seccion = titulo.closest("section") as HTMLElement;
     expect(within(seccion).getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "gabinete@ejemplo.edu.ar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Gabinete: gabinete@ejemplo.edu.ar" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Aula 12, lunes a viernes")).toBeInTheDocument();
   });
 
@@ -61,10 +63,9 @@ describe("AvisoIA · derivación a orientación humana", () => {
     render(<AvisoIA modo="puerta" onAceptar={() => {}} />);
 
     expect(screen.getByText(AVISO.presentacionAyuda)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "scpu@fr.sanfrancisco.utn.edu.ar" })).toHaveAttribute(
-      "href",
-      "mailto:scpu@fr.sanfrancisco.utn.edu.ar",
-    );
+    expect(
+      screen.getByRole("link", { name: /scpu@fr\.sanfrancisco\.utn\.edu\.ar/ }),
+    ).toHaveAttribute("href", "mailto:scpu@fr.sanfrancisco.utn.edu.ar");
     expect(screen.getByRole("link", { name: /421147/ })).toHaveAttribute(
       "href",
       "tel:+543564421147,116",
@@ -76,6 +77,19 @@ describe("AvisoIA · derivación a orientación humana", () => {
     // HU-08: cada enlace llega a los 44 px de alto. Es una prueba de intención,
     // como la de App: jsdom no mide, así que se verifica la clase.
     for (const enlace of screen.getAllByRole("link")) expect(enlace).toHaveClass("min-h-11");
+  });
+
+  it("cada enlace dice qué canal es, y el que sale de VocaIA lo avisa", async () => {
+    const { AVISO } =
+      await vi.importActual<typeof import("../contenido/aviso-ia")>("../contenido/aviso-ia");
+    estadoDelContenido.canales = AVISO.canales;
+
+    render(<AvisoIA modo="puerta" onAceptar={() => {}} />);
+
+    expect(screen.getByRole("link", { name: /^Teléfono: / })).not.toHaveAttribute("target");
+    const whatsapp = screen.getByRole("link", { name: /^WhatsApp: .*fuera de VocaIA/ });
+    expect(whatsapp).toHaveAttribute("target", "_blank");
+    expect(whatsapp).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("el diálogo se anuncia con su propio título", () => {

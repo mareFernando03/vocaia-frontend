@@ -47,6 +47,8 @@ const PARES = [
   ["Borde de campos sobre el fondo", "input", "background", 3.0],
   // El anillo de foco tiene que verse, o la navegación por teclado se pierde.
   ["Anillo de foco sobre el fondo", "ring", "background", 3.0],
+  // Los enlaces de contacto del aviso reciben el foco sobre el azul claro.
+  ["Anillo de foco sobre el azul claro", "ring", "primary-soft", 3.0],
 ];
 
 function leerTokens() {

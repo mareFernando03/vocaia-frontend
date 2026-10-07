@@ -8,6 +8,7 @@
  */
 
 import { borrarToken, obtenerToken } from "../auth/sesion";
+import type { components } from "./generado/esquema";
 
 /**
  * Se exporta porque el circuito conversacional no puede pasar por `pedir`: su
@@ -91,12 +92,12 @@ export function describir(fallo: unknown): string {
   return "No se pudo conectar con el servidor. Revisá tu conexión y probá de nuevo.";
 }
 
-export interface Usuario {
-  identificador_opaco: string;
-  proveedor: string;
-  /** Versión del aviso registrada como consentida (VOCAIA-102). */
-  consentimiento_version?: string | null;
-}
+/**
+ * Sale del esquema y no se escribe a mano: si el backend renombra
+ * `consentimiento_version`, un tipo propio seguiría compilando y el cliente
+ * volvería a registrar el consentimiento en cada ingreso sin que nada avise.
+ */
+export type Usuario = components["schemas"]["UsuarioSalida"];
 
 /** Verifica el token contra el backend y devuelve el identificador opaco. */
 export function consultarUsuario(): Promise<Usuario> {

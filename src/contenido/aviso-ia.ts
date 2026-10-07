@@ -79,7 +79,7 @@ export const AVISO: AvisoIA = {
     "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
     "Para responderte y para armar tu perfil, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
     "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
-    "Lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
+    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
   ],
 
@@ -91,7 +91,7 @@ export const AVISO: AvisoIA = {
   // `recursos/corpus/contacto-derivacion-v1.yaml` del backend, que también
   // muestra el informe: si cambian allá, cambian acá, y con eso la versión.
   presentacionAyuda:
-    "La Secretaría de Coordinación y Políticas Universitarias de la Facultad atiende a quienes quieren estudiar acá, y te puede asesorar o poner en contacto con quien corresponda.",
+    "Si querés hablar con una persona sobre qué estudiar, la Secretaría de Coordinación y Políticas Universitarias de la Facultad atiende a quienes quieren estudiar acá, y te puede asesorar o poner en contacto con quien corresponda.",
   canales: [
     {
       nombre: "Correo",

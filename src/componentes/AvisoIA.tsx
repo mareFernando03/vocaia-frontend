@@ -29,6 +29,11 @@ const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([t
 const CLASES_BOTON =
   "inline-flex min-h-11 items-center justify-center rounded-md px-5 py-2.5 font-medium";
 
+/** Un enlace web sale de VocaIA; uno de correo o de teléfono abre otra aplicación. */
+function externo(href: string): boolean {
+  return /^https?:/.test(href);
+}
+
 export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
   const contenedor = useRef<HTMLDivElement>(null);
   const focoPrevio = useRef<HTMLElement | null>(null);
@@ -151,9 +156,18 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
                 <li key={canal.nombre}>
                   <span className="font-medium">{canal.nombre}</span>{" "}
                   {canal.href ? (
+                    // El nombre accesible dice el canal: leído solo, «3564 236255»
+                    // no avisa si es un teléfono o un WhatsApp. Lo que no es
+                    // `mailto:` ni `tel:` sale de VocaIA, así que abre en otra
+                    // pestaña y lo dice: si no, la persona pierde el aviso que
+                    // estaba leyendo.
                     <a
                       className="inline-flex min-h-11 items-center underline underline-offset-2"
                       href={canal.href}
+                      aria-label={`${canal.nombre}: ${canal.detalle}${externo(canal.href) ? " (se abre fuera de VocaIA, en otra pestaña)" : ""}`}
+                      {...(externo(canal.href)
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
                     >
                       {canal.detalle}
                     </a>
