@@ -237,6 +237,32 @@ describe("Informe", () => {
     expect(screen.getByText(/todavía no podemos mostrar los habilitantes/i)).toBeInTheDocument();
   });
 
+  it("una restricción que no conoce lleva un título genérico y no nombra el tipo", async () => {
+    // El backend ya no deja que exista, pero si llegara no puede imprimirse:
+    // es una categoría sensible. La impresión usa el mismo DOM, así que mirar
+    // el texto de la página entera cubre pantalla y PDF.
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            habilitantes: {
+              por_restriccion: [
+                { restriccion: "discapacidad", verificados: [habilitante()], no_verificados: [] },
+              ],
+              alternativas: [],
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Otras circunstancias que mencionaste" }),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/discapacidad/i);
+  });
+
   it("el botón de descarga abre el diálogo de impresión", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     const imprimir = vi.spyOn(window, "print").mockImplementation(() => {});
@@ -265,6 +291,28 @@ describe("Informe", () => {
       await screen.findByRole("heading", { name: "Ingeniería en Sistemas de Información" }),
     ).toBeInTheDocument();
     expect(obtenerInforme).toHaveBeenCalledTimes(2);
+  });
+
+  it("si se agota la espera, dice que vuelva más tarde sin mostrarlo como error", async () => {
+    vi.mocked(obtenerInforme).mockRejectedValue(
+      new ErrorDeApi(409, "La conversación cerró y el informe se está armando.", 0.01),
+    );
+    const usuario = userEvent.setup();
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(
+      await screen.findByText(/todavía se está preparando/i, undefined, { timeout: 3000 }),
+    ).toHaveTextContent("Tus conversaciones");
+    // El primer pedido más los dieciocho reintentos.
+    expect(obtenerInforme).toHaveBeenCalledTimes(19);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/el informe se está armando/i)).not.toBeInTheDocument();
+
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    await usuario.click(screen.getByRole("button", { name: /volver a intentar/i }));
+    expect(
+      await screen.findByRole("heading", { name: "Ingeniería en Sistemas de Información" }),
+    ).toBeInTheDocument();
   });
 
   it("una sesión ajena o inexistente muestra el error del backend y deja reintentar", async () => {
