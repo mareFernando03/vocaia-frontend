@@ -47,7 +47,7 @@ export const vencida = (pedidaEn, ahora = new Date()) =>
 // nunca se la hubieran pedido y el tercero con una de mas: recibe la proxima y
 // nada mas. Con la deuda recibe las dos proximas, la que hizo otro por el y una.
 // Una sola por vencida y se borra con la ventana: mandarle muchas a quien no
-// esta revisando demora a todos, y eso ya es el riesgo 4, no algo del reparto.
+// esta revisando demora a todos, y eso ya es R-004, no algo del reparto.
 export const asignadas = (c) => c.pendingReview + c.doneReviews - (c.deuda ?? 0);
 
 // La marca que deja revisiones-vencidas.mjs al pasar una revision al tercero.
