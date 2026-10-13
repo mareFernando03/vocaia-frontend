@@ -41,7 +41,19 @@ export const vencida = (pedidaEn, ahora = new Date()) =>
 // Asignadas = pendientes + hechas, para que revisar rapido no te traiga mas:
 // la revision solo pasa de una columna a la otra. Contar solo pendientes le
 // daria todo al que revisa en el dia.
-export const asignadas = (c) => c.pendingReview + c.doneReviews;
+//
+// Menos la deuda: cada revision que se te vencio y el aviso le paso al tercero
+// en la ventana resta una. Sin restarla, quien la deja vencer queda como si
+// nunca se la hubieran pedido y el tercero con una de mas: recibe la proxima y
+// nada mas. Con la deuda recibe las dos proximas, la que hizo otro por el y una.
+// Una sola por vencida y se borra con la ventana: mandarle muchas a quien no
+// esta revisando demora a todos, y eso ya es el riesgo 4, no algo del reparto.
+export const asignadas = (c) => c.pendingReview + c.doneReviews - (c.deuda ?? 0);
+
+// La marca que deja revisiones-vencidas.mjs al pasar una revision al tercero.
+// El reparto la busca en los comentarios para contar la deuda: es la unica
+// huella que distingue un pedido sacado por el aviso de uno sacado a mano.
+export const MARCA_REASIGNADA = 'Revision vencida de';
 
 // Con el tope no se le apilan revisiones a quien no las esta sacando, salvo
 // que todos esten en el tope. Empate -> menos pendientes -> alfabetico.
@@ -138,6 +150,9 @@ async function main() {
       pendingReview: fechas.length - vencidas,
       vencidas,
       doneReviews: await count(`${scope} is:pr reviewed-by:${login} updated:>=${since}`),
+      // ponytail: la ventana es la del PR (updated), no la del comentario; un PR
+      // viejo comentado hace poco cuenta. Alcanza para una ventana de un sprint.
+      deuda: await count(`${scope} is:pr "${MARCA_REASIGNADA} @${login}" updated:>=${since}`),
     };
   }));
 
@@ -174,6 +189,15 @@ async function test() {
   assert.deepEqual(tocaron, { mare: 3, luca: 3 });
   // Luca quedo en el tope: el septimo va a mare aunque tenga mas asignadas.
   assert.equal(pick([c('mare', 0, 23), c('luca', 3, 0)]).login, 'mare');
+
+  // Deuda: a luca se le vencio una y la hizo fabri. Sin deuda, luca recibe la
+  // proxima y ya quedan parejos; con deuda recibe tambien la siguiente.
+  const parejos = [{ ...c('fabri', 0, 11) }, { ...c('luca', 0, 10), deuda: 1 }];
+  assert.equal(pick(parejos).login, 'luca');
+  parejos[1].pendingReview++;
+  assert.equal(pick(parejos).login, 'luca', 'la deuda le trae una mas');
+  parejos[1].pendingReview++;
+  assert.equal(pick(parejos).login, 'fabri', 'pagada la deuda, se vuelve al reparto parejo');
 
   // Acumular no protege: con las 5 vencidas fuera, luca sigue recibiendo.
   assert.equal(pick([c('mare', 1, 15), c('luca', 0, 10)]).login, 'luca');
