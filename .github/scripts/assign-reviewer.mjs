@@ -42,17 +42,17 @@ export const vencida = (pedidaEn, ahora = new Date()) =>
 // la revision solo pasa de una columna a la otra. Contar solo pendientes le
 // daria todo al que revisa en el dia.
 //
-// Menos la deuda: cada revision que se te vencio y el aviso le paso al tercero
-// en la ventana resta una. Sin restarla, quien la deja vencer queda como si
-// nunca se la hubieran pedido y el tercero con una de mas: recibe la proxima y
-// nada mas. Con la deuda recibe las dos proximas, la que hizo otro por el y una.
-// Una sola por vencida y se borra con la ventana: mandarle muchas a quien no
-// esta revisando demora a todos, y eso ya es R-004, no algo del reparto.
+// Menos la deuda: cada revision que se te vencio y por la que el aviso sumo al
+// tercero en la ventana resta una. Queda proporcional sin contar nada mas: si
+// despues la revisas igual, la hecha la compensa y recibis la proxima antes; si
+// la revisa el tercero, el suma una y vos recibis las dos proximas, la que hizo
+// el por vos y una mas. Una sola por vencida y se borra con la ventana:
+// mandarle muchas a quien no esta revisando demora a todos, y eso ya es R-004,
+// no algo del reparto.
 export const asignadas = (c) => c.pendingReview + c.doneReviews - (c.deuda ?? 0);
 
-// La marca que deja revisiones-vencidas.mjs al pasar una revision al tercero.
-// El reparto la busca en los comentarios para contar la deuda: es la unica
-// huella que distingue un pedido sacado por el aviso de uno sacado a mano.
+// La marca que deja revisiones-vencidas.mjs al sumar al tercero. El reparto la
+// busca para contar la deuda, y el aviso para no sumar dos veces en un PR.
 export const MARCA_REASIGNADA = 'Revision vencida de';
 
 // Con el tope no se le apilan revisiones a quien no las esta sacando, salvo
