@@ -242,6 +242,56 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/identidad/notificacion": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Consultar el consentimiento de aviso al consejero
+     * @description Sin ningún acto registrado, el aviso no está autorizado.
+     */
+    get: operations["consultar_notificacion_api_identidad_notificacion_get"];
+    put?: never;
+    /**
+     * Autorizar el aviso al consejero
+     * @description Registra el otorgamiento con la versión del texto aceptada (HU-03, tercer criterio).
+     *
+     *     Exige el consentimiento de tratamiento: `UsuarioActual` responde 403 sin él.
+     *     Volver a otorgar la misma versión vigente no registra un acto nuevo.
+     */
+    post: operations["otorgar_notificacion_api_identidad_notificacion_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/identidad/notificacion/revocar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Revocar el aviso al consejero
+     * @description Detiene el aviso sin borrar la sesión ni los datos (HU-03, cuarto criterio).
+     *
+     *     Es un `POST` y no un `DELETE` a propósito: no se borra nada, se registra un
+     *     acto de revocación. El consentimiento de tratamiento sigue vigente.
+     */
+    post: operations["revocar_notificacion_api_identidad_notificacion_revocar_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/identidad/salir": {
     parameters: {
       query?: never;
@@ -850,6 +900,34 @@ export interface components {
        * @description Texto del mensaje. No puede estar vacío.
        */
       contenido: string;
+    };
+    /**
+     * NotificacionSalida
+     * @description Si la persona autorizó el aviso proactivo a un consejero (HU-03b).
+     *
+     *     Independiente del consentimiento de tratamiento: tener ese no implica este.
+     */
+    NotificacionSalida: {
+      /**
+       * Otorgado En
+       * @description Último otorgamiento.
+       */
+      otorgado_en?: string | null;
+      /**
+       * Revocado En
+       * @description Revocación posterior al último otorgamiento, si la hubo.
+       */
+      revocado_en?: string | null;
+      /**
+       * Version
+       * @description Versión del texto aceptada en el último otorgamiento.
+       */
+      version?: string | null;
+      /**
+       * Vigente
+       * @description Si el aviso al consejero está autorizado hoy.
+       */
+      vigente: boolean;
     };
     /**
      * ObjecionEntrada
@@ -1608,6 +1686,121 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  consultar_notificacion_api_identidad_notificacion_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificacionSalida"];
+        };
+      };
+      /** @description Credencial ausente, vencida o inválida. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Falta registrar el consentimiento informado de tratamiento. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  otorgar_notificacion_api_identidad_notificacion_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConsentimientoEntrada"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificacionSalida"];
+        };
+      };
+      /** @description Credencial ausente, vencida o inválida. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Falta registrar el consentimiento informado de tratamiento. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  revocar_notificacion_api_identidad_notificacion_revocar_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificacionSalida"];
+        };
+      };
+      /** @description Credencial ausente, vencida o inválida. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Falta registrar el consentimiento informado de tratamiento. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
