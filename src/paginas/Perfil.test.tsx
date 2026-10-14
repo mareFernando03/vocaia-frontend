@@ -18,6 +18,12 @@ vi.mock("../api/perfil", async (original) => ({
   objetar: vi.fn(),
 }));
 
+// El aviso a la Facultad tiene sus propias pruebas; acá solo no tiene que
+// salir a la red ni sumar un `alert` a los que estas pruebas buscan.
+vi.mock("../api/notificacion", () => ({
+  consultarNotificacion: vi.fn().mockResolvedValue({ vigente: false }),
+}));
+
 const { obtenerPerfil, objetar } = await import("../api/perfil");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");

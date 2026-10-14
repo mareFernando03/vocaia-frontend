@@ -29,13 +29,28 @@ import {
   type Perfil as PerfilApi,
   type Rasgo,
 } from "../api/perfil";
+import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { comoTeCae } from "../contenido/como-te-cae";
 
 interface Propiedades {
   alVolver: () => void;
 }
 
-export default function Perfil({ alVolver }: Propiedades) {
+/**
+ * El aviso a la Facultad (HU-03b) va acá porque es donde la persona ve lo suyo,
+ * y va al lado del perfil y no adentro: si el perfil no carga, igual tiene que
+ * poder consultarlo y revocarlo.
+ */
+export default function Perfil(propiedades: Propiedades) {
+  return (
+    <div className="flex flex-col gap-8">
+      <ContenidoPerfil {...propiedades} />
+      <ConsentimientoNotificacion />
+    </div>
+  );
+}
+
+function ContenidoPerfil({ alVolver }: Propiedades) {
   const [perfil, setPerfil] = useState<PerfilApi | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
