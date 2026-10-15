@@ -11,31 +11,43 @@
  */
 
 export const NOTIFICACION = {
-  // ponytail: el backend guarda la versión, pero la pantalla no la compara
-  // todavía. Al subirla a v2, mostrar como no autorizado a quien otorgó la v1.
+  // Tiene que coincidir con `VERSIONES_NOTIFICACION` del backend, que solo
+  // avisa con un consentimiento sobre una de esas versiones. Cambiar el texto
+  // es cambiar la versión: la prueba de la huella lo hace fallar si no.
+  //
+  // ponytail: la pantalla muestra `vigente`, que no mira la versión. Al subir a
+  // v2, quien otorgó la v1 tiene que verse como no autorizado.
   version: "notificacion-v1",
 
   titulo: "Avisar a la Facultad si necesitás ayuda",
 
-  // El área se nombra en genérico: la Secretaría todavía no confirmó quién lo
-  // recibe, y nombrar a alguien sería prometer algo que no está acordado.
+  // Nombra los dos casos porque el backend avisa los dos: lo emocional y lo
+  // académico, incluso pensar en cambiarse de carrera. Dice cuándo se avisa,
+  // no qué viaja: eso está en «Qué se avisa».
   presentacion:
-    "Si en la charla aparece algo que haga pensar que podés estar en riesgo, VocaIA puede avisarle a la Facultad. Solo lo hace si lo autorizás.",
+    "Si en la charla aparece algo que muestre que la estás pasando mal, o que estás pensando en dejar o cambiar la carrera, VocaIA puede avisarle a la Facultad. Solo lo hace si lo autorizás.",
 
   // Dice lo mismo que el correo que arma el backend (`componer_aviso`, #78):
-  // la señal, su nivel y el contacto. El nombre y el correo se nombran porque
-  // viajan, y el aviso de IA promete que no se le pasan a nadie: este
-  // consentimiento es la excepción, y tiene que decirlo. El origen no va
-  // porque el backend no lo manda; «riesgo emocional» atado a un nombre sería
-  // un dato de salud. Tampoco se promete que alguien vaya a contactarte: el
-  // destino todavía no está confirmado.
+  // que hay una señal, su nivel y el contacto. No dice de qué fue, porque el
+  // backend no lo manda: atado a un nombre sería un dato de salud. El nombre y
+  // el correo se nombran con su finalidad (Ley 25.326, art. 6) porque el aviso
+  // de IA promete que no se le pasan a nadie, y este consentimiento es la
+  // excepción. No se promete que alguien vaya a escribir.
+  //
+  // El destino no está acordado (S5-11): hoy el aviso va a una casilla de
+  // prueba. Cuando se acuerde, nombrarlo cambia el texto y por lo tanto la
+  // versión, y quien otorgó la v1 tiene que volver a aceptar.
   detalles: [
     {
       titulo: "Qué se avisa",
       texto:
-        "Que apareció una señal de riesgo y qué tan seria parece, junto con tu nombre y tu correo para identificarte.",
+        "Que apareció algo así y qué tan serio parece, sin decir de qué se trató. Va con tu nombre y tu correo, para que puedan comunicarse con vos.",
     },
-    { titulo: "A quién", texto: "Al área de la Facultad que coordina la orientación vocacional." },
+    {
+      titulo: "A quién",
+      texto:
+        "A la Facultad. Todavía se está acordando qué área lo recibe, y hasta que esté acordado el aviso no le llega a nadie.",
+    },
     { titulo: "Qué no se comparte", texto: "Ni tu conversación ni tu perfil vocacional." },
   ],
 
