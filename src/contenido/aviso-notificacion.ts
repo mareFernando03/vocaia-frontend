@@ -22,10 +22,18 @@ export const NOTIFICACION = {
   presentacion:
     "Si en la charla aparece algo que haga pensar que podés estar en riesgo, VocaIA puede avisarle a la Facultad. Solo lo hace si lo autorizás.",
 
+  // Dice lo mismo que el correo que arma el backend (`componer_aviso`, #78):
+  // la señal, su nivel y el contacto. El nombre y el correo se nombran porque
+  // viajan, y el aviso de IA promete que no se le pasan a nadie: este
+  // consentimiento es la excepción, y tiene que decirlo. El origen no va
+  // porque el backend no lo manda; «riesgo emocional» atado a un nombre sería
+  // un dato de salud. Tampoco se promete que alguien vaya a contactarte: el
+  // destino todavía no está confirmado.
   detalles: [
     {
       titulo: "Qué se avisa",
-      texto: "Que apareció una señal de riesgo, de dónde surgió y qué tan seria parece.",
+      texto:
+        "Que apareció una señal de riesgo y qué tan seria parece, junto con tu nombre y tu correo para identificarte.",
     },
     { titulo: "A quién", texto: "Al área de la Facultad que coordina la orientación vocacional." },
     { titulo: "Qué no se comparte", texto: "Ni tu conversación ni tu perfil vocacional." },
