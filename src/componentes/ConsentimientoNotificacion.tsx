@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { describir, SesionVencida } from "../api/cliente";
+import { describir, ErrorDeApi, SesionVencida } from "../api/cliente";
 import {
   consultarNotificacion,
   otorgarNotificacion,
@@ -21,6 +21,9 @@ export function ConsentimientoNotificacion() {
   const [estado, setEstado] = useState<Notificacion | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El estado se anuncia recién después de una acción: al abrir el perfil,
+  // un lector de pantalla no tiene por qué leer «Hoy no está autorizado».
+  const [anunciar, setAnunciar] = useState(false);
   // El estado de React llega tarde para frenar un doble clic; la ref no.
   const enviandoRef = useRef(false);
 
@@ -36,7 +39,13 @@ export function ConsentimientoNotificacion() {
       setError(null);
     } catch (fallo) {
       // La sesión vencida la resuelve App volviendo al ingreso.
-      if (!(fallo instanceof SesionVencida)) setError(describir(fallo));
+      if (fallo instanceof SesionVencida) return;
+      setError(describir(fallo));
+      // Sin respuesta no se sabe si el backend guardó el acto: se le vuelve a
+      // preguntar, para no mostrar lo contrario de lo que quedó registrado.
+      if (!(fallo instanceof ErrorDeApi) && pedido !== consultarNotificacion) {
+        setEstado(await consultarNotificacion().catch(() => null));
+      }
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
@@ -80,7 +89,7 @@ export function ConsentimientoNotificacion() {
       </dl>
       <p className="text-muted-foreground">{NOTIFICACION.opcional}</p>
 
-      <p role="status" className="font-medium">
+      <p aria-live={anunciar ? "polite" : "off"} className="font-medium">
         {estado === null
           ? ""
           : estado.vigente && estado.otorgado_en
@@ -102,7 +111,10 @@ export function ConsentimientoNotificacion() {
           <button
             type="button"
             aria-disabled={enviando}
-            onClick={() => void ejecutar(accion.pedido)}
+            onClick={() => {
+              setAnunciar(true);
+              void ejecutar(accion.pedido);
+            }}
             className={`${accion.clases} inline-flex min-h-11 items-center rounded-md px-4 aria-disabled:opacity-50`}
           >
             {accion.texto}
@@ -116,7 +128,11 @@ export function ConsentimientoNotificacion() {
 const PRIMARIO = "bg-primary text-primary-foreground hover:bg-primary-light font-medium";
 const SECUNDARIO = "border-input hover:bg-primary-soft border";
 
-const FECHA = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long" });
+const FECHA = new Intl.DateTimeFormat("es-AR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
 function fecha(iso: string): string {
   return FECHA.format(new Date(iso));

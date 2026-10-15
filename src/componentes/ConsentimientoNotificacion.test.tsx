@@ -21,11 +21,35 @@ const OTORGADO: Notificacion = {
   otorgado_en: "2026-10-14T12:00:00Z",
 };
 
-function responder(rutas: Record<string, Notificacion | number>) {
+/**
+ * La huella de lo que la persona lee al aceptar. Si el texto cambia sin que
+ * cambie la versión, el backend registraría como aceptado algo que no se leyó.
+ */
+const HUELLAS: Record<string, string> = {
+  "notificacion-v1": "5b2dbdbb15757655",
+};
+
+async function huella(): Promise<string> {
+  const { titulo, presentacion, detalles, opcional } = NOTIFICACION;
+  const texto = new TextEncoder().encode(
+    JSON.stringify({ titulo, presentacion, detalles, opcional }),
+  );
+  const resumen = new Uint8Array(await crypto.subtle.digest("SHA-256", texto));
+  return Array.from(resumen, (byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
+}
+
+type Respuesta = Notificacion | number | "sin red";
+
+function responder(rutas: Record<string, Respuesta | Respuesta[]>) {
   const espia = vi.fn(async (url: string, init?: RequestInit) => {
     const clave = `${init?.method ?? "GET"} ${new URL(url).pathname}`;
-    const respuesta = rutas[clave];
+    const definida = rutas[clave];
+    // Una lista se va consumiendo: la primera llamada recibe la primera.
+    const respuesta = Array.isArray(definida) ? definida.shift() : definida;
     if (respuesta === undefined) throw new Error(`Pedido inesperado: ${clave}`);
+    if (respuesta === "sin red") throw new TypeError("Failed to fetch");
     return typeof respuesta === "number"
       ? new Response(null, { status: respuesta })
       : Response.json(respuesta);
@@ -59,7 +83,7 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
 
-    expect(await screen.findByText(/Lo autorizaste el 14 de octubre/)).toBeInTheDocument();
+    expect(await screen.findByText(/Lo autorizaste el 14 de octubre de 2026/)).toBeInTheDocument();
     const boton = screen.getByRole("button", { name: NOTIFICACION.revocar });
     // El mismo botón, así que el foco de quien usa teclado no se pierde.
     expect(boton).toHaveFocus();
@@ -123,5 +147,58 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
 
     expect(await screen.findByRole("button", { name: NOTIFICACION.otorgar })).toHaveFocus();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("si otorgar falla, lo dice y el botón sigue usable", async () => {
+    responder({
+      "GET /api/identidad/notificacion": NO_OTORGADO,
+      "POST /api/identidad/notificacion": 500,
+    });
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    const boton = screen.getByRole("button", { name: NOTIFICACION.otorgar });
+    expect(boton).toHaveFocus();
+    expect(boton).toHaveAttribute("aria-disabled", "false");
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+  });
+
+  it("si revocar se queda sin respuesta, vuelve a preguntar y muestra lo que quedó guardado", async () => {
+    responder({
+      // La revocación llegó al backend, pero la respuesta se perdió.
+      "GET /api/identidad/notificacion": [OTORGADO, { ...OTORGADO, vigente: false }],
+      "POST /api/identidad/notificacion/revocar": "sin red",
+    });
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.revocar }));
+
+    expect(await screen.findByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByText(/Lo autorizaste/)).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("al abrir no anuncia el estado; después de una acción, sí", async () => {
+    responder({
+      "GET /api/identidad/notificacion": NO_OTORGADO,
+      "POST /api/identidad/notificacion": OTORGADO,
+    });
+    render(<ConsentimientoNotificacion />);
+
+    const estado = await screen.findByText(NOTIFICACION.noAutorizado);
+    expect(estado).toHaveAttribute("aria-live", "off");
+
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.otorgar }));
+
+    expect(await screen.findByText(/Lo autorizaste/)).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("el texto que se acepta está atado a su versión", async () => {
+    expect(
+      await huella(),
+      "Cambió el texto del consentimiento: subí la versión, sumala a `VERSIONES_NOTIFICACION` del backend y registrá acá su huella.",
+    ).toBe(HUELLAS[NOTIFICACION.version]);
   });
 });

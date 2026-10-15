@@ -208,6 +208,19 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       expect(screen.getByRole("heading", { name: "Investigador" })).toBeInTheDocument(),
     );
   });
+
+  it("si el perfil falla, el aviso a la Facultad sigue ahí para revocarlo", async () => {
+    vi.mocked(obtenerPerfil).mockRejectedValueOnce(
+      new ErrorDeApi(500, "El servidor respondió 500."),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: /reintentar/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Avisar a la Facultad si necesitás ayuda" }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)", () => {
