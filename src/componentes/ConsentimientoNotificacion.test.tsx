@@ -96,4 +96,32 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: NOTIFICACION.otorgar })).not.toBeInTheDocument();
   });
+
+  it("reintentar con el teclado no pierde el foco, ni mientras consulta ni al terminar", async () => {
+    let contestar: (respuesta: Response) => void = () => {};
+    const segunda = new Promise<Response>((resolver) => (contestar = resolver));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status: 500 }))
+        .mockReturnValueOnce(segunda),
+    );
+    const usuario = userEvent.setup();
+    render(<ConsentimientoNotificacion />);
+
+    const boton = await screen.findByRole("button", { name: "Reintentar" });
+    boton.focus();
+    await usuario.keyboard("{Enter}");
+
+    // Mientras consulta, el botón sigue ahí, ocupado y con el foco.
+    expect(boton).toBeInTheDocument();
+    expect(boton).toHaveFocus();
+    expect(boton).toHaveAttribute("aria-disabled", "true");
+
+    contestar(Response.json(NO_OTORGADO));
+
+    expect(await screen.findByRole("button", { name: NOTIFICACION.otorgar })).toHaveFocus();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

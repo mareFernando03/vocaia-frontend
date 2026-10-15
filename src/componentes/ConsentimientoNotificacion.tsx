@@ -28,9 +28,12 @@ export function ConsentimientoNotificacion() {
     if (enviandoRef.current) return;
     enviandoRef.current = true;
     setEnviando(true);
-    setError(null);
     try {
       setEstado(await pedido());
+      // El error se borra recién con la respuesta: si se borrara al empezar,
+      // «Reintentar» —que existe porque hay error— se desmontaría en medio del
+      // reintento y el foco de quien usa teclado caería al `body`.
+      setError(null);
     } catch (fallo) {
       // La sesión vencida la resuelve App volviendo al ingreso.
       if (!(fallo instanceof SesionVencida)) setError(describir(fallo));
