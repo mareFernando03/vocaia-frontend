@@ -21,6 +21,9 @@ export function ConsentimientoNotificacion() {
   const [estado, setEstado] = useState<Notificacion | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Cuenta los fallos para que el mismo mensaje, repetido, vuelva a insertarse
+  // y un lector de pantalla lo anuncie otra vez.
+  const [fallos, setFallos] = useState(0);
   // El estado se anuncia recién después de una acción: al abrir el perfil,
   // un lector de pantalla no tiene por qué leer «Hoy no está autorizado».
   const [anunciar, setAnunciar] = useState(false);
@@ -41,10 +44,13 @@ export function ConsentimientoNotificacion() {
       // La sesión vencida la resuelve App volviendo al ingreso.
       if (fallo instanceof SesionVencida) return;
       setError(describir(fallo));
+      setFallos((n) => n + 1);
       // Sin respuesta no se sabe si el backend guardó el acto: se le vuelve a
       // preguntar, para no mostrar lo contrario de lo que quedó registrado.
       if (!(fallo instanceof ErrorDeApi) && pedido !== consultarNotificacion) {
-        setEstado(await consultarNotificacion().catch(() => null));
+        const guardado = await consultarNotificacion().catch(() => null);
+        setEstado(guardado);
+        if (guardado !== null) setError(NOTIFICACION.respuestaCortada);
       }
     } finally {
       enviandoRef.current = false;
@@ -98,7 +104,7 @@ export function ConsentimientoNotificacion() {
       </p>
 
       {error !== null && (
-        <p role="alert" className="text-destructive">
+        <p key={fallos} role="alert" className="text-destructive">
           {error}
         </p>
       )}

@@ -21,11 +21,11 @@ export const NOTIFICACION = {
 
   titulo: "Avisar a la Facultad si necesitás ayuda",
 
-  // Nombra los dos casos porque el backend avisa los dos: lo emocional y lo
-  // académico, incluso pensar en cambiarse de carrera. Dice cuándo se avisa,
+  // Nombra los casos porque el backend avisa todos: lo emocional y lo
+  // académico —pensar en dejar o cambiarse de carrera, y que cueste la cursada—. Dice cuándo se avisa,
   // no qué viaja: eso está en «Qué se avisa».
   presentacion:
-    "Si en la charla aparece algo que muestre que la estás pasando mal, o que estás pensando en dejar o cambiar la carrera, VocaIA puede avisarle a la Facultad. Solo lo hace si lo autorizás.",
+    "Si en la charla aparece algo que muestre que la estás pasando mal, que estás pensando en dejar o cambiar la carrera, o que te está costando la cursada, VocaIA puede avisarle a la Facultad. Solo lo hace si lo autorizás.",
 
   // Dice lo mismo que el correo que arma el backend (`componer_aviso`, #78):
   // que hay una señal, su nivel y el contacto. No dice de qué fue, porque el
@@ -55,6 +55,9 @@ export const NOTIFICACION = {
     "Es opcional. Si no lo autorizás, seguís usando VocaIA igual, y podés cambiarlo cuando quieras.",
 
   noAutorizado: "Hoy no está autorizado.",
+  // Cuando la respuesta se cortó pero se pudo volver a preguntar: lo que se ve
+  // arriba es lo que quedó registrado, y «probá de nuevo» invitaría a deshacerlo.
+  respuestaCortada: "Se cortó la respuesta del servidor. Arriba está lo que quedó registrado.",
   autorizado: "Lo autorizaste el",
   otorgar: "Autorizar el aviso",
   revocar: "Dejar de autorizarlo",

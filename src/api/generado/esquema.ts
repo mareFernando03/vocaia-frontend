@@ -260,7 +260,9 @@ export interface paths {
      * @description Registra el otorgamiento con la versión del texto aceptada (HU-03, tercer criterio).
      *
      *     Exige el consentimiento de tratamiento: `UsuarioActual` responde 403 sin él.
-     *     Volver a otorgar la misma versión vigente no registra un acto nuevo.
+     *     Volver a otorgar la misma versión vigente no registra un acto nuevo. Una
+     *     versión que no es un texto publicado se rechaza con 422: registrarla dejaría
+     *     un consentimiento que no prueba qué se aceptó.
      */
     post: operations["otorgar_notificacion_api_identidad_notificacion_post"];
     delete?: never;

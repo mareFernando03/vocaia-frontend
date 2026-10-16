@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,7 +26,7 @@ const OTORGADO: Notificacion = {
  * cambie la versión, el backend registraría como aceptado algo que no se leyó.
  */
 const HUELLAS: Record<string, string> = {
-  "notificacion-v1": "5b2dbdbb15757655",
+  "notificacion-v1": "28c9266f29aa89d3",
 };
 
 async function huella(): Promise<string> {
@@ -149,6 +149,19 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("un fallo repetido se vuelve a anunciar", async () => {
+    responder({ "GET /api/identidad/notificacion": [500, 500] });
+    render(<ConsentimientoNotificacion />);
+
+    const primero = await screen.findByRole("alert");
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    // Mismo mensaje, otro nodo: un lector de pantalla anuncia la inserción, no
+    // un texto que no cambió.
+    await waitFor(() => expect(screen.getByRole("alert")).not.toBe(primero));
+    expect(screen.getByRole("alert")).toHaveTextContent(primero.textContent ?? "");
+  });
+
   it("si otorgar falla, lo dice y el botón sigue usable", async () => {
     responder({
       "GET /api/identidad/notificacion": NO_OTORGADO,
@@ -177,7 +190,7 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
 
     expect(await screen.findByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
     expect(screen.queryByText(/Lo autorizaste/)).not.toBeInTheDocument();
-    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(NOTIFICACION.respuestaCortada);
   });
 
   it("al abrir no anuncia el estado; después de una acción, sí", async () => {
