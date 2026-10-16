@@ -49,6 +49,10 @@ const PARES = [
   ["Anillo de foco sobre el fondo", "ring", "background", 3.0],
   // Los enlaces de contacto del aviso reciben el foco sobre el azul claro.
   ["Anillo de foco sobre el azul claro", "ring", "primary-soft", 3.0],
+  // El aviso a la Facultad del perfil es una tarjeta con sus propios botones y
+  // su propio mensaje de error.
+  ["Texto de error sobre tarjeta", "destructive", "surface", 4.5],
+  ["Anillo de foco sobre tarjeta", "ring", "surface", 3.0],
 ];
 
 function leerTokens() {
