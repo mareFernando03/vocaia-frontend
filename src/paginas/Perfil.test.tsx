@@ -18,6 +18,12 @@ vi.mock("../api/perfil", async (original) => ({
   objetar: vi.fn(),
 }));
 
+// El aviso a la Facultad tiene sus propias pruebas; acá solo no tiene que
+// salir a la red ni sumar un `alert` a los que estas pruebas buscan.
+vi.mock("../api/notificacion", () => ({
+  consultarNotificacion: vi.fn().mockResolvedValue({ vigente: false }),
+}));
+
 const { obtenerPerfil, objetar } = await import("../api/perfil");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");
@@ -201,6 +207,19 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Investigador" })).toBeInTheDocument(),
     );
+  });
+
+  it("si el perfil falla, el aviso a la Facultad sigue ahí para revocarlo", async () => {
+    vi.mocked(obtenerPerfil).mockRejectedValueOnce(
+      new ErrorDeApi(500, "El servidor respondió 500."),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: /reintentar/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Avisar a la Facultad si necesitás ayuda" }),
+    ).toBeInTheDocument();
   });
 });
 
