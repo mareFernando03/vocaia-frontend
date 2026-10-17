@@ -41,7 +41,30 @@ export const vencida = (pedidaEn, ahora = new Date()) =>
 // Asignadas = pendientes + hechas, para que revisar rapido no te traiga mas:
 // la revision solo pasa de una columna a la otra. Contar solo pendientes le
 // daria todo al que revisa en el dia.
-export const asignadas = (c) => c.pendingReview + c.doneReviews;
+//
+// Menos la deuda: cada revision que se te vencio y por la que el aviso sumo al
+// tercero en la ventana resta una. Queda proporcional sin contar nada mas: si
+// despues la revisas igual, la hecha la compensa y recibis la proxima antes; si
+// la revisa el tercero, el suma una y vos recibis las dos proximas, la que hizo
+// el por vos y una mas. La compensacion vale en la primera vuelta: en una
+// segunda, reviewed-by ya contaba el PR y la deuda queda hasta que sale de la
+// ventana. Una sola por vencida y se borra con la ventana: mandarle muchas a
+// quien no esta revisando demora a todos, y eso se trata en la retrospectiva,
+// no en el reparto.
+export const asignadas = (c) => c.pendingReview + c.doneReviews - (c.deuda ?? 0);
+
+// La marca que deja revisiones-vencidas.mjs al sumar al tercero. El reparto la
+// busca para contar la deuda, y el aviso para no sumar dos veces en un PR.
+export const MARCA_REASIGNADA = 'Revision vencida de';
+
+// A quien nombra la marca, si el comentario es la marca. Solo cuenta la que deja
+// la cuenta del REVIEW_TOKEN al principio del comentario: una persona que
+// escriba la frase —hablando de esto mismo, por ejemplo— no suma deuda ni da
+// el PR por sumado. En el historial del PR el autor viene como actor.
+export const marcado = (c, cuenta) =>
+  (c.user ?? c.actor)?.login === cuenta && c.body?.startsWith(`${MARCA_REASIGNADA} @`)
+    ? c.body.slice(MARCA_REASIGNADA.length + 2).match(/^[^\s:]+/)?.[0]
+    : undefined;
 
 // Con el tope no se le apilan revisiones a quien no las esta sacando, salvo
 // que todos esten en el tope. Empate -> menos pendientes -> alfabetico.
@@ -114,6 +137,24 @@ async function main() {
 
   const scope = REPOS.map(r => `repo:${r}`).join(' ');
   const since = new Date(Date.now() - WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
+  const cuenta = (await api('/user')).login;
+
+  // PR donde el aviso dejo la marca a nombre de login. La busqueda no es literal
+  // —normaliza plural y acentos, y mira titulo, cuerpo y comentarios de
+  // cualquiera—, asi que solo acota: cada resultado se confirma contra los
+  // comentarios del PR.
+  // ponytail: la ventana es la del PR (updated), no la del comentario; un PR
+  // viejo comentado hace poco cuenta. Alcanza para una ventana de un sprint.
+  const deuda = async (login) => {
+    const q = `${scope} is:pr commenter:${cuenta} "${MARCA_REASIGNADA} @${login}" updated:>=${since}`;
+    const { items } = await api(`/search/issues?per_page=100&q=${encodeURIComponent(q)}`);
+    const marcados = await Promise.all(items.map(async it => {
+      const repoPr = it.repository_url.split('/repos/')[1];
+      const comentarios = await api(`/repos/${repoPr}/issues/${it.number}/comments?per_page=100`);
+      return comentarios.some(c => marcado(c, cuenta)?.toLowerCase() === login.toLowerCase());
+    }));
+    return marcados.filter(Boolean).length;
+  };
 
   // Cuando se pidio cada revision pendiente. La busqueda no lo dice; sale del
   // ultimo review_requested a esa persona en el historial del PR. Sin evento
@@ -138,6 +179,7 @@ async function main() {
       pendingReview: fechas.length - vencidas,
       vencidas,
       doneReviews: await count(`${scope} is:pr reviewed-by:${login} updated:>=${since}`),
+      deuda: await deuda(login),
     };
   }));
 
@@ -175,6 +217,15 @@ async function test() {
   // Luca quedo en el tope: el septimo va a mare aunque tenga mas asignadas.
   assert.equal(pick([c('mare', 0, 23), c('luca', 3, 0)]).login, 'mare');
 
+  // Deuda: a luca se le vencio una y la hizo fabri. Sin deuda, luca recibe la
+  // proxima y ya quedan parejos; con deuda recibe tambien la siguiente.
+  const parejos = [{ ...c('fabri', 0, 11) }, { ...c('luca', 0, 10), deuda: 1 }];
+  assert.equal(pick(parejos).login, 'luca');
+  parejos[1].pendingReview++;
+  assert.equal(pick(parejos).login, 'luca', 'la deuda le trae una mas');
+  parejos[1].pendingReview++;
+  assert.equal(pick(parejos).login, 'fabri', 'pagada la deuda, se vuelve al reparto parejo');
+
   // Acumular no protege: con las 5 vencidas fuera, luca sigue recibiendo.
   assert.equal(pick([c('mare', 1, 15), c('luca', 0, 10)]).login, 'luca');
 
@@ -204,6 +255,14 @@ async function test() {
   assert.equal(yaTieneReviewer(prDe('luca'), [{ user: copilot }]), false, 'la review de Copilot no cuenta');
   assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'Copilot', type: 'Bot' }]), []), false, 'Copilot pedido no cuenta');
   assert.equal(yaTieneReviewer(prDe('luca', [{ login: 'Copilot', type: 'Bot' }]), [{ user: { login: 'fabri', type: 'User' } }]), true);
+
+  // La marca cuenta solo si la deja la cuenta del bot y abre el comentario.
+  const marca = `${MARCA_REASIGNADA} @LucaElbio: se suma @FabriQuinteros`;
+  assert.equal(marcado({ user: { login: 'bot' }, body: marca }, 'bot'), 'LucaElbio');
+  assert.equal(marcado({ actor: { login: 'bot' }, body: marca }, 'bot'), 'LucaElbio', 'en el historial viene como actor');
+  assert.equal(marcado({ user: { login: 'mare' }, body: marca }, 'bot'), undefined, 'escrita por una persona no cuenta');
+  assert.equal(marcado({ user: { login: 'bot' }, body: `Ojo: ${marca}` }, 'bot'), undefined, 'citada no cuenta');
+  assert.equal(marcado({ user: { login: 'bot' }, body: 'revisiones vencidas de @LucaElbio' }, 'bot'), undefined);
 
   console.log('ok');
 }
