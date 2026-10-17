@@ -123,7 +123,7 @@ del repositorio académico.
 
 ## Revisar un Pull Request
 
-`.claude/skills/revisar-pr/` corre cinco revisores en paralelo sobre el diff:
+`.claude/skills/revisar-pr/` tiene cinco revisores y lanza, en paralelo, los que el diff necesita:
 corrección, lenguaje, accesibilidad, datos personales y definición de terminado.
 Se pide en lenguaje natural —«revisá este PR»— y no hace falta invocarlo por nombre.
 
