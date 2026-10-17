@@ -86,9 +86,9 @@ git diff origin/main...HEAD -- <archivos de su área>
 
 Ninguno escribe código: reportan.
 
-> **Si no podés lanzar subagentes**, no hagas la revisión de un solo hilo y
-> sigas como si nada: **decilo en el informe, en la primera línea**. Cinco
-> miradas independientes y una sola pasada leyendo el mismo diff no son lo
+> **Si el diff pedía revisores y no podés lanzar subagentes**, no hagas la revisión de un solo hilo y
+> sigas como si nada: **decilo en el informe, en la primera línea**. Las miradas
+> independientes que el diff pedía y una sola pasada leyendo el mismo diff no son lo
 > mismo, y esta skill degradaría sin fallar —que es la forma más cara de
 > romperse—. Quien lee la revisión tiene que saber cuál de las dos recibió.
 
