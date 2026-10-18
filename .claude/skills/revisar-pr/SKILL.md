@@ -61,7 +61,7 @@ el diff no le da trabajo:
 
 | Revisor                    | Se lanza si el diff…                                                                                                            | Qué busca                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `revisor-correccion`       | cambia un `.ts` o `.tsx` con lógica: estado, efectos, llamadas                                                                  | Estado, efectos, carreras, y el camino de error que nadie probó |
+| `revisor-correccion`       | cambia un `.ts`, `.tsx` o `.mjs` con lógica: estado, efectos, llamadas                                                          | Estado, efectos, carreras, y el camino de error que nadie probó |
 | `revisor-dod`              | cambia código de `src/` o el cliente generado                                                                                   | Pruebas del criterio, cliente generado, tokens de color         |
 | `revisor-accesibilidad`    | cambia algo que se ve: `src/componentes/`, `src/paginas/`, un `.tsx` que renderiza, estilos o colores                           | Teclado, foco, lectores de pantalla, contraste                  |
 | `revisor-lenguaje`         | agrega o cambia texto visible: `src/contenido/` o cadenas en un `.tsx`                                                          | Que la pantalla no hable en el vocabulario del sistema          |
