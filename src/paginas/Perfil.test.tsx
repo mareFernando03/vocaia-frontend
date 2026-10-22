@@ -53,6 +53,7 @@ function rasgo(extra: Partial<Rasgo> = {}): Rasgo {
     confianza: "alta",
     evidencias: [],
     objecion: null,
+    es_circunstancia: false,
     ...extra,
   };
 }
@@ -146,6 +147,28 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     expect(
       screen.getByText(/Me pasé un fin de semana entero desarmando la bici\./),
     ).toBeInTheDocument();
+  });
+
+  it("una restricción no se lee como algo que a la persona le desagrada (S6-01)", async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            dimension: "C-1",
+            nombre: "Circunstancias y restricciones",
+            intensidad: -1.5,
+            es_circunstancia: true,
+          }),
+        ],
+      }),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Circunstancias y restricciones" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/te desagrada/i)).not.toBeInTheDocument();
   });
 
   it("una dimensión de la que no se habló no se muestra como un valor bajo", async () => {
