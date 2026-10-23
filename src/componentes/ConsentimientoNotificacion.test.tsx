@@ -14,9 +14,10 @@ import { ConsentimientoNotificacion } from "./ConsentimientoNotificacion";
  * cliente real, que es el que borraría el token si algo cerrara la sesión.
  */
 
-const NO_OTORGADO: Notificacion = { vigente: false };
+const NO_OTORGADO: Notificacion = { vigente: false, hay_contacto: true };
 const OTORGADO: Notificacion = {
   vigente: true,
+  hay_contacto: true,
   version: NOTIFICACION.version,
   otorgado_en: "2026-10-14T12:00:00Z",
 };
@@ -40,7 +41,7 @@ async function huella(): Promise<string> {
     .slice(0, 16);
 }
 
-type Respuesta = Notificacion | number | "sin red";
+type Respuesta = Notificacion | number | "sin red" | { estado: number; detail: string };
 
 function responder(rutas: Record<string, Respuesta | Respuesta[]>) {
   const espia = vi.fn(async (url: string, init?: RequestInit) => {
@@ -50,9 +51,11 @@ function responder(rutas: Record<string, Respuesta | Respuesta[]>) {
     const respuesta = Array.isArray(definida) ? definida.shift() : definida;
     if (respuesta === undefined) throw new Error(`Pedido inesperado: ${clave}`);
     if (respuesta === "sin red") throw new TypeError("Failed to fetch");
-    return typeof respuesta === "number"
-      ? new Response(null, { status: respuesta })
-      : Response.json(respuesta);
+    if (typeof respuesta === "number") return new Response(null, { status: respuesta });
+    if ("estado" in respuesta) {
+      return Response.json({ detail: respuesta.detail }, { status: respuesta.estado });
+    }
+    return Response.json(respuesta);
   });
   vi.stubGlobal("fetch", espia);
   return espia;
@@ -206,6 +209,43 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.otorgar }));
 
     expect(await screen.findByText(/Lo autorizaste/)).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("sin correo no ofrece autorizar y dice por qué (P-18)", async () => {
+    const espia = responder({
+      "GET /api/identidad/notificacion": { ...NO_OTORGADO, hay_contacto: false },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.sinContacto)).toBeInTheDocument();
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(espia).toHaveBeenCalledTimes(1);
+  });
+
+  it("si lo autorizó y ya no hay correo, lo avisa y deja revocar, sin revocar solo", async () => {
+    const espia = responder({
+      "GET /api/identidad/notificacion": { ...OTORGADO, hay_contacto: false },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.autorizadoSinContacto)).toBeInTheDocument();
+    expect(screen.getByText(/Lo autorizaste el 14 de octubre de 2026/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: NOTIFICACION.revocar })).toBeInTheDocument();
+    expect(espia).toHaveBeenCalledTimes(1);
+  });
+
+  it("si el backend igual responde 409, muestra su mensaje y no el código", async () => {
+    responder({
+      "GET /api/identidad/notificacion": NO_OTORGADO,
+      "POST /api/identidad/notificacion": { estado: 409, detail: NOTIFICACION.sinContacto },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(NOTIFICACION.sinContacto);
+    expect(screen.getByRole("alert")).not.toHaveTextContent("409");
   });
 
   it("el texto que se acepta está atado a su versión", async () => {

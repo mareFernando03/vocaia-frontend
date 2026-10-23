@@ -64,13 +64,14 @@ export function ConsentimientoNotificacion() {
 
   // Antes de saber el estado no se ofrece ninguna acción: un «autorizar» sobre
   // un estado desconocido podría ser el contrario del que la persona cree estar
-  // tocando. Si la consulta falló, lo único que se ofrece es reintentarla.
+  // tocando. Si la consulta falló, lo único que se ofrece es reintentarla. Sin
+  // correo tampoco: el backend lo rechazaría, y revocar sigue disponible.
   const accion =
     estado === null
       ? error !== null && { texto: "Reintentar", pedido: consultarNotificacion, clases: SECUNDARIO }
       : estado.vigente
         ? { texto: NOTIFICACION.revocar, pedido: revocarNotificacion, clases: SECUNDARIO }
-        : {
+        : estado.hay_contacto && {
             texto: NOTIFICACION.otorgar,
             pedido: () => otorgarNotificacion(NOTIFICACION.version),
             clases: PRIMARIO,
@@ -102,6 +103,10 @@ export function ConsentimientoNotificacion() {
             ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
             : NOTIFICACION.noAutorizado}
       </p>
+
+      {estado !== null && !estado.hay_contacto && (
+        <p>{estado.vigente ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}</p>
+      )}
 
       {error !== null && (
         <p key={fallos} role="alert" className="text-destructive">
