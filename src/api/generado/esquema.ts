@@ -262,7 +262,8 @@ export interface paths {
      *     Exige el consentimiento de tratamiento: `UsuarioActual` responde 403 sin él.
      *     Volver a otorgar la misma versión vigente no registra un acto nuevo. Una
      *     versión que no es un texto publicado se rechaza con 422: registrarla dejaría
-     *     un consentimiento que no prueba qué se aceptó.
+     *     un consentimiento que no prueba qué se aceptó. Sin correo verificado, 409:
+     *     el aviso quedaría autorizado sin poder salir nunca (P-18).
      */
     post: operations["otorgar_notificacion_api_identidad_notificacion_post"];
     delete?: never;
@@ -399,6 +400,31 @@ export interface paths {
      *     seguir explorando, no esconder lo que hay.
      */
     get: operations["obtener_perfil_api_perfil_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/perfil/evolucion": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ver cómo fue cambiando mi perfil, sesión por sesión
+     * @description Devuelve una etapa del perfil por cada sesión con evidencia (HU-14).
+     *
+     *     **No es una lista de perfiles guardados:** se rearma desde la evidencia, así
+     *     que una sesión que la persona borró no aparece, y todas las etapas se arman
+     *     con el instrumento vigente. Quien todavía no conversó recibe la lista vacía,
+     *     no un 404.
+     */
+    get: operations["obtener_evolucion_api_perfil_evolucion_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -663,6 +689,33 @@ export interface components {
       version: string;
     };
     /**
+     * EtapaPerfilSalida
+     * @description El perfil acumulado al terminar una sesión.
+     */
+    EtapaPerfilSalida: {
+      /**
+       * Desde
+       * Format: date-time
+       * @description La primera evidencia de la sesión.
+       */
+      desde: string;
+      /**
+       * Hasta
+       * Format: date-time
+       * @description La última evidencia de la sesión.
+       */
+      hasta: string;
+      /**
+       * Id Sesion
+       * Format: uuid
+       */
+      id_sesion: string;
+      /** Publicable */
+      publicable: boolean;
+      /** Rasgos */
+      rasgos: components["schemas"]["RasgoEtapaSalida"][];
+    };
+    /**
      * EvidenciaInformeSalida
      * @description Una dimensión del perfil, con las citas de la conversación que la sostienen.
      */
@@ -732,6 +785,20 @@ export interface components {
        * @description De -2 (rechazo) a 2 (interés fuerte).
        */
       valencia: number;
+    };
+    /**
+     * EvolucionPerfilSalida
+     * @description Cómo fue cambiando el perfil, de la sesión más vieja a la más nueva.
+     *
+     *     Cada etapa es el perfil con la evidencia de esa sesión y de las anteriores.
+     *     Todas se arman con el mismo instrumento, el vigente, para que se puedan
+     *     comparar entre sí.
+     */
+    EvolucionPerfilSalida: {
+      /** Etapas */
+      etapas: components["schemas"]["EtapaPerfilSalida"][];
+      /** Version Instrumento */
+      version_instrumento: string;
     };
     /** FuenteHabilitanteSalida */
     FuenteHabilitanteSalida: {
@@ -911,6 +978,11 @@ export interface components {
      */
     NotificacionSalida: {
       /**
+       * Hay Contacto
+       * @description Si la cuenta comparte un correo verificado al que el aviso pueda llevar. Sin él no se puede autorizar, y uno ya autorizado no tiene a dónde salir.
+       */
+      hay_contacto: boolean;
+      /**
        * Otorgado En
        * @description Último otorgamiento.
        */
@@ -1000,6 +1072,32 @@ export interface components {
        * @description Con qué versión de reglas se construyó. Dos perfiles con versiones distintas no son comparables.
        */
       version_instrumento: string;
+    };
+    /**
+     * RasgoEtapaSalida
+     * @description Una dimensión en una etapa de la evolución.
+     *
+     *     Interesa cómo se movieron la intensidad y la confianza de una etapa a la otra.
+     *     La evidencia va por id y no con su fragmento: el fragmento está en
+     *     `GET /api/perfil` mientras siga vigente.
+     */
+    RasgoEtapaSalida: {
+      /** Confianza */
+      confianza: string;
+      /** Dimension */
+      dimension: string;
+      /**
+       * Evidencias
+       * @description Las unidades que sostenían el rasgo en esa etapa. Una que la persona refutó después ya no figura en el perfil actual, pero sigue en la base con su cita.
+       */
+      evidencias: string[];
+      /**
+       * Intensidad
+       * @description De -2 a 2. `null` cuando la confianza es `insuficiente`: sin evidencia no hay intensidad, y un cero se leería como un punto de partida.
+       */
+      intensidad: number | null;
+      /** Unidades */
+      unidades: number;
     };
     /**
      * RasgoSalida
@@ -1761,6 +1859,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description La cuenta no comparte un correo verificado: no hay a quién avisar. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -1926,6 +2031,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PerfilSalida"];
+        };
+      };
+    };
+  };
+  obtener_evolucion_api_perfil_evolucion_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvolucionPerfilSalida"];
         };
       };
     };

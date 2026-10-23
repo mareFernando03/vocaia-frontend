@@ -59,6 +59,14 @@ export const NOTIFICACION = {
   // arriba es lo que quedó registrado, y «probá de nuevo» invitaría a deshacerlo.
   respuestaCortada: "Se cortó la respuesta del servidor. Arriba está lo que quedó registrado.",
   autorizado: "Lo autorizaste el",
+  // Sin correo el aviso no tendría a quién llevar el contacto (P-18). No forman
+  // parte de la huella: no cambian lo que se acepta, explican por qué no se puede.
+  // El primero dice lo mismo que el 409 del backend, por si llega igual.
+  sinContacto:
+    "No se puede autorizar: la cuenta con la que entraste no comparte tu correo, y sin él la Facultad no tendría cómo comunicarse con vos.",
+  // No se revoca solo: dejar de autorizarlo es una decisión de la persona.
+  autorizadoSinContacto:
+    "La cuenta con la que entraste ya no comparte tu correo, así que hoy el aviso no puede salir. Si la próxima vez que entres lo vuelve a compartir, sigue funcionando.",
   otorgar: "Autorizar el aviso",
   revocar: "Dejar de autorizarlo",
 } as const;
