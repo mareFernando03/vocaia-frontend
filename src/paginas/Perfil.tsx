@@ -116,8 +116,11 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
   const contados = perfil.rasgos.filter((rasgo) => rasgo.confianza !== "insuficiente");
   const sinHablar = perfil.rasgos.filter((rasgo) => rasgo.confianza === "insuficiente");
   // De lo que más te tira a lo que menos. Un rechazo marcado también dice algo,
-  // y por eso queda abajo pero queda: no se esconde.
-  const ordenados = [...contados].sort((a, b) => b.intensidad - a.intensidad);
+  // y por eso queda abajo pero queda: no se esconde. Lo que no mide un interés
+  // va al final: ordenarlo por intensidad lo pondría entre los gustos.
+  const ordenados = [...contados].sort(
+    (a, b) => Number(b.mide_interes) - Number(a.mide_interes) || b.intensidad - a.intensidad,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -222,7 +225,7 @@ function Tarjeta({ rasgo, alObjetar }: PropiedadesTarjeta) {
         <h2 className="font-medium">{rasgo.nombre || rasgo.dimension}</h2>
         {/* Una restricción no es un gusto: «no sé si me pueden pagar el viaje»
             dicho con signo negativo no es algo que a la persona le desagrade. */}
-        {!rasgo.es_circunstancia && (
+        {rasgo.mide_interes && (
           <span className="text-muted-foreground text-sm">{comoTeCae(rasgo.intensidad)}</span>
         )}
       </div>

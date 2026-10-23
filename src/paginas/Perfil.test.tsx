@@ -53,7 +53,7 @@ function rasgo(extra: Partial<Rasgo> = {}): Rasgo {
     confianza: "alta",
     evidencias: [],
     objecion: null,
-    es_circunstancia: false,
+    mide_interes: true,
     ...extra,
   };
 }
@@ -157,7 +157,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
             dimension: "C-1",
             nombre: "Circunstancias y restricciones",
             intensidad: -1.5,
-            es_circunstancia: true,
+            mide_interes: false,
           }),
         ],
       }),
@@ -169,6 +169,30 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       await screen.findByRole("heading", { name: "Circunstancias y restricciones" }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/te desagrada/i)).not.toBeInTheDocument();
+  });
+
+  it("lo que no mide un interés va al final, aunque su intensidad sea alta", async () => {
+    // «Me puedo mudar sin problema» dicho con signo positivo quedaba arriba de
+    // todo, entre los intereses más fuertes.
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({ dimension: "C-1", nombre: "Circunstancias", intensidad: 2, mide_interes: false }),
+          rasgo({ dimension: "R", nombre: "Realista", intensidad: -1.5 }),
+          rasgo({ dimension: "I", nombre: "Investigador", intensidad: 1.5 }),
+        ],
+      }),
+    );
+
+    render(<Perfil alVolver={() => {}} />);
+    await screen.findByRole("heading", { name: "Investigador" });
+
+    const tarjetas = screen.getAllByRole("article").map((tarjeta) => tarjeta.querySelector("h2"));
+    expect(tarjetas.map((titulo) => titulo?.textContent)).toEqual([
+      "Investigador",
+      "Realista",
+      "Circunstancias",
+    ]);
   });
 
   it("una dimensión de la que no se habló no se muestra como un valor bajo", async () => {
