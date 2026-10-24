@@ -1123,6 +1123,12 @@ export interface components {
        * @description De -2 a 2, en la misma escala que la valencia.
        */
       intensidad: number;
+      /**
+       * Mide Interes
+       * @description Falso en las dimensiones del bloque complementario: circunstancias y restricciones, autonomía, nivel de información y autoeficacia. Su `intensidad` no se lee como gusto o rechazo: «no sé si me pueden pagar el viaje» no es algo que a la persona le desagrade.
+       * @default true
+       */
+      mide_interes: boolean;
       /** Nombre */
       nombre: string;
       /** @description La persona declaró que esto no la representa. El rasgo se devuelve igual y con los mismos números: lo que la objeción registra es el desacuerdo, no una corrección. Quien muestre el perfil tiene que mostrar las dos cosas. */
