@@ -46,11 +46,15 @@ export function ConsentimientoNotificacion() {
       setError(describir(fallo));
       setFallos((n) => n + 1);
       // Sin respuesta no se sabe si el backend guardó el acto: se le vuelve a
-      // preguntar, para no mostrar lo contrario de lo que quedó registrado.
-      if (!(fallo instanceof ErrorDeApi) && pedido !== consultarNotificacion) {
+      // preguntar, para no mostrar lo contrario de lo que quedó registrado. Con
+      // un 409 el correo dejó de estar entre la consulta y el clic: también, o
+      // el botón quedaría ofreciendo lo que el backend va a volver a rechazar.
+      const sinContacto = fallo instanceof ErrorDeApi && fallo.estado === 409;
+      if ((sinContacto || !(fallo instanceof ErrorDeApi)) && pedido !== consultarNotificacion) {
         const guardado = await consultarNotificacion().catch(() => null);
         setEstado(guardado);
-        if (guardado !== null) setError(NOTIFICACION.respuestaCortada);
+        // Con el estado nuevo, el porqué ya lo dice el texto de arriba.
+        if (guardado !== null) setError(sinContacto ? null : NOTIFICACION.respuestaCortada);
       }
     } finally {
       enviandoRef.current = false;
@@ -77,6 +81,17 @@ export function ConsentimientoNotificacion() {
             clases: PRIMARIO,
           };
 
+  // Revocar sin correo, o un 409, deja la sección sin botón: el foco que
+  // estaba en él se iría al `body`, así que pasa al estado que lo reemplazó.
+  // `anunciar` lo limita a después de un clic: al cargar no se roba el foco.
+  const estadoRef = useRef<HTMLParagraphElement>(null);
+  const hayAccion = Boolean(accion);
+  useEffect(() => {
+    if (anunciar && !hayAccion && document.activeElement === document.body) {
+      estadoRef.current?.focus();
+    }
+  }, [anunciar, hayAccion]);
+
   return (
     <section
       aria-labelledby="notificacion-titulo"
@@ -96,17 +111,27 @@ export function ConsentimientoNotificacion() {
       </dl>
       <p className="text-muted-foreground">{NOTIFICACION.opcional}</p>
 
-      <p aria-live={anunciar ? "polite" : "off"} className="font-medium">
-        {estado === null
-          ? ""
-          : estado.vigente && estado.otorgado_en
-            ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
-            : NOTIFICACION.noAutorizado}
+      {/* El porqué sin correo va dentro de la región viva: si aparece después
+          de un 409, se anuncia junto con el estado. */}
+      <p
+        ref={estadoRef}
+        tabIndex={-1}
+        aria-live={anunciar ? "polite" : "off"}
+        className="flex flex-col gap-3 outline-none"
+      >
+        <span className="font-medium">
+          {estado === null
+            ? ""
+            : estado.vigente && estado.otorgado_en
+              ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
+              : NOTIFICACION.noAutorizado}
+        </span>
+        {estado !== null && !estado.hay_contacto && (
+          <span>
+            {estado.vigente ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}
+          </span>
+        )}
       </p>
-
-      {estado !== null && !estado.hay_contacto && (
-        <p>{estado.vigente ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}</p>
-      )}
 
       {error !== null && (
         <p key={fallos} role="alert" className="text-destructive">

@@ -203,12 +203,15 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     });
     render(<ConsentimientoNotificacion />);
 
-    const estado = await screen.findByText(NOTIFICACION.noAutorizado);
+    const estado = (await screen.findByText(NOTIFICACION.noAutorizado)).closest("p");
     expect(estado).toHaveAttribute("aria-live", "off");
 
     await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.otorgar }));
 
-    expect(await screen.findByText(/Lo autorizaste/)).toHaveAttribute("aria-live", "polite");
+    expect((await screen.findByText(/Lo autorizaste/)).closest("p")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
   });
 
   it("sin correo no ofrece autorizar y dice por qué (P-18)", async () => {
@@ -235,17 +238,48 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(espia).toHaveBeenCalledTimes(1);
   });
 
-  it("si el backend igual responde 409, muestra su mensaje y no el código", async () => {
+  it("si el correo dejó de estar entre la consulta y el clic, vuelve a preguntar", async () => {
     responder({
-      "GET /api/identidad/notificacion": NO_OTORGADO,
-      "POST /api/identidad/notificacion": { estado: 409, detail: NOTIFICACION.sinContacto },
+      "GET /api/identidad/notificacion": [NO_OTORGADO, { ...NO_OTORGADO, hay_contacto: false }],
+      "POST /api/identidad/notificacion": { estado: 409, detail: "Sin correo verificado." },
     });
     render(<ConsentimientoNotificacion />);
 
     await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(NOTIFICACION.sinContacto);
-    expect(screen.getByRole("alert")).not.toHaveTextContent("409");
+    // El porqué lo dice el estado nuevo, no una alerta al lado de un botón que
+    // la volvería a dar; y el foco no se pierde con el botón.
+    const porque = await screen.findByText(NOTIFICACION.sinContacto);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(porque.closest("p")).toHaveFocus();
+    expect(porque.closest("p")).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("revocar sin correo deja el foco en el estado y no en el body", async () => {
+    responder({
+      "GET /api/identidad/notificacion": { ...OTORGADO, hay_contacto: false },
+      "POST /api/identidad/notificacion/revocar": {
+        ...OTORGADO,
+        vigente: false,
+        hay_contacto: false,
+        revocado_en: "2026-10-14T13:00:00Z",
+      },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.revocar }));
+
+    const porque = await screen.findByText(NOTIFICACION.sinContacto);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(porque.closest("p")).toHaveFocus();
+  });
+
+  it("al cargar sin correo no se lleva el foco", async () => {
+    responder({ "GET /api/identidad/notificacion": { ...NO_OTORGADO, hay_contacto: false } });
+    render(<ConsentimientoNotificacion />);
+
+    expect((await screen.findByText(NOTIFICACION.sinContacto)).closest("p")).not.toHaveFocus();
   });
 
   it("el texto que se acepta está atado a su versión", async () => {
