@@ -968,6 +968,11 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
+      /**
+       * Version Habilitantes
+       * @description Contra qué inventario se calcularon los habilitantes. Vacío si no se calcularon.
+       */
+      version_habilitantes?: string | null;
       /** Version Instrumento */
       version_instrumento: string;
     };
