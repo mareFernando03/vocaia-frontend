@@ -846,6 +846,18 @@ export interface components {
      */
     HabilitantesPorRestriccionSalida: {
       /**
+       * Citas
+       * @description Lo que dijo la persona, literal, que sostiene la restricción. Vacío en un informe guardado antes de que se agregara.
+       * @default []
+       */
+      citas: string[];
+      /**
+       * Evidencias
+       * @description La unidad de evidencia de cada cita, en el mismo orden (RNF-05).
+       * @default []
+       */
+      evidencias: string[];
+      /**
        * No Verificados
        * @default []
        */
@@ -956,6 +968,11 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
+      /**
+       * Version Habilitantes
+       * @description Contra qué inventario se calcularon los habilitantes. Vacío si no se calcularon.
+       */
+      version_habilitantes?: string | null;
       /** Version Instrumento */
       version_instrumento: string;
     };

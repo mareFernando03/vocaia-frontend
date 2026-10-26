@@ -329,6 +329,13 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
                 sensible, y el informe se imprime y se comparte. */}
             {RESTRICCIONES[grupo.restriccion] ?? "Otras circunstancias que mencionaste"}
           </h5>
+          {/* La restricción ya no está en «En qué me baso» (P-11): sin la cita no
+              se entiende por qué se ofrece lo que sigue. Un informe viejo llega vacío. */}
+          {grupo.citas.length > 0 && (
+            <p className="text-muted-foreground">
+              Lo contaste así: {grupo.citas.map((cita) => `«${cita}»`).join(" · ")}
+            </p>
+          )}
           {grupo.verificados.length + grupo.no_verificados.length > 0 && (
             <ul className="flex flex-col gap-2">
               {grupo.verificados.map((habilitante) => (
