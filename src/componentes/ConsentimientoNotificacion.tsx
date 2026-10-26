@@ -43,18 +43,30 @@ export function ConsentimientoNotificacion() {
     } catch (fallo) {
       // La sesión vencida la resuelve App volviendo al ingreso.
       if (fallo instanceof SesionVencida) return;
-      setError(describir(fallo));
-      setFallos((n) => n + 1);
+      const avisar = () => {
+        setError(describir(fallo));
+        setFallos((n) => n + 1);
+      };
       // Sin respuesta no se sabe si el backend guardó el acto: se le vuelve a
       // preguntar, para no mostrar lo contrario de lo que quedó registrado. Con
       // un 409 el correo dejó de estar entre la consulta y el clic: también, o
       // el botón quedaría ofreciendo lo que el backend va a volver a rechazar.
       const sinContacto = fallo instanceof ErrorDeApi && fallo.estado === 409;
-      if ((sinContacto || !(fallo instanceof ErrorDeApi)) && pedido !== consultarNotificacion) {
+      const reconsultar =
+        (sinContacto || !(fallo instanceof ErrorDeApi)) && pedido !== consultarNotificacion;
+      // Con un 409 el error espera a la nueva consulta: mostrado antes, la alerta
+      // aparecería al lado del botón para irse enseguida, y un lector de pantalla
+      // daría el porqué dos veces. Queda solo si la consulta también falla.
+      if (!(sinContacto && reconsultar)) avisar();
+      if (reconsultar) {
         const guardado = await consultarNotificacion().catch(() => null);
         setEstado(guardado);
-        // Con el estado nuevo, el porqué ya lo dice el texto de arriba.
-        if (guardado !== null) setError(sinContacto ? null : NOTIFICACION.respuestaCortada);
+        if (guardado === null) {
+          if (sinContacto) avisar();
+        } else {
+          // Con el estado nuevo, el porqué ya lo dice el texto de arriba.
+          setError(sinContacto ? null : NOTIFICACION.respuestaCortada);
+        }
       }
     } finally {
       enviandoRef.current = false;

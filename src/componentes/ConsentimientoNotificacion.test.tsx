@@ -256,6 +256,46 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(porque.closest("p")).toHaveAttribute("aria-live", "polite");
   });
 
+  it("con un 409, mientras vuelve a preguntar, no muestra la alerta", async () => {
+    let contestar: (respuesta: Response) => void = () => {};
+    const reconsulta = new Promise<Response>((resolver) => (contestar = resolver));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(NO_OTORGADO))
+        .mockResolvedValueOnce(Response.json({ detail: "Sin correo verificado." }, { status: 409 }))
+        .mockReturnValueOnce(reconsulta),
+    );
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
+
+    // Con la consulta en vuelo, una alerta acá se iría enseguida y el lector
+    // daría el porqué dos veces: primero ella, después el estado.
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    contestar(Response.json({ ...NO_OTORGADO, hay_contacto: false }));
+
+    expect(await screen.findByText(NOTIFICACION.sinContacto)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("si después del 409 tampoco se puede consultar, lo dice y ofrece reintentar", async () => {
+    responder({
+      "GET /api/identidad/notificacion": [NO_OTORGADO, "sin red"],
+      "POST /api/identidad/notificacion": { estado: 409, detail: "Sin correo verificado." },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sin correo verificado.");
+    // Mismo nodo de botón, así que el foco no se pierde.
+    expect(screen.getByRole("button", { name: "Reintentar" })).toHaveFocus();
+  });
+
   it("revocar sin correo deja el foco en el estado y no en el body", async () => {
     responder({
       "GET /api/identidad/notificacion": { ...OTORGADO, hay_contacto: false },
