@@ -183,6 +183,7 @@ describe("Informe", () => {
               por_restriccion: [
                 {
                   restriccion: "economica",
+                  citas: [],
                   verificados: [habilitante()],
                   no_verificados: [
                     habilitante({
@@ -210,6 +211,37 @@ describe("Informe", () => {
     const noVerificado = within(seccion).getByText("Becas Belgrano").closest("li")!;
     expect(noVerificado).toHaveTextContent(/^Sin verificar:/);
     expect(noVerificado).toHaveTextContent(/no dice si alcanza a esta carrera/);
+  });
+
+  it("cada restricción dice de dónde salió, con lo que la persona escribió (P-10)", async () => {
+    // Desde P-11 la restricción no va en «En qué me baso»: sin la cita, el
+    // habilitante aparecería sin que se entienda por qué se lo ofrece.
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            habilitantes: {
+              por_restriccion: [
+                {
+                  restriccion: "economica",
+                  citas: ["no sé si mi familia puede pagarme el viaje"],
+                  verificados: [habilitante()],
+                  no_verificados: [],
+                },
+              ],
+              alternativas: [],
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const seccion = (await screen.findByRole("heading", { name: /si hay algo que te frena/i }))
+      .parentElement!;
+    expect(within(seccion).getByText(/Lo contaste así/)).toHaveTextContent(
+      "Lo contaste así: «no sé si mi familia puede pagarme el viaje»",
+    );
   });
 
   it("sin habilitantes omite la sección, y si el backend explica por qué, muestra la nota", async () => {
@@ -247,7 +279,12 @@ describe("Informe", () => {
           carrera({
             habilitantes: {
               por_restriccion: [
-                { restriccion: "discapacidad", verificados: [habilitante()], no_verificados: [] },
+                {
+                  restriccion: "discapacidad",
+                  citas: [],
+                  verificados: [habilitante()],
+                  no_verificados: [],
+                },
               ],
               alternativas: [],
             },

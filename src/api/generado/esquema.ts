@@ -846,6 +846,12 @@ export interface components {
      */
     HabilitantesPorRestriccionSalida: {
       /**
+       * Citas
+       * @description Lo que dijo la persona, literal, que sostiene la restricción. Vacío en un informe guardado antes de que se agregara.
+       * @default []
+       */
+      citas: string[];
+      /**
        * No Verificados
        * @default []
        */
