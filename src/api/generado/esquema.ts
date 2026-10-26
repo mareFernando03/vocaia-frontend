@@ -852,6 +852,12 @@ export interface components {
        */
       citas: string[];
       /**
+       * Evidencias
+       * @description La unidad de evidencia de cada cita, en el mismo orden (RNF-05).
+       * @default []
+       */
+      evidencias: string[];
+      /**
        * No Verificados
        * @default []
        */

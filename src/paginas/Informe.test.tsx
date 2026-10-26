@@ -184,6 +184,7 @@ describe("Informe", () => {
                 {
                   restriccion: "economica",
                   citas: [],
+                  evidencias: [],
                   verificados: [habilitante()],
                   no_verificados: [
                     habilitante({
@@ -225,6 +226,7 @@ describe("Informe", () => {
                 {
                   restriccion: "economica",
                   citas: ["no sé si mi familia puede pagarme el viaje"],
+                  evidencias: ["5b1c7f3e-0000-4000-8000-000000000001"],
                   verificados: [habilitante()],
                   no_verificados: [],
                 },
@@ -282,6 +284,7 @@ describe("Informe", () => {
                 {
                   restriccion: "discapacidad",
                   citas: [],
+                  evidencias: [],
                   verificados: [habilitante()],
                   no_verificados: [],
                 },
