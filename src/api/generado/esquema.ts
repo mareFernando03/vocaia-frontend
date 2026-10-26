@@ -262,7 +262,8 @@ export interface paths {
      *     Exige el consentimiento de tratamiento: `UsuarioActual` responde 403 sin él.
      *     Volver a otorgar la misma versión vigente no registra un acto nuevo. Una
      *     versión que no es un texto publicado se rechaza con 422: registrarla dejaría
-     *     un consentimiento que no prueba qué se aceptó.
+     *     un consentimiento que no prueba qué se aceptó. Sin correo verificado, 409:
+     *     el aviso quedaría autorizado sin poder salir nunca (P-18).
      */
     post: operations["otorgar_notificacion_api_identidad_notificacion_post"];
     delete?: never;
@@ -976,6 +977,11 @@ export interface components {
      *     Independiente del consentimiento de tratamiento: tener ese no implica este.
      */
     NotificacionSalida: {
+      /**
+       * Hay Contacto
+       * @description Si la cuenta comparte un correo verificado al que el aviso pueda llevar. Sin él no se puede autorizar, y uno ya autorizado no tiene a dónde salir.
+       */
+      hay_contacto: boolean;
       /**
        * Otorgado En
        * @description Último otorgamiento.
@@ -1854,6 +1860,13 @@ export interface operations {
       };
       /** @description Falta registrar el consentimiento informado de tratamiento. */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description La cuenta no comparte un correo verificado: no hay a quién avisar. */
+      409: {
         headers: {
           [name: string]: unknown;
         };

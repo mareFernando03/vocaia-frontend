@@ -43,14 +43,30 @@ export function ConsentimientoNotificacion() {
     } catch (fallo) {
       // La sesión vencida la resuelve App volviendo al ingreso.
       if (fallo instanceof SesionVencida) return;
-      setError(describir(fallo));
-      setFallos((n) => n + 1);
+      const avisar = () => {
+        setError(describir(fallo));
+        setFallos((n) => n + 1);
+      };
       // Sin respuesta no se sabe si el backend guardó el acto: se le vuelve a
-      // preguntar, para no mostrar lo contrario de lo que quedó registrado.
-      if (!(fallo instanceof ErrorDeApi) && pedido !== consultarNotificacion) {
+      // preguntar, para no mostrar lo contrario de lo que quedó registrado. Con
+      // un 409 el correo dejó de estar entre la consulta y el clic: también, o
+      // el botón quedaría ofreciendo lo que el backend va a volver a rechazar.
+      const sinContacto = fallo instanceof ErrorDeApi && fallo.estado === 409;
+      const reconsultar =
+        (sinContacto || !(fallo instanceof ErrorDeApi)) && pedido !== consultarNotificacion;
+      // Con un 409 el error espera a la nueva consulta: mostrado antes, la alerta
+      // aparecería al lado del botón para irse enseguida, y un lector de pantalla
+      // daría el porqué dos veces. Queda solo si la consulta también falla.
+      if (!(sinContacto && reconsultar)) avisar();
+      if (reconsultar) {
         const guardado = await consultarNotificacion().catch(() => null);
         setEstado(guardado);
-        if (guardado !== null) setError(NOTIFICACION.respuestaCortada);
+        if (guardado === null) {
+          if (sinContacto) avisar();
+        } else {
+          // Con el estado nuevo, el porqué ya lo dice el texto de arriba.
+          setError(sinContacto ? null : NOTIFICACION.respuestaCortada);
+        }
       }
     } finally {
       enviandoRef.current = false;
@@ -64,17 +80,29 @@ export function ConsentimientoNotificacion() {
 
   // Antes de saber el estado no se ofrece ninguna acción: un «autorizar» sobre
   // un estado desconocido podría ser el contrario del que la persona cree estar
-  // tocando. Si la consulta falló, lo único que se ofrece es reintentarla.
+  // tocando. Si la consulta falló, lo único que se ofrece es reintentarla. Sin
+  // correo tampoco: el backend lo rechazaría, y revocar sigue disponible.
   const accion =
     estado === null
       ? error !== null && { texto: "Reintentar", pedido: consultarNotificacion, clases: SECUNDARIO }
       : estado.vigente
         ? { texto: NOTIFICACION.revocar, pedido: revocarNotificacion, clases: SECUNDARIO }
-        : {
+        : estado.hay_contacto && {
             texto: NOTIFICACION.otorgar,
             pedido: () => otorgarNotificacion(NOTIFICACION.version),
             clases: PRIMARIO,
           };
+
+  // Revocar sin correo, o un 409, deja la sección sin botón: el foco que
+  // estaba en él se iría al `body`, así que pasa al estado que lo reemplazó.
+  // `anunciar` lo limita a después de un clic: al cargar no se roba el foco.
+  const estadoRef = useRef<HTMLParagraphElement>(null);
+  const hayAccion = Boolean(accion);
+  useEffect(() => {
+    if (anunciar && !hayAccion && document.activeElement === document.body) {
+      estadoRef.current?.focus();
+    }
+  }, [anunciar, hayAccion]);
 
   return (
     <section
@@ -95,12 +123,26 @@ export function ConsentimientoNotificacion() {
       </dl>
       <p className="text-muted-foreground">{NOTIFICACION.opcional}</p>
 
-      <p aria-live={anunciar ? "polite" : "off"} className="font-medium">
-        {estado === null
-          ? ""
-          : estado.vigente && estado.otorgado_en
-            ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
-            : NOTIFICACION.noAutorizado}
+      {/* El porqué sin correo va dentro de la región viva: si aparece después
+          de un 409, se anuncia junto con el estado. */}
+      <p
+        ref={estadoRef}
+        tabIndex={-1}
+        aria-live={anunciar ? "polite" : "off"}
+        className="flex flex-col gap-3 outline-none"
+      >
+        <span className="font-medium">
+          {estado === null
+            ? ""
+            : estado.vigente && estado.otorgado_en
+              ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
+              : NOTIFICACION.noAutorizado}
+        </span>
+        {estado !== null && !estado.hay_contacto && (
+          <span>
+            {estado.vigente ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}
+          </span>
+        )}
       </p>
 
       {error !== null && (
