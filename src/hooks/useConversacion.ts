@@ -28,7 +28,13 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { describir } from "../api/cliente";
-import { enviarMensaje, type Fuente, obtenerHistorial, type Turno } from "../api/conversacion";
+import {
+  enviarMensaje,
+  type Fuente,
+  obtenerHistorial,
+  terminarConversacion,
+  type Turno,
+} from "../api/conversacion";
 import { alCambiarSesion } from "../auth/sesion";
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -106,6 +112,8 @@ export interface Conversacion {
    */
   tieneInforme: boolean;
   enviar: (contenido: string) => Promise<void>;
+  /** Cierra esta parte a pedido de la persona. Devuelve si cerró. */
+  terminar: () => Promise<boolean>;
   reintentar: () => void;
 }
 
@@ -208,6 +216,19 @@ export function useConversacion(): Conversacion {
     [sesion.id, enviando, traer],
   );
 
+  const terminar = useCallback(async () => {
+    setError(null);
+    try {
+      const historial = await terminarConversacion(sesion.id);
+      setEstado(historial.estado);
+      setTieneInforme(historial.tiene_informe);
+      return true;
+    } catch (fallo) {
+      setError(describir(fallo));
+      return false;
+    }
+  }, [sesion.id]);
+
   const intercambios = turnos.filter((turno) => turno.rol === "usuario").length;
 
   return {
@@ -222,6 +243,7 @@ export function useConversacion(): Conversacion {
     estado,
     tieneInforme,
     enviar,
+    terminar,
     reintentar: () => void cargar(),
   };
 }

@@ -31,6 +31,7 @@ import {
 } from "../api/perfil";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { comoTeCae } from "../contenido/como-te-cae";
+import { descripcionParaLaPersona } from "../contenido/dimensiones";
 
 interface Propiedades {
   alVolver: () => void;
@@ -163,7 +164,7 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
               <li
                 key={rasgo.dimension}
                 className="border-border rounded-full border px-3 py-1"
-                title={rasgo.descripcion}
+                title={descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}
               >
                 {rasgo.nombre || rasgo.dimension}
               </li>
@@ -226,7 +227,9 @@ function Tarjeta({ rasgo, alObjetar }: PropiedadesTarjeta) {
         )}
       </div>
 
-      {rasgo.descripcion !== "" && <p className="text-sm">{rasgo.descripcion}</p>}
+      {descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion) !== "" && (
+        <p className="text-sm">{descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}</p>
+      )}
 
       <p className="text-muted-foreground text-sm">
         {RESPALDO[rasgo.confianza] ?? RESPALDO.baja} {cuantas(rasgo.unidades)}

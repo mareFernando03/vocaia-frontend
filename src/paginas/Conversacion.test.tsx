@@ -16,9 +16,11 @@ vi.mock("../api/conversacion", () => ({
   obtenerHistorial: vi.fn(),
   enviarMensaje: vi.fn(),
   obtenerEncuadre: vi.fn(),
+  terminarConversacion: vi.fn(),
 }));
 
-const { obtenerHistorial, enviarMensaje, obtenerEncuadre } = await import("../api/conversacion");
+const { obtenerHistorial, enviarMensaje, obtenerEncuadre, terminarConversacion } =
+  await import("../api/conversacion");
 const { default: Conversacion } = await import("./Conversacion");
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -374,6 +376,38 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
     expect(screen.getByRole("link", { name: "911" })).toHaveAttribute("href", "tel:911");
     expect(screen.queryByRole("button", { name: /informe/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /fuentes de la facultad/i })).toBeNull();
+  });
+});
+
+describe("Conversacion · terminar antes del final (H24)", () => {
+  it("terminar cierra esta parte y lleva al informe", async () => {
+    const usuario = userEvent.setup();
+    const sesionId = "44444444-4444-4444-8444-444444444444";
+    window.sessionStorage.setItem(CLAVE, sesionId);
+    vi.mocked(obtenerEncuadre).mockRejectedValue(new Error("sin encuadre"));
+    vi.mocked(obtenerHistorial).mockResolvedValue({
+      ...historial(sesionId, [turno(1, "usuario", "Hola"), turno(2, "agente", "Contame.")]),
+      estado: "abierta",
+    });
+    vi.mocked(terminarConversacion).mockResolvedValue({
+      ...historial(sesionId, []),
+      estado: "cerrada",
+    });
+    const alVerInforme = vi.fn();
+    render(
+      <Conversacion
+        alSalir={salir}
+        alVerHistorial={verHistorial}
+        alVerPerfil={verPerfil}
+        alVerCarreras={() => {}}
+        alVerInforme={alVerInforme}
+      />,
+    );
+
+    await usuario.click(await screen.findByRole("button", { name: /terminar acá/i }));
+
+    expect(terminarConversacion).toHaveBeenCalledWith(sesionId);
+    await waitFor(() => expect(alVerInforme).toHaveBeenCalledWith(sesionId));
   });
 });
 

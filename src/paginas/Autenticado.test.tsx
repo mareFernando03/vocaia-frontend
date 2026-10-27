@@ -174,11 +174,11 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
 
     // Un solo botón por conversación, con todo adentro: quien usa lector de
-    // pantalla oye «28 de agosto de 2026, 2 mensajes, Estoy entre…» de una vez,
+    // pantalla oye «28 de agosto de 2026, 1 intercambio, Estoy entre…» de una vez,
     // en lugar de tres elementos sueltos que hay que juntar mentalmente.
     const item = await screen.findByRole("button", { name: /entre sistemas y diseño/ });
     expect(item).toHaveAccessibleName(
-      /^24 de agosto de 2026 · 2 mensajes Estoy entre sistemas y diseño$/,
+      /^24 de agosto de 2026 · 1 intercambio Estoy entre sistemas y diseño$/,
     );
   });
 

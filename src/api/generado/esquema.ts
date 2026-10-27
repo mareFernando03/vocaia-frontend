@@ -192,6 +192,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/conversacion/{sesion_id}/terminar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Terminar esta parte de la conversación y armar el informe
+     * @description Cierra el tramo a pedido de la persona y, después de responder, arma perfil e informe.
+     *
+     *     Es el botón «Terminar y ver mi informe». El informe se arma igual que al
+     *     cierre de un turno, en segundo plano: la pantalla del informe ya espera con
+     *     el 409 y `Retry-After` mientras se arma. Una sesión ya cerrada vuelve como
+     *     está, sin cerrarse dos veces.
+     */
+    post: operations["terminar_conversacion_api_conversacion__sesion_id__terminar_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/conversacion/{sesion_id}/turnos/{turno}/trazabilidad": {
     parameters: {
       query?: never;
@@ -1748,6 +1773,44 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  terminar_conversacion_api_conversacion__sesion_id__terminar_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sesion_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HistorialSalida"];
+        };
+      };
+      /** @description No existe esa sesión, o es de otra persona. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

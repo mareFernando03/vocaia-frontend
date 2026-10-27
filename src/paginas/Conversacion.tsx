@@ -42,6 +42,7 @@ export default function Conversacion({
     estado,
     tieneInforme,
     enviar,
+    terminar,
     reintentar,
   } = useConversacion();
   const [borrador, setBorrador] = useState("");
@@ -293,6 +294,21 @@ export default function Conversacion({
           Enviar
         </button>
       </form>
+
+      {/* Para quien quiere cortar antes del final: el perfil y el informe se
+          arman al cierre, y sin esto se iba con nada (H24). No cierra para
+          siempre: seguir escribiendo abre la parte siguiente. */}
+      {intercambios > 0 && estado === "abierta" && !enviando && (
+        <button
+          type="button"
+          onClick={() => {
+            void terminar().then((cerro) => cerro && alVerInforme(sesionId));
+          }}
+          className="text-primary self-start text-sm underline underline-offset-2"
+        >
+          Terminar acá y ver mi informe
+        </button>
+      )}
     </div>
   );
 }

@@ -57,6 +57,15 @@ export async function obtenerHistorial(sesionId: string): Promise<Historial | nu
   }
 }
 
+/**
+ * Termina esta parte de la charla a pedido de la persona y arranca el armado del
+ * informe. Sin esto, quien quería cortar antes del final se iba sin perfil ni
+ * informe, porque los dos se arman al cierre (H24 del recorrido local).
+ */
+export function terminarConversacion(sesionId: string): Promise<Historial> {
+  return pedir<Historial>(`/api/conversacion/${sesionId}/terminar`, { method: "POST" });
+}
+
 /** Un trozo más de la respuesta que se está escribiendo. */
 interface EventoDelta {
   delta: string;
