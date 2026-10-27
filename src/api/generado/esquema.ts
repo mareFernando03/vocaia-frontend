@@ -123,6 +123,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/conversacion/encuadre": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * El saludo con que arranca toda conversación
+     * @description El mismo texto que la sesión guarda como su primer turno al nacer.
+     *
+     *     Existe para que la pantalla lo muestre antes del primer mensaje: la sesión
+     *     nace recién con ese mensaje, y el saludo aparecía después de lo que la
+     *     persona ya había escrito (prueba local del piloto). No abre la sesión a
+     *     propósito: abrirla al entrar contaría como iniciada una charla en la que
+     *     nadie escribió, y movería las métricas de adherencia.
+     */
+    get: operations["obtener_encuadre_api_conversacion_encuadre_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/conversacion/{sesion_id}": {
     parameters: {
       query?: never;
@@ -675,6 +701,16 @@ export interface components {
       contacto: components["schemas"]["ContactoDerivacionSalida"] | null;
       /** Disponible */
       disponible: boolean;
+    };
+    /**
+     * EncuadreSalida
+     * @description El saludo con que arranca toda conversación, para mostrarlo antes del primer mensaje.
+     */
+    EncuadreSalida: {
+      /** Texto */
+      texto: string;
+      /** Version */
+      version: string;
     };
     /**
      * EstadoServicio
@@ -1621,6 +1657,26 @@ export interface operations {
       };
     };
   };
+  obtener_encuadre_api_conversacion_encuadre_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EncuadreSalida"];
+        };
+      };
+    };
+  };
   obtener_historial_api_conversacion__sesion_id__get: {
     parameters: {
       query?: never;
@@ -1667,7 +1723,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error—, y `{'error': '...'}` si la generación se corta. */
+      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N, 'escalamiento': bool}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error—, y `{'error': '...'}` si la generación se corta. */
       200: {
         headers: {
           [name: string]: unknown;

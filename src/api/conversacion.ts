@@ -20,6 +20,16 @@ import type { components } from "./generado/esquema";
 export type Historial = components["schemas"]["HistorialSalida"];
 export type Turno = components["schemas"]["TurnoSalida"];
 export type ResumenSesion = components["schemas"]["ResumenSesionSalida"];
+export type Encuadre = components["schemas"]["EncuadreSalida"];
+
+/**
+ * El saludo con que arranca toda conversación, para mostrarlo antes del primer
+ * mensaje. Es el mismo texto que la sesión guarda como su primer turno cuando
+ * nace, así que lo que se ve antes y lo que queda en el historial coinciden.
+ */
+export function obtenerEncuadre(): Promise<Encuadre> {
+  return pedir<Encuadre>("/api/conversacion/encuadre");
+}
 
 /**
  * Las sesiones de quien consulta, de la más reciente a la más vieja (HU-12).
@@ -83,6 +93,8 @@ interface EventoFin {
    * el `?? []` de quien la lee sea una rama de verdad y no código muerto.
    */
   fuentes?: Fuente[];
+  /** La respuesta fue de contención y la sesión quedó `derivada`. Opcional por lo mismo. */
+  escalamiento?: boolean;
 }
 
 /** La generación se cortó a mitad de camino. */
