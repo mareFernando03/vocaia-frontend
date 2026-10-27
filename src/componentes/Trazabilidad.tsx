@@ -119,19 +119,44 @@ function Conversacional({ respaldos }: { respaldos: RespaldoConversacional[] }) 
           <p className="text-muted-foreground mt-1">
             Lo que VocaIA ya sabía de vos cuando respondió. No quiere decir que haya usado todo.
           </p>
-          <ul className="mt-2 flex flex-col gap-2">
-            {respaldos.map((respaldo) => (
-              <li key={respaldo.id}>
-                <blockquote className="italic">«{respaldo.fragmento}»</blockquote>
-                <p className="text-muted-foreground text-xs">
-                  Lo dijiste el {fecha(respaldo.emitida_en)}.
-                </p>
-              </li>
-            ))}
-          </ul>
+          {/* A la vista sólo lo del último mensaje que VocaIA tenía leído: el
+              backend manda todo lo acumulado de la sesión, y en una charla
+              larga eran unas treinta frases debajo de cada respuesta (prueba
+              del piloto). El resto queda a un clic. */}
+          <Citas respaldos={recientes(respaldos)} />
+          {respaldos.length > recientes(respaldos).length && (
+            <details className="mt-2">
+              <summary className="text-primary cursor-pointer">
+                Y {respaldos.length - recientes(respaldos).length} cosas más que ya sabía de vos
+              </summary>
+              <Citas respaldos={respaldos.filter((r) => !recientes(respaldos).includes(r))} />
+            </details>
+          )}
         </>
       )}
     </section>
+  );
+}
+
+function recientes(respaldos: RespaldoConversacional[]): RespaldoConversacional[] {
+  // Por fecha y no por número de turno: el perfil junta evidencia de todas las
+  // sesiones de la persona, y «turno 3» solo no dice de cuál.
+  const ultimo = respaldos.reduce((a, b) => (b.emitida_en > a.emitida_en ? b : a));
+  return respaldos.filter((r) => r.sesion_id === ultimo.sesion_id && r.turno === ultimo.turno);
+}
+
+function Citas({ respaldos }: { respaldos: RespaldoConversacional[] }) {
+  return (
+    <ul className="mt-2 flex flex-col gap-2">
+      {respaldos.map((respaldo) => (
+        <li key={respaldo.id}>
+          <blockquote className="italic">«{respaldo.fragmento}»</blockquote>
+          <p className="text-muted-foreground text-xs">
+            Lo dijiste el {fecha(respaldo.emitida_en)}.
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
 

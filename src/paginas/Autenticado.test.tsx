@@ -19,6 +19,7 @@ vi.mock("../api/conversacion", () => ({
   listarSesiones: vi.fn(),
   obtenerHistorial: vi.fn(),
   enviarMensaje: vi.fn(),
+  obtenerEncuadre: vi.fn(() => Promise.reject(new Error("sin encuadre"))),
 }));
 
 vi.mock("../api/perfil", () => ({ obtenerPerfil: vi.fn() }));

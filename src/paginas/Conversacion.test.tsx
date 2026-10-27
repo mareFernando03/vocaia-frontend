@@ -15,9 +15,10 @@ import type { EventoConversacion, Historial, Turno } from "../api/conversacion";
 vi.mock("../api/conversacion", () => ({
   obtenerHistorial: vi.fn(),
   enviarMensaje: vi.fn(),
+  obtenerEncuadre: vi.fn(),
 }));
 
-const { obtenerHistorial, enviarMensaje } = await import("../api/conversacion");
+const { obtenerHistorial, enviarMensaje, obtenerEncuadre } = await import("../api/conversacion");
 const { default: Conversacion } = await import("./Conversacion");
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -53,6 +54,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
   beforeEach(() => {
     vi.mocked(obtenerHistorial).mockReset();
     vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
   });
 
   it("una sesión nueva no le pregunta al backend por algo que no existe", () => {
@@ -183,16 +185,15 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cuánto dura sistemas?");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
+    // La salvedad de R-002 se ve sin abrir nada; la lista, en una ventana.
+    expect(await screen.findByText(/sin validar/i)).toBeVisible();
+    await usuario.click(screen.getByRole("button", { name: /fuentes de la facultad \(1\)/i }));
     const enlace = await screen.findByRole("link", { name: /Ordenanza C.S. N.º 1877/ });
     expect(enlace).toHaveAttribute("href", "http://csu.rec.utn.edu.ar/CSU/ORD/1877.pdf");
     // La distinción no es cosmética: el backend recupera lo más cercano y el
     // modelo puede haberlo ignorado por completo.
     expect(screen.getByText(/consultadas/i)).toBeInTheDocument();
     expect(screen.queryByText(/citadas/i)).not.toBeInTheDocument();
-    // `toBeVisible` y no `toBeInTheDocument`: adentro de un <details> plegado
-    // el texto está en el DOM igual, así que `toBeInTheDocument` pasa aunque
-    // nadie pueda leerlo. La salvedad de R-002 tiene que verse sin desplegar.
-    expect(screen.getByText(/provisionales/i)).toBeVisible();
   });
 
   it("un turno sin fuentes no dibuja el bloque", async () => {
@@ -325,7 +326,7 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
 
     const boton = await screen.findByRole("button", { name: "Ver tu informe" });
     await waitFor(() => expect(boton).toHaveFocus());
-    expect(screen.getByRole("status")).toHaveTextContent(/la conversación terminó/i);
+    expect(screen.getByRole("status")).toHaveTextContent(/terminó esta parte de la charla/i);
   });
 
   it("una sesión reabierta sigue dando acceso al informe del cierre anterior", async () => {
@@ -340,6 +341,62 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
     montar();
 
     expect(await screen.findByRole("button", { name: "Tu informe" })).toBeInTheDocument();
-    expect(screen.queryByText(/la conversación terminó/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/terminó esta parte/i)).not.toBeInTheDocument();
+  });
+
+  it("una sesión cortada por escalamiento no ofrece el informe ni muestra fuentes", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo(
+        { delta: "Lo que contás importa mucho." },
+        {
+          fin: true,
+          turno_usuario: 1,
+          turno_agente: 2,
+          fuentes: [{ id: "x", fuente: "Ordenanza" }],
+          escalamiento: true,
+        },
+      ),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "…"), turno(2, "agente", "Lo que contás importa.")]),
+        estado: "derivada",
+        tiene_informe: true,
+      }),
+    );
+    montar();
+
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "…");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText(/dejamos la charla sobre carreras acá/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "911" })).toHaveAttribute("href", "tel:911");
+    expect(screen.queryByRole("button", { name: /informe/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /fuentes de la facultad/i })).toBeNull();
+  });
+});
+
+describe("Conversacion · el saludo antes del primer mensaje", () => {
+  it("una conversación nueva muestra el saludo de VocaIA antes de que la persona escriba", async () => {
+    vi.mocked(obtenerEncuadre).mockResolvedValue({
+      version: "encuadre-v1",
+      texto: "Hola, soy VocaIA.",
+    });
+    window.sessionStorage.clear();
+    vi.mocked(obtenerHistorial).mockReset();
+    render(
+      <Conversacion
+        alSalir={salir}
+        alVerHistorial={verHistorial}
+        alVerPerfil={verPerfil}
+        alVerCarreras={() => {}}
+        alVerInforme={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText("Hola, soy VocaIA.")).toBeInTheDocument();
+    expect(screen.queryByText(/contame por dónde andás/i)).not.toBeInTheDocument();
+    expect(obtenerHistorial).not.toHaveBeenCalled();
   });
 });
