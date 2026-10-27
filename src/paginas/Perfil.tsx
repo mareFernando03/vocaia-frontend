@@ -172,13 +172,9 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
         </section>
       )}
 
-      {/* Chico y al pie, pero presente: dos perfiles armados con reglas
-          distintas no son comparables, y quien lea esto más adelante —el
-          asesor, la medición de concordancia— necesita saber cuáles rigieron. */}
-      <p className="text-muted-foreground text-xs">
-        Armado con la versión <span className="tabular-nums">{perfil.version_instrumento}</span> de
-        las reglas de VocaIA.
-      </p>
+      {/* La versión del instrumento no se muestra: a la persona no le dice nada
+          (prueba del piloto). Sigue guardada con el perfil, que es donde la
+          leen el asesor y la medición de concordancia. */}
     </div>
   );
 }
@@ -187,8 +183,8 @@ function Encabezado({ perfil, conRasgos }: { perfil: PerfilApi; conRasgos: numbe
   if (perfil.actualizado_en === null || conRasgos === 0) {
     return (
       <p className="text-muted-foreground text-sm">
-        Todavía no hablamos lo suficiente como para decirte nada. Conversá un rato y volvé acá: esto
-        se arma solo con lo que me vayas contando.
+        Todavía no hablamos lo suficiente como para poder decirte algo. Tu perfil aparece acá cuando
+        termina la primera parte de la charla, y se va completando con lo que me sigas contando.
       </p>
     );
   }

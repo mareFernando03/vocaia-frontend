@@ -265,10 +265,12 @@ describe("Informe", () => {
     );
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    const titulos = await screen.findAllByRole("heading", { name: /si hay algo que te frena/i });
-    expect(titulos).toHaveLength(1);
-    expect(titulos[0].closest("article")).toHaveTextContent(/Licenciatura en Administración/);
-    expect(screen.getByText(/todavía no podemos mostrar los habilitantes/i)).toBeInTheDocument();
+    // La nota va una sola vez al pie y no debajo de cada carrera (prueba del
+    // piloto): sin habilitantes que mostrar, ninguna carrera tiene la sección.
+    expect(
+      await screen.findByText(/todavía no podemos mostrar los habilitantes/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /si hay algo que te frena/i })).toBeNull();
   });
 
   it("una restricción que no conoce lleva un título genérico y no nombra el tipo", async () => {

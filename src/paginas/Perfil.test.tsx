@@ -239,7 +239,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
 
     render(<Perfil alVolver={() => {}} />);
 
-    expect(await screen.findByText(/conversá un rato y volvé/i)).toBeInTheDocument();
+    expect(await screen.findByText(/cuando termina la primera parte/i)).toBeInTheDocument();
   });
 
   it("si el backend falla, se puede reintentar sin recargar la página", async () => {
