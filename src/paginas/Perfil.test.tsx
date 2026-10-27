@@ -24,7 +24,10 @@ vi.mock("../api/notificacion", () => ({
   consultarNotificacion: vi.fn().mockResolvedValue({ vigente: false, hay_contacto: true }),
 }));
 
+vi.mock("../api/conversacion", () => ({ obtenerHistorial: vi.fn() }));
+
 const { obtenerPerfil, objetar } = await import("../api/perfil");
+const { obtenerHistorial } = await import("../api/conversacion");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");
 
@@ -368,5 +371,83 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     await screen.findByText(/marcaste que esto no te representa/i);
 
     expect(screen.queryByRole("button", { name: /no me representa/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
+  it("una cita corta trae la pregunta que contestaba", async () => {
+    const usuario = userEvent.setup();
+    const sesion = "22222222-2222-4222-8222-222222222222";
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            dimension: "R",
+            nombre: "Realista",
+            evidencias: [evidencia("Armar", { sesion_id: sesion, turno: 20 })],
+          }),
+        ],
+      }),
+    );
+    vi.mocked(obtenerHistorial).mockResolvedValue({
+      sesion_id: sesion,
+      estado: "cerrada",
+      turnos: [
+        {
+          numero: 19,
+          rol: "agente",
+          contenido:
+            "Ahí aparece algo concreto. ¿Qué hiciste vos en esa competencia, armar o programar?",
+          ocurrido_en: "2026-10-27T13:00:00Z",
+        },
+      ],
+      iniciada_en: "2026-10-27T13:00:00Z",
+      actualizada_en: "2026-10-27T13:00:00Z",
+      version_instrumento: "instrumento-v3",
+      version_prompt: "sistema-v7",
+      tiene_informe: true,
+    });
+    render(<Perfil alVolver={() => {}} />);
+
+    await usuario.click(await screen.findByText("En qué me baso"));
+
+    expect(
+      await screen.findByText(
+        /Contestabas a: «¿Qué hiciste vos en esa competencia, armar o programar\?»/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("si todo lo dijo el mismo día, la fecha no se repite debajo de cada cita", async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({ evidencias: [evidencia("me gusta programar"), evidencia("armé un robot")] }),
+        ],
+      }),
+    );
+    render(<Perfil alVolver={() => {}} />);
+
+    await screen.findByText("En qué me baso");
+    expect(screen.queryByText(/Lo dijiste el/)).not.toBeInTheDocument();
+  });
+
+  it("la advertencia del mandato no va en una dimensión que no mide un interés", async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            dimension: "C-2",
+            nombre: "Autonomía de la decisión",
+            mide_interes: false,
+            evidencias: [evidencia("Me influyó mi familia", { confianza_degradada: true })],
+          }),
+        ],
+      }),
+    );
+    render(<Perfil alVolver={() => {}} />);
+
+    await screen.findByText("En qué me baso");
+    expect(screen.queryByText(/con pinzas/)).not.toBeInTheDocument();
   });
 });

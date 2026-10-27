@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { obtenerHistorial, type Historial } from "../api/conversacion";
 import {
   objetar,
   obtenerPerfil,
@@ -143,7 +144,11 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
         <ul className="flex flex-col gap-4">
           {ordenados.map((rasgo) => (
             <li key={rasgo.dimension}>
-              <Tarjeta rasgo={rasgo} alObjetar={registrarObjecion} />
+              <Tarjeta
+                rasgo={rasgo}
+                alObjetar={registrarObjecion}
+                conFecha={variosDias(ordenados)}
+              />
             </li>
           ))}
         </ul>
@@ -213,9 +218,11 @@ function Encabezado({ perfil, conRasgos }: { perfil: PerfilApi; conRasgos: numbe
 interface PropiedadesTarjeta {
   rasgo: Rasgo;
   alObjetar: (dimension: string, motivo: string) => Promise<void>;
+  /** Si las citas del perfil son de más de un día. Si no, la fecha no dice nada. */
+  conFecha?: boolean;
 }
 
-function Tarjeta({ rasgo, alObjetar }: PropiedadesTarjeta) {
+function Tarjeta({ rasgo, alObjetar, conFecha = false }: PropiedadesTarjeta) {
   return (
     <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -235,16 +242,7 @@ function Tarjeta({ rasgo, alObjetar }: PropiedadesTarjeta) {
         {RESPALDO[rasgo.confianza] ?? RESPALDO.baja} {cuantas(rasgo.unidades)}
       </p>
 
-      {rasgo.evidencias.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer font-medium">En qué me baso</summary>
-          <ul className="mt-2 flex flex-col gap-3">
-            {rasgo.evidencias.map((evidencia) => (
-              <Cita key={evidencia.id} evidencia={evidencia} />
-            ))}
-          </ul>
-        </details>
-      )}
+      {rasgo.evidencias.length > 0 && <EnQueMeBaso rasgo={rasgo} conFecha={conFecha} />}
 
       <Objecion rasgo={rasgo} alObjetar={alObjetar} />
     </article>
@@ -352,13 +350,104 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
   );
 }
 
-function Cita({ evidencia }: { evidencia: Evidencia }) {
+/**
+ * Las citas de un rasgo. Las cortas —«Armar», «Con los de matemática»— no se
+ * entienden sin la pregunta que contestaban (segundo recorrido local), así que
+ * al abrir se busca esa pregunta en el historial de su sesión. Al abrir y no al
+ * dibujar, como la traza de cada respuesta: casi nadie despliega todas.
+ */
+function EnQueMeBaso({ rasgo, conFecha }: { rasgo: Rasgo; conFecha: boolean }) {
+  const [preguntas, setPreguntas] = useState<Map<string, string>>(new Map());
+  const [abierto, setAbierto] = useState(false);
+
+  useEffect(() => {
+    if (!abierto) return;
+    let vigente = true;
+    void preguntasDe(rasgo.evidencias.filter((e) => esCorta(e.fragmento))).then(
+      (encontradas) => vigente && setPreguntas(encontradas),
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [abierto, rasgo.evidencias]);
+
+  return (
+    <details className="text-sm" onToggle={(evento) => setAbierto(evento.currentTarget.open)}>
+      <summary className="cursor-pointer font-medium">En qué me baso</summary>
+      <ul className="mt-2 flex flex-col gap-3">
+        {rasgo.evidencias.map((evidencia) => (
+          <Cita
+            key={evidencia.id}
+            evidencia={evidencia}
+            pregunta={preguntas.get(evidencia.id)}
+            conFecha={conFecha}
+            // La advertencia del mandato es para un interés que pesó menos por
+            // eso, no para la cita que cuenta el mandato (segundo recorrido).
+            conPinzas={rasgo.mide_interes && evidencia.confianza_degradada}
+          />
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function esCorta(fragmento: string): boolean {
+  return fragmento.trim().split(/\s+/).length <= 4;
+}
+
+// El historial de cada sesión se pide una vez por carga de la página, aunque se
+// abran varias tarjetas con citas de la misma charla.
+const historiales = new Map<string, Promise<Historial | null>>();
+
+async function preguntasDe(evidencias: Evidencia[]): Promise<Map<string, string>> {
+  const encontradas = new Map<string, string>();
+  for (const evidencia of evidencias) {
+    if (!historiales.has(evidencia.sesion_id)) {
+      historiales.set(
+        evidencia.sesion_id,
+        obtenerHistorial(evidencia.sesion_id).catch(() => null),
+      );
+    }
+    const historial = await historiales.get(evidencia.sesion_id);
+    const anterior = historial?.turnos.find(
+      (turno) => turno.numero === evidencia.turno - 1 && turno.rol === "agente",
+    );
+    const pregunta = anterior && ultimaPregunta(anterior.contenido);
+    if (pregunta) encontradas.set(evidencia.id, pregunta);
+  }
+  return encontradas;
+}
+
+function ultimaPregunta(texto: string): string | null {
+  const preguntas = texto.match(/[^.!?\n]*\?/g);
+  return preguntas ? preguntas[preguntas.length - 1].trim() : null;
+}
+
+function variosDias(rasgos: Rasgo[]): boolean {
+  const dias = new Set(rasgos.flatMap((r) => r.evidencias.map((e) => e.emitida_en.slice(0, 10))));
+  return dias.size > 1;
+}
+
+function Cita({
+  evidencia,
+  pregunta,
+  conFecha,
+  conPinzas,
+}: {
+  evidencia: Evidencia;
+  pregunta?: string;
+  conFecha: boolean;
+  conPinzas: boolean;
+}) {
   return (
     <li className="border-border border-l-2 pl-3">
+      {pregunta !== undefined && (
+        <p className="text-muted-foreground text-xs">Contestabas a: «{pregunta}»</p>
+      )}
       <blockquote className="italic">«{evidencia.fragmento}»</blockquote>
-      <p className="text-muted-foreground mt-1 text-xs">
-        Lo dijiste el {fecha(evidencia.emitida_en)}.
-        {evidencia.confianza_degradada && (
+      <p className="text-muted-foreground mt-1 text-xs empty:hidden">
+        {conFecha && `Lo dijiste el ${fecha(evidencia.emitida_en)}.`}
+        {conPinzas && (
           // C-2: que un interés venga de un mandato familiar no prueba que sea
           // falso, así que la lectura no se descarta. Pero la persona tiene que
           // saber que pesó menos, o no puede discutir el criterio.
