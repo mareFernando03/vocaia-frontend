@@ -3,9 +3,10 @@
  *
  * En dos pasos, sin `window.confirm`: un diálogo del navegador no se puede
  * redactar ni probar, y lo que tiene que quedar claro es justamente qué se
- * borra. Si la baja termina, la sesión se cierra y la aplicación vuelve al
- * ingreso; si no, se dice y se puede volver a pedir, porque el backend la
- * repite sin borrar de más.
+ * borra. Termine o no, la sesión se cierra y la aplicación vuelve al ingreso,
+ * que dice qué pasó: el backend corta la credencial antes de borrar, así que un
+ * reintento desde acá no llegaría (ver `useSesion`). El error de abajo queda
+ * para un rechazo que no venga de ahí.
  */
 
 import { useEffect, useRef, useState } from "react";

@@ -16,6 +16,7 @@ export default function App() {
   const {
     sesion,
     error: errorDeIngreso,
+    aviso: avisoDeIngreso,
     ingresar,
     salir,
     darDeBaja,
@@ -89,6 +90,7 @@ export default function App() {
           <Contenido
             sesion={sesion}
             errorDeIngreso={errorDeIngreso}
+            avisoDeIngreso={avisoDeIngreso}
             alIngresar={ingresar}
             alSalir={salir}
             alDarDeBaja={darDeBaja}
@@ -106,6 +108,7 @@ export default function App() {
 interface PropiedadesContenido {
   sesion: ReturnType<typeof useSesion>["sesion"];
   errorDeIngreso: string | null;
+  avisoDeIngreso: string | null;
   alIngresar: (token: string) => void;
   alSalir: () => Promise<void>;
   alDarDeBaja: () => Promise<void>;
@@ -120,6 +123,7 @@ interface PropiedadesContenido {
 function Contenido({
   sesion,
   errorDeIngreso,
+  avisoDeIngreso,
   alIngresar,
   alSalir,
   alDarDeBaja,
@@ -129,7 +133,7 @@ function Contenido({
   }
 
   if (sesion.estado === "anonimo") {
-    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} />;
+    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} aviso={avisoDeIngreso} />;
   }
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,

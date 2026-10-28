@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
 import { AVISO } from "../contenido/aviso-ia";
+import { BAJA } from "../contenido/baja";
 import { useAvisoAceptado } from "../hooks/useAvisoAceptado";
 import { borrarToken, guardarToken } from "./sesion";
 import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
@@ -324,25 +325,55 @@ describe("useSesion · un servidor que no contesta no es una credencial rechazad
     expect(result.current.error).toBe(SIN_RESPUESTA);
   });
 
-  it("la baja descarta el token solo si terminó (HU-04)", async () => {
-    // Si falló, la persona tiene que poder volver a pedirla, y para eso
-    // necesita seguir con la sesión abierta.
+  it("después de la baja vuelve al ingreso, dice que terminó y olvida la conversación (HU-04)", async () => {
     guardarToken("token-de-prueba");
+    window.sessionStorage.setItem("vocaia:conversacion:sesion", "sesion-1");
     consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
-    darDeBajaEnBackend
-      .mockRejectedValueOnce(new ErrorDeApi(500, "La baja no terminó."))
-      .mockResolvedValueOnce({ sesiones: 2 });
+    darDeBajaEnBackend.mockResolvedValueOnce({ sesiones: 2 });
     const { result } = renderHook(() => useSesion("aviso-v2"));
     await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
 
     await act(async () => {
-      await expect(result.current.darDeBaja()).rejects.toThrow("La baja no terminó.");
+      await result.current.darDeBaja();
     });
-    expect(result.current.sesion.estado).toBe("autenticado");
+
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.aviso).toBe(BAJA.hecha);
+    expect(result.current.error).toBeNull();
+    expect(window.sessionStorage.getItem("vocaia:conversacion:sesion")).toBeNull();
+  });
+
+  it("si la baja no terminó, también cierra la sesión y dice que hay que volver a entrar", async () => {
+    // El backend cortó la credencial antes de fallar: quedarse con ella solo
+    // llevaría a un 401 al reintentar.
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+    darDeBajaEnBackend.mockRejectedValueOnce(new ErrorDeApi(500, BAJA.noTermino));
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
 
     await act(async () => {
       await result.current.darDeBaja();
     });
+
     await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
+    expect(result.current.error).toBe(BAJA.noTermino);
+    expect(result.current.aviso).toBeNull();
+  });
+
+  it("al volver a entrar se limpia el aviso de la baja", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+    darDeBajaEnBackend.mockResolvedValueOnce({ sesiones: 0 });
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    await act(async () => {
+      await result.current.darDeBaja();
+    });
+    expect(result.current.aviso).toBe(BAJA.hecha);
+
+    act(() => result.current.ingresar("otro-token"));
+
+    expect(result.current.aviso).toBeNull();
   });
 });

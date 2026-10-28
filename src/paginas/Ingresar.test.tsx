@@ -27,4 +27,11 @@ describe("Ingresar", () => {
     const alertas = screen.queryAllByRole("alert").map((alerta) => alerta.textContent ?? "");
     expect(alertas.some((texto) => texto.includes("rechazado"))).toBe(false);
   });
+
+  it("cuenta que la baja terminó como estado, no como alerta (HU-04)", () => {
+    render(<Ingresar alIngresar={() => {}} aviso="Borramos tu cuenta de VocaIA." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Borramos tu cuenta de VocaIA.");
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+  });
 });

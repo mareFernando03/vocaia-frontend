@@ -23,7 +23,9 @@ import {
   type Usuario,
 } from "../api/cliente";
 import { AVISO } from "../contenido/aviso-ia";
+import { BAJA } from "../contenido/baja";
 import { versionAceptada } from "../hooks/useAvisoAceptado";
+import { olvidarSesion } from "../hooks/useConversacion";
 import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesion";
 
 export type EstadoSesion =
@@ -60,12 +62,15 @@ export const SIN_RESPUESTA =
 export function useSesion(avisoVigenteAceptado: string | null = null): {
   sesion: EstadoSesion;
   error: string | null;
+  /** Algo que la pantalla de ingreso tiene que contar y no es un error: que la baja terminó. */
+  aviso: string | null;
   ingresar: (token: string) => void;
   salir: () => Promise<void>;
   darDeBaja: () => Promise<void>;
 } {
   const [sesion, setSesion] = useState<EstadoSesion>({ estado: "verificando" });
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const verificar = useCallback(async () => {
     if (!obtenerToken()) {
@@ -178,6 +183,7 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
     // Se limpia antes de reintentar: dejar el mensaje del intento anterior
     // mientras este se verifica diría que ya falló, y todavía no se sabe.
     setError(null);
+    setAviso(null);
     // `guardarToken` notifica y eso dispara la verificación de arriba.
     guardarToken(token);
   }, []);
@@ -193,11 +199,24 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
   }, []);
 
   const darDeBaja = useCallback(async () => {
-    // A diferencia de «salir», el token se descarta solo si la baja terminó: si
-    // falló, la persona tiene que poder volver a pedirla, y para eso la necesita.
-    await darDeBajaEnBackend();
-    borrarToken();
+    // Termine o no, la sesión local se cierra. Lo primero que hace el backend
+    // es cortar la credencial (ADR-014 §1, paso 0), así que si después falla,
+    // este token ya no sirve para volver a pedirla: hay que entrar de nuevo, y
+    // el ingreso lo dice. La conversación recordada en la pestaña se olvida
+    // acá y no se deja a `useConversacion`, que desde el perfil no está montado.
+    //
+    // Los mensajes se fijan antes de borrar el token: borrarlo vuelve al
+    // ingreso, y el ingreso tiene que encontrarlos.
+    try {
+      await darDeBajaEnBackend();
+      setAviso(BAJA.hecha);
+    } catch {
+      setError(BAJA.noTermino);
+    } finally {
+      olvidarSesion();
+      borrarToken();
+    }
   }, []);
 
-  return { sesion, error, ingresar, salir, darDeBaja };
+  return { sesion, error, aviso, ingresar, salir, darDeBaja };
 }
