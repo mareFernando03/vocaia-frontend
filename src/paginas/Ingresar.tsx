@@ -22,9 +22,15 @@ interface Propiedades {
    * pantalla intacta y no tiene forma de saber que algo falló (VOCAIA-131).
    */
   error?: string | null;
+  /** Lo que hay que contarle y no es un error: que su baja terminó (HU-04). */
+  aviso?: string | null;
 }
 
-export default function Ingresar({ alIngresar, error: errorDeIngreso = null }: Propiedades) {
+export default function Ingresar({
+  alIngresar,
+  error: errorDeIngreso = null,
+  aviso = null,
+}: Propiedades) {
   const contenedorBoton = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +89,12 @@ export default function Ingresar({ alIngresar, error: errorDeIngreso = null }: P
       </p>
 
       <div ref={contenedorBoton} className="mt-8 flex justify-center" />
+
+      {aviso && (
+        <p role="status" className="mt-6 text-sm">
+          {aviso}
+        </p>
+      )}
 
       {/* El de la verificación va primero: si los dos aparecen, el que le
           importa a quien acaba de apretar el botón es por qué lo rechazaron,

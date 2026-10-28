@@ -13,7 +13,14 @@ export default function App() {
   const { aceptado, version, aceptar } = useAvisoAceptado();
   // Solo la versión vigente: mientras la puerta esté abierta no hay nada que
   // registrar, aunque quede guardada una versión anterior.
-  const { sesion, error: errorDeIngreso, ingresar, salir } = useSesion(aceptado ? version : null);
+  const {
+    sesion,
+    error: errorDeIngreso,
+    aviso: avisoDeIngreso,
+    ingresar,
+    salir,
+    darDeBaja,
+  } = useSesion(aceptado ? version : null);
   const [releyendo, setReleyendo] = useState(false);
   const hayDialogoAbierto = !aceptado || releyendo;
 
@@ -83,8 +90,10 @@ export default function App() {
           <Contenido
             sesion={sesion}
             errorDeIngreso={errorDeIngreso}
+            avisoDeIngreso={avisoDeIngreso}
             alIngresar={ingresar}
             alSalir={salir}
+            alDarDeBaja={darDeBaja}
           />
         </main>
       </div>
@@ -99,8 +108,10 @@ export default function App() {
 interface PropiedadesContenido {
   sesion: ReturnType<typeof useSesion>["sesion"];
   errorDeIngreso: string | null;
+  avisoDeIngreso: string | null;
   alIngresar: (token: string) => void;
   alSalir: () => Promise<void>;
+  alDarDeBaja: () => Promise<void>;
 }
 
 /**
@@ -109,16 +120,23 @@ interface PropiedadesContenido {
  * Vive dentro del armazón de arriba y no lo reemplaza: la franja de
  * divulgación tiene que quedar a la vista en los tres estados.
  */
-function Contenido({ sesion, errorDeIngreso, alIngresar, alSalir }: PropiedadesContenido) {
+function Contenido({
+  sesion,
+  errorDeIngreso,
+  avisoDeIngreso,
+  alIngresar,
+  alSalir,
+  alDarDeBaja,
+}: PropiedadesContenido) {
   if (sesion.estado === "verificando") {
     return <p className="text-muted-foreground text-sm">Verificando la sesión…</p>;
   }
 
   if (sesion.estado === "anonimo") {
-    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} />;
+    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} aviso={avisoDeIngreso} />;
   }
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
   // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
-  return <Autenticado alSalir={alSalir} />;
+  return <Autenticado alSalir={alSalir} alDarDeBaja={alDarDeBaja} />;
 }

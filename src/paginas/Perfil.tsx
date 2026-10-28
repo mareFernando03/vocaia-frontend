@@ -29,11 +29,13 @@ import {
   type Perfil as PerfilApi,
   type Rasgo,
 } from "../api/perfil";
+import { BajaDeLaCuenta } from "../componentes/BajaDeLaCuenta";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { comoTeCae } from "../contenido/como-te-cae";
 
 interface Propiedades {
   alVolver: () => void;
+  alDarDeBaja: () => Promise<void>;
 }
 
 /**
@@ -41,16 +43,17 @@ interface Propiedades {
  * y va al lado del perfil y no adentro: si el perfil no carga, igual tiene que
  * poder consultarlo y revocarlo.
  */
-export default function Perfil(propiedades: Propiedades) {
+export default function Perfil({ alVolver, alDarDeBaja }: Propiedades) {
   return (
     <div className="flex flex-col gap-8">
-      <ContenidoPerfil {...propiedades} />
+      <ContenidoPerfil alVolver={alVolver} />
       <ConsentimientoNotificacion />
+      <BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />
     </div>
   );
 }
 
-function ContenidoPerfil({ alVolver }: Propiedades) {
+function ContenidoPerfil({ alVolver }: { alVolver: () => void }) {
   const [perfil, setPerfil] = useState<PerfilApi | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
