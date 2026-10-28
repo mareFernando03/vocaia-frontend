@@ -33,6 +33,7 @@ import {
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { comoTeCae } from "../contenido/como-te-cae";
 import { descripcionParaLaPersona } from "../contenido/dimensiones";
+import { enLaConversacion, useInicios } from "../hooks/useConversaciones";
 
 interface Propiedades {
   alVolver: () => void;
@@ -89,6 +90,10 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
     await objetar(dimension, motivo);
     setPerfil(await obtenerPerfil());
   }, []);
+
+  // Antes de los retornos tempranos: es un hook. Pide la lista sólo si el
+  // perfil junta más de una conversación.
+  const inicios = useInicios((perfil?.sesiones ?? []).length > 1);
 
   if (cargando) {
     return (
@@ -148,6 +153,7 @@ function ContenidoPerfil({ alVolver }: Propiedades) {
                 rasgo={rasgo}
                 alObjetar={registrarObjecion}
                 conFecha={variosDias(ordenados)}
+                inicios={inicios}
               />
             </li>
           ))}
@@ -220,9 +226,11 @@ interface PropiedadesTarjeta {
   alObjetar: (dimension: string, motivo: string) => Promise<void>;
   /** Si las citas del perfil son de más de un día. Si no, la fecha no dice nada. */
   conFecha?: boolean;
+  /** Cómo empezó cada conversación, cuando el perfil junta más de una. */
+  inicios?: Map<string, string | null>;
 }
 
-function Tarjeta({ rasgo, alObjetar, conFecha = false }: PropiedadesTarjeta) {
+function Tarjeta({ rasgo, alObjetar, conFecha = false, inicios }: PropiedadesTarjeta) {
   return (
     <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -242,7 +250,9 @@ function Tarjeta({ rasgo, alObjetar, conFecha = false }: PropiedadesTarjeta) {
         {RESPALDO[rasgo.confianza] ?? RESPALDO.baja} {cuantas(rasgo.unidades)}
       </p>
 
-      {rasgo.evidencias.length > 0 && <EnQueMeBaso rasgo={rasgo} conFecha={conFecha} />}
+      {rasgo.evidencias.length > 0 && (
+        <EnQueMeBaso rasgo={rasgo} conFecha={conFecha} inicios={inicios} />
+      )}
 
       <Objecion rasgo={rasgo} alObjetar={alObjetar} />
     </article>
@@ -356,7 +366,15 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
  * al abrir se busca esa pregunta en el historial de su sesión. Al abrir y no al
  * dibujar, como la traza de cada respuesta: casi nadie despliega todas.
  */
-function EnQueMeBaso({ rasgo, conFecha }: { rasgo: Rasgo; conFecha: boolean }) {
+function EnQueMeBaso({
+  rasgo,
+  conFecha,
+  inicios,
+}: {
+  rasgo: Rasgo;
+  conFecha: boolean;
+  inicios?: Map<string, string | null>;
+}) {
   const [preguntas, setPreguntas] = useState<Map<string, string>>(new Map());
   const [abierto, setAbierto] = useState(false);
 
@@ -381,6 +399,7 @@ function EnQueMeBaso({ rasgo, conFecha }: { rasgo: Rasgo; conFecha: boolean }) {
             evidencia={evidencia}
             pregunta={preguntas.get(evidencia.id)}
             conFecha={conFecha}
+            conversacion={inicios && enLaConversacion(inicios.get(evidencia.sesion_id))}
             // La advertencia del mandato es para un interés que pesó menos por
             // eso, no para la cita que cuenta el mandato (segundo recorrido).
             conPinzas={rasgo.mide_interes && evidencia.confianza_degradada}
@@ -433,11 +452,14 @@ function Cita({
   pregunta,
   conFecha,
   conPinzas,
+  conversacion,
 }: {
   evidencia: Evidencia;
   pregunta?: string;
   conFecha: boolean;
   conPinzas: boolean;
+  /** De qué conversación salió, cuando el perfil junta más de una. */
+  conversacion?: string | null;
 }) {
   return (
     <li className="border-border border-l-2 pl-3">
@@ -446,6 +468,7 @@ function Cita({
       )}
       <blockquote className="italic">«{evidencia.fragmento}»</blockquote>
       <p className="text-muted-foreground mt-1 text-xs empty:hidden">
+        {conversacion && `${conversacion} `}
         {conFecha && `Lo dijiste el ${fecha(evidencia.emitida_en)}.`}
         {conPinzas && (
           // C-2: que un interés venga de un mandato familiar no prueba que sea

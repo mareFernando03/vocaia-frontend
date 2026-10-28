@@ -37,6 +37,7 @@ import {
 } from "../api/informe";
 import { Referencia } from "../componentes/Referencia";
 import { comoTeCae } from "../contenido/como-te-cae";
+import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 
 interface Propiedades {
   sesionId: string;
@@ -167,6 +168,10 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   const derivacion = informe.recomendaciones.find(
     (carrera) => carrera.derivacion != null,
   )?.derivacion;
+  const deOtra = informe.evidencia.some((d) =>
+    d.citas.some((cita) => cita.sesion_id !== informe.sesion_id),
+  );
+  const inicios = useInicios(deOtra);
   const notaHabilitantes = informe.recomendaciones.find(
     (carrera) => carrera.habilitantes?.nota != null,
   )?.habilitantes?.nota;
@@ -219,7 +224,12 @@ function Contenido({ informe }: { informe: DatosInforme }) {
             donde sale todo lo anterior.
           </p>
           {informe.evidencia.map((dimension) => (
-            <Dimension key={dimension.dimension} dimension={dimension} />
+            <Dimension
+              key={dimension.dimension}
+              dimension={dimension}
+              sesionDelInforme={informe.sesion_id}
+              inicios={inicios}
+            />
           ))}
         </section>
       )}
@@ -440,7 +450,15 @@ function queFaltaConfirmar(habilitante: Habilitante): string {
   return "La fuente no dice si alcanza a esta carrera. Consultalo antes de contar con él.";
 }
 
-function Dimension({ dimension }: { dimension: EvidenciaInforme }) {
+function Dimension({
+  dimension,
+  sesionDelInforme,
+  inicios,
+}: {
+  dimension: EvidenciaInforme;
+  sesionDelInforme: string;
+  inicios: Map<string, string | null>;
+}) {
   return (
     <div className="border-border flex break-inside-avoid flex-col gap-2 border-b pb-3 text-sm">
       <h3 className="flex flex-wrap items-baseline justify-between gap-2 font-medium">
@@ -463,6 +481,13 @@ function Dimension({ dimension }: { dimension: EvidenciaInforme }) {
                 arreglar cosas» debajo de una dimensión se leería como afinidad. */}
             {cita.valencia < 0 && (
               <p className="text-muted-foreground text-xs">Lo dijiste como algo que no te gusta.</p>
+            )}
+            {/* El perfil junta todas las conversaciones; sin esto, el informe de
+                una charla mostraba citas de otra como si fueran de esta. */}
+            {cita.sesion_id !== sesionDelInforme && (
+              <p className="text-muted-foreground text-xs">
+                {enOtraConversacion(inicios.get(cita.sesion_id))}
+              </p>
             )}
           </li>
         ))}

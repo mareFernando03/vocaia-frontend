@@ -24,10 +24,10 @@ vi.mock("../api/notificacion", () => ({
   consultarNotificacion: vi.fn().mockResolvedValue({ vigente: false, hay_contacto: true }),
 }));
 
-vi.mock("../api/conversacion", () => ({ obtenerHistorial: vi.fn() }));
+vi.mock("../api/conversacion", () => ({ obtenerHistorial: vi.fn(), listarSesiones: vi.fn() }));
 
 const { obtenerPerfil, objetar } = await import("../api/perfil");
-const { obtenerHistorial } = await import("../api/conversacion");
+const { obtenerHistorial, listarSesiones } = await import("../api/conversacion");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");
 
@@ -449,5 +449,34 @@ describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
 
     await screen.findByText("En qué me baso");
     expect(screen.queryByText(/con pinzas/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Perfil · de qué conversación sale cada cita", () => {
+  it("si el perfil junta más de una conversación, cada cita dice de cuál", async () => {
+    const usuario = userEvent.setup();
+    const [una, otra] = [
+      "33333333-3333-4333-8333-333333333333",
+      "44444444-4444-4444-8444-444444444444",
+    ];
+    vi.mocked(listarSesiones).mockResolvedValue([
+      { sesion_id: una, vista_previa: "Estoy terminando el secundario" },
+      { sesion_id: otra, vista_previa: "Estoy en primer año" },
+    ] as never);
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        sesiones: [una, otra],
+        rasgos: [
+          rasgo({ evidencias: [evidencia("me gusta armar plaquetas", { sesion_id: otra })] }),
+        ],
+      }),
+    );
+    render(<Perfil alVolver={() => {}} />);
+
+    await usuario.click(await screen.findByText("En qué me baso"));
+
+    expect(
+      await screen.findByText(/En la conversación que empezaste con «Estoy en primer año»/),
+    ).toBeInTheDocument();
   });
 });

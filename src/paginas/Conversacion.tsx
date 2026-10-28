@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { obtenerEncuadre, type Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
@@ -44,6 +45,7 @@ export default function Conversacion({
     enviar,
     terminar,
     reintentar,
+    errorAlTerminar,
   } = useConversacion();
   const [borrador, setBorrador] = useState("");
   const [encuadre, setEncuadre] = useState<string | null>(null);
@@ -65,6 +67,10 @@ export default function Conversacion({
     finDeLista.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [turnos, enCurso]);
 
+  async function terminarYVer() {
+    if (await terminar()) alVerInforme(sesionId);
+  }
+
   async function mandar() {
     const texto = borrador;
     setBorrador("");
@@ -72,6 +78,10 @@ export default function Conversacion({
   }
 
   const vacia = turnos.length === 0 && enCurso === null;
+  // El saludo se ve mientras no haya turnos guardados, también mientras se
+  // contesta el primer mensaje: con `vacia` desaparecía al enviar y volvía
+  // arriba al terminar (revisión del #38).
+  const sinTurnos = turnos.length === 0;
   // Escalada: la sesión se cortó por una señal de riesgo. No se le ofrece el
   // informe ni se le muestran fuentes a alguien a quien se acaba de contener.
   const derivada = estado === "derivada";
@@ -82,12 +92,12 @@ export default function Conversacion({
   // no llega, queda la invitación de siempre: no es motivo para un error.
   const sinEncuadre = encuadre === null;
   useEffect(() => {
-    if (!vacia || cargando || !sinEncuadre) return;
+    if (!sinTurnos || cargando || !sinEncuadre) return;
     obtenerEncuadre().then(
       (recibido) => setEncuadre(recibido.texto),
       () => undefined,
     );
-  }, [vacia, cargando, sinEncuadre]);
+  }, [sinTurnos, cargando, sinEncuadre]);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -172,7 +182,7 @@ export default function Conversacion({
           <li className="text-muted-foreground text-sm">Recuperando la conversación…</li>
         )}
 
-        {!cargando && vacia && encuadre !== null && <Burbuja rol="agente" texto={encuadre} />}
+        {!cargando && sinTurnos && encuadre !== null && <Burbuja rol="agente" texto={encuadre} />}
 
         {!cargando && vacia && encuadre === null && (
           <li className="text-muted-foreground text-sm">
@@ -222,17 +232,24 @@ export default function Conversacion({
             <p>
               Dejamos la charla sobre carreras acá. Lo que importa ahora es que hables con alguien:
               los teléfonos están en la última respuesta, y si estás en peligro ahora mismo, llamá
-              al <a href="tel:911">911</a>.
+              al{" "}
+              {/* El preflight de Tailwind le saca color y subrayado a un enlace:
+                  sin clases no se veía como tal, y es el único dato de seguridad
+                  que garantiza la pantalla. */}
+              <a
+                href="tel:911"
+                className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
+              >
+                911
+              </a>
+              .
             </p>
             <p>Si más adelante querés retomar, podés volver a escribir acá.</p>
           </div>
         )}
         {estado === "cerrada" && !enviando && (
           <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
-            <p>
-              Terminó esta parte de la charla y tu informe ya está. Si querés, podés seguir
-              escribiendo.
-            </p>
+            <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
             <button
               ref={botonInforme}
               type="button"
@@ -250,7 +267,7 @@ export default function Conversacion({
           <span>{error}</span>
           <button
             type="button"
-            onClick={reintentar}
+            onClick={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
             className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
           >
             Reintentar
@@ -302,9 +319,9 @@ export default function Conversacion({
         <button
           type="button"
           onClick={() => {
-            void terminar().then((cerro) => cerro && alVerInforme(sesionId));
+            void terminarYVer();
           }}
-          className="text-primary self-start text-sm underline underline-offset-2"
+          className="text-primary inline-flex min-h-11 items-center self-start text-sm underline underline-offset-2"
         >
           Terminar acá y ver mi informe
         </button>
@@ -324,7 +341,7 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
         <button
           type="button"
           onClick={() => setAbierta(true)}
-          className="text-primary underline underline-offset-2"
+          className="text-primary inline-flex min-h-11 items-center underline underline-offset-2"
         >
           Fuentes de la Facultad ({fuentes.length})
         </button>{" "}
@@ -378,7 +395,9 @@ function Ventana({
       else actual.removeAttribute("open");
     }
   }, [abierta]);
-  return (
+  // En un portal: la burbuja vive dentro de la región `aria-live` de la
+  // conversación, y la ventana adentro se anunciaba como parte de la respuesta.
+  return createPortal(
     <dialog
       ref={dialogo}
       aria-label={titulo}
@@ -396,7 +415,8 @@ function Ventana({
         </button>
       </div>
       {abierta && children}
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
 
@@ -443,7 +463,7 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
               onClick={() => setAbierta(true)}
               aria-label="¿De dónde salió esto?"
               title="¿De dónde salió esto?"
-              className="text-muted-foreground hover:text-primary inline-flex size-8 items-center justify-center rounded-full"
+              className="text-muted-foreground hover:text-primary inline-flex size-11 items-center justify-center rounded-full"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />

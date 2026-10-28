@@ -434,3 +434,73 @@ describe("Conversacion · el saludo antes del primer mensaje", () => {
     expect(obtenerHistorial).not.toHaveBeenCalled();
   });
 });
+
+describe("Conversacion · revisión del #38", () => {
+  it("el saludo sigue a la vista mientras se contesta el primer mensaje", async () => {
+    const usuario = userEvent.setup();
+    window.sessionStorage.clear();
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(obtenerEncuadre).mockResolvedValue({
+      version: "encuadre-v1",
+      texto: "Hola, soy VocaIA.",
+    });
+    let soltar: () => void = () => {};
+    const pausa = new Promise<void>((resolver) => (soltar = resolver));
+    vi.mocked(enviarMensaje).mockReturnValue(
+      (async function* () {
+        yield { delta: "Contame." };
+        await pausa;
+        yield { fin: true as const, turno_usuario: 2, turno_agente: 3, fuentes: [] };
+      })(),
+    );
+    vi.mocked(obtenerHistorial).mockResolvedValue(null);
+    render(
+      <Conversacion
+        alSalir={salir}
+        alVerHistorial={verHistorial}
+        alVerPerfil={verPerfil}
+        alVerCarreras={() => {}}
+        alVerInforme={() => {}}
+      />,
+    );
+    await screen.findByText("Hola, soy VocaIA.");
+
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Contame.")).toBeInTheDocument();
+    expect(screen.getByText("Hola, soy VocaIA.")).toBeInTheDocument();
+    soltar();
+  });
+
+  it("si «Terminar» falla, «Reintentar» vuelve a terminar", async () => {
+    const usuario = userEvent.setup();
+    const sesionId = "55555555-5555-4555-8555-555555555555";
+    window.sessionStorage.setItem(CLAVE, sesionId);
+    vi.mocked(obtenerEncuadre).mockRejectedValue(new Error("sin encuadre"));
+    vi.mocked(obtenerHistorial).mockResolvedValue({
+      ...historial(sesionId, [turno(1, "usuario", "Hola"), turno(2, "agente", "Contame.")]),
+      estado: "abierta",
+    });
+    vi.mocked(terminarConversacion)
+      .mockReset()
+      .mockRejectedValueOnce(new Error("se cortó"))
+      .mockResolvedValueOnce({ ...historial(sesionId, []), estado: "cerrada" });
+    const alVerInforme = vi.fn();
+    render(
+      <Conversacion
+        alSalir={salir}
+        alVerHistorial={verHistorial}
+        alVerPerfil={verPerfil}
+        alVerCarreras={() => {}}
+        alVerInforme={alVerInforme}
+      />,
+    );
+
+    await usuario.click(await screen.findByRole("button", { name: /terminar acá/i }));
+    await usuario.click(await screen.findByRole("button", { name: "Reintentar" }));
+
+    await waitFor(() => expect(alVerInforme).toHaveBeenCalledWith(sesionId));
+    expect(terminarConversacion).toHaveBeenCalledTimes(2);
+  });
+});

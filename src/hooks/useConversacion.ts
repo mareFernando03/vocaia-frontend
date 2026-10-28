@@ -114,6 +114,8 @@ export interface Conversacion {
   enviar: (contenido: string) => Promise<void>;
   /** Cierra esta parte a pedido de la persona. Devuelve si cerró. */
   terminar: () => Promise<boolean>;
+  /** Si el error a la vista es de «Terminar»: reintentar es volver a terminar. */
+  errorAlTerminar: boolean;
   reintentar: () => void;
 }
 
@@ -216,8 +218,10 @@ export function useConversacion(): Conversacion {
     [sesion.id, enviando, traer],
   );
 
+  const [errorAlTerminar, setErrorAlTerminar] = useState(false);
   const terminar = useCallback(async () => {
     setError(null);
+    setErrorAlTerminar(false);
     try {
       const historial = await terminarConversacion(sesion.id);
       setEstado(historial.estado);
@@ -225,6 +229,7 @@ export function useConversacion(): Conversacion {
       return true;
     } catch (fallo) {
       setError(describir(fallo));
+      setErrorAlTerminar(true);
       return false;
     }
   }, [sesion.id]);
@@ -244,6 +249,7 @@ export function useConversacion(): Conversacion {
     tieneInforme,
     enviar,
     terminar,
+    errorAlTerminar,
     reintentar: () => void cargar(),
   };
 }
