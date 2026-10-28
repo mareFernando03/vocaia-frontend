@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cerrarSesionEnBackend,
   consultarUsuario,
+  darDeBajaEnBackend,
   ErrorDeApi,
   registrarConsentimiento,
   type Usuario,
@@ -61,6 +62,7 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
   error: string | null;
   ingresar: (token: string) => void;
   salir: () => Promise<void>;
+  darDeBaja: () => Promise<void>;
 } {
   const [sesion, setSesion] = useState<EstadoSesion>({ estado: "verificando" });
   const [error, setError] = useState<string | null>(null);
@@ -190,5 +192,12 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
     }
   }, []);
 
-  return { sesion, error, ingresar, salir };
+  const darDeBaja = useCallback(async () => {
+    // A diferencia de «salir», el token se descarta solo si la baja terminó: si
+    // falló, la persona tiene que poder volver a pedirla, y para eso la necesita.
+    await darDeBajaEnBackend();
+    borrarToken();
+  }, []);
+
+  return { sesion, error, ingresar, salir, darDeBaja };
 }

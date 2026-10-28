@@ -214,6 +214,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/identidad/baja": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Dar de baja la cuenta y borrar todo lo que se guardó
+     * @description Borra todo lo de la persona, en el momento (HU-04, ADR-014 §1).
+     *
+     *     Las conversaciones, el perfil, las objeciones, la identidad, los
+     *     consentimientos y los avisos al consejero guardados. Si la persona vuelve a
+     *     entrar con la misma cuenta, empieza de cero.
+     *
+     *     **Si un paso falla, se vuelve a pedir y termina**: todos se pueden repetir.
+     *     El registro anota la baja con cuántas sesiones borró y nada de la persona.
+     */
+    post: operations["dar_de_baja_api_identidad_baja_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/identidad/consentimiento": {
     parameters: {
       query?: never;
@@ -313,8 +340,7 @@ export interface paths {
      *     VocaIA. El frontend igualmente tiene que descartarlo.
      *
      *     Después de esto la persona vuelve a entrar normalmente: el ingreso le trae
-     *     un token nuevo, posterior al corte. Dar de baja la cuenta es otra cosa y
-     *     llega con HU-04.
+     *     un token nuevo, posterior al corte. Dar de baja la cuenta es `/baja`.
      */
     post: operations["salir_api_identidad_salir_post"];
     delete?: never;
@@ -521,6 +547,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** BajaSalida */
+    BajaSalida: {
+      /**
+       * Sesiones
+       * @description Cuántas conversaciones se borraron.
+       */
+      sesiones: number;
+    };
     /** CarreraInformeSalida */
     CarreraInformeSalida: {
       /**
@@ -1769,6 +1803,40 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  dar_de_baja_api_identidad_baja_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BajaSalida"];
+        };
+      };
+      /** @description Credencial ausente, vencida o inválida. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description La baja no terminó y hay que volver a pedirla. */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

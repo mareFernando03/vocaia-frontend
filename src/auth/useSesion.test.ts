@@ -16,17 +16,20 @@ import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
  * pantalla lo muestre, porque termina en «anónimo» y parece un token vencido.
  */
 
-const { consultarUsuario, registrarConsentimiento, cerrarSesionEnBackend } = vi.hoisted(() => ({
-  consultarUsuario: vi.fn(),
-  registrarConsentimiento: vi.fn(),
-  cerrarSesionEnBackend: vi.fn(),
-}));
+const { consultarUsuario, registrarConsentimiento, cerrarSesionEnBackend, darDeBajaEnBackend } =
+  vi.hoisted(() => ({
+    consultarUsuario: vi.fn(),
+    registrarConsentimiento: vi.fn(),
+    cerrarSesionEnBackend: vi.fn(),
+    darDeBajaEnBackend: vi.fn(),
+  }));
 
 vi.mock("../api/cliente", async (importar) => ({
   ...(await importar<typeof import("../api/cliente")>()),
   consultarUsuario,
   registrarConsentimiento,
   cerrarSesionEnBackend,
+  darDeBajaEnBackend,
 }));
 
 const USUARIO = { identificador_opaco: "opaco-1", proveedor: "google" };
@@ -319,5 +322,27 @@ describe("useSesion · un servidor que no contesta no es una credencial rechazad
 
     await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
     expect(result.current.error).toBe(SIN_RESPUESTA);
+  });
+
+  it("la baja descarta el token solo si terminó (HU-04)", async () => {
+    // Si falló, la persona tiene que poder volver a pedirla, y para eso
+    // necesita seguir con la sesión abierta.
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue({ ...USUARIO, consentimiento_version: "aviso-v2" });
+    darDeBajaEnBackend
+      .mockRejectedValueOnce(new ErrorDeApi(500, "La baja no terminó."))
+      .mockResolvedValueOnce({ sesiones: 2 });
+    const { result } = renderHook(() => useSesion("aviso-v2"));
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+
+    await act(async () => {
+      await expect(result.current.darDeBaja()).rejects.toThrow("La baja no terminó.");
+    });
+    expect(result.current.sesion.estado).toBe("autenticado");
+
+    await act(async () => {
+      await result.current.darDeBaja();
+    });
+    await waitFor(() => expect(result.current.sesion.estado).toBe("anonimo"));
   });
 });
