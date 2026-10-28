@@ -14,7 +14,7 @@ export const BAJA = {
   respaldo:
     "La copia de seguridad se renueva cada semana, así que ahí puede quedar hasta 7 días más.",
   boton: "Borrar mi cuenta",
-  pregunta: "¿Seguro? Se borra lo que contaste en VocaIA y no se puede deshacer.",
+  pregunta: "¿Lo confirmás? Se borra lo que contaste en VocaIA y no se puede deshacer.",
   confirmar: "Sí, borrar mi cuenta",
   cancelar: "Cancelar",
   borrando: "Borrando…",

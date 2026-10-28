@@ -231,7 +231,11 @@ export interface paths {
      *     consentimientos y los avisos al consejero guardados. Si la persona vuelve a
      *     entrar con la misma cuenta, empieza de cero.
      *
-     *     **Si un paso falla, se vuelve a pedir y termina**: todos se pueden repetir.
+     *     **Si falla antes de borrar la identidad, se vuelve a pedir y termina**:
+     *     todos los pasos se pueden repetir. Pero no con la misma credencial, porque el
+     *     paso 0 la cortó: hay que volver a entrar, y por eso el mensaje lo dice. Si
+     *     falla en el paso 3, la identidad ya no está y volver a entrar crea otra;
+     *     lo que el paso 3 no barrió queda sin nadie que lo pida (ver el módulo).
      *     El registro anota la baja con cuántas sesiones borró y nada de la persona.
      */
     post: operations["dar_de_baja_api_identidad_baja_post"];
@@ -1831,7 +1835,14 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description La baja no terminó y hay que volver a pedirla. */
+      /** @description Falta registrar el consentimiento informado. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description La baja no terminó: hay que volver a entrar y pedirla de nuevo. */
       500: {
         headers: {
           [name: string]: unknown;

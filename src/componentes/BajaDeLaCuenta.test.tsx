@@ -1,5 +1,6 @@
 /**
- * La baja de la cuenta (HU-04, S6-03): dos pasos, y si falla se puede repetir.
+ * La baja de la cuenta (HU-04, S6-03): dos pasos, y si falla se vuelve a entrar
+ * y se pide de nuevo.
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -44,20 +45,15 @@ describe("BajaDeLaCuenta · HU-04", () => {
     expect(screen.getByRole("button", { name: BAJA.boton })).toHaveFocus();
   });
 
-  it("si la baja no termina, lo dice y se puede volver a pedir", async () => {
+  it("si alDarDeBaja rechaza, lo dice", async () => {
     const usuario = userEvent.setup();
     const detalle = "La baja no terminó. Probá de nuevo: lo que ya se borró no vuelve.";
-    const alDarDeBaja = vi
-      .fn()
-      .mockRejectedValueOnce(new ErrorDeApi(500, detalle))
-      .mockResolvedValueOnce(undefined);
+    const alDarDeBaja = vi.fn().mockRejectedValueOnce(new ErrorDeApi(500, detalle));
     render(<BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />);
 
     await usuario.click(screen.getByRole("button", { name: BAJA.boton }));
     await usuario.click(screen.getByRole("button", { name: BAJA.confirmar }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(detalle);
-    await usuario.click(screen.getByRole("button", { name: BAJA.confirmar }));
-    expect(alDarDeBaja).toHaveBeenCalledTimes(2);
   });
 });

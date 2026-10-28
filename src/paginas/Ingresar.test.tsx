@@ -32,6 +32,9 @@ describe("Ingresar", () => {
     render(<Ingresar alIngresar={() => {}} aviso="Borramos tu cuenta de VocaIA." />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Borramos tu cuenta de VocaIA.");
-    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    // Sin el identificador de Google —como en CI— la pantalla suma su propia
+    // alerta de configuración: lo que se prueba es que la baja no sea una.
+    const alertas = screen.queryAllByRole("alert").map((alerta) => alerta.textContent ?? "");
+    expect(alertas.some((texto) => texto.includes("Borramos"))).toBe(false);
   });
 });
