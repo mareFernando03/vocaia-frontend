@@ -87,3 +87,24 @@ jobs:
         # acá sin necesidad de un `tsc --noEmit` aparte que compilaría dos
         # veces lo mismo.
         run: npm run build
+
+  desplegar:
+    # Render no se entera solo de los cambios de este repositorio: su aplicación
+    # de GitHub está en la cuenta de quien tiene el servicio, no en esta. El
+    # Deploy Hook de `vocaia-web` le avisa, y solo después de que lo de arriba
+    # pasó: a `main` no se publica nada sin verificar (VOCAIA-179).
+    name: Desplegar en Render
+    needs: verificacion
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al Deploy Hook
+        env:
+          # Es secreto: con la dirección, cualquiera dispara un despliegue.
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::warning::Falta el secret RENDER_DEPLOY_HOOK: no se desplegó."
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK" > /dev/null
