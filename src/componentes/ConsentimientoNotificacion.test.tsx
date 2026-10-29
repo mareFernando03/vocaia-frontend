@@ -258,6 +258,22 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(screen.queryByText(NOTIFICACION.versionAnterior)).not.toBeInTheDocument();
   });
 
+  it("con un texto anterior y sin correo no pide volver a autorizar: solo dice por qué no puede", async () => {
+    responder({
+      "GET /api/identidad/notificacion": {
+        ...OTORGADO,
+        version: "notificacion-v1",
+        hay_contacto: false,
+      },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.sinContacto)).toBeInTheDocument();
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByText(NOTIFICACION.versionAnterior)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("si el correo dejó de estar entre la consulta y el clic, vuelve a preguntar", async () => {
     responder({
       "GET /api/identidad/notificacion": [NO_OTORGADO, { ...NO_OTORGADO, hay_contacto: false }],

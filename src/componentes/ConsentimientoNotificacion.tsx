@@ -84,8 +84,10 @@ export function ConsentimientoNotificacion() {
   // correo tampoco: el backend lo rechazaría, y revocar sigue disponible.
   // Vigente sobre un texto anterior no cuenta: el backend no avisa con él, y
   // mostrarlo como autorizado le diría a la persona algo que no pasa.
+  // Sin correo no se le pide volver a autorizar: no podría, y la línea de abajo
+  // ya dice por qué.
   const autorizado = estado !== null && estado.vigente && estado.version === NOTIFICACION.version;
-  const deOtroTexto = estado !== null && estado.vigente && !autorizado;
+  const deOtroTexto = estado !== null && estado.vigente && !autorizado && estado.hay_contacto;
   const accion =
     estado === null
       ? error !== null && { texto: "Reintentar", pedido: consultarNotificacion, clases: SECUNDARIO }
