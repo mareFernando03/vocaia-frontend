@@ -8,6 +8,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { PILOTO } from "../contenido/piloto";
+
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 const URL_SCRIPT = "https://accounts.google.com/gsi/client";
 
@@ -99,10 +101,21 @@ export default function Ingresar({
       {/* El de la verificación va primero: si los dos aparecen, el que le
           importa a quien acaba de apretar el botón es por qué lo rechazaron,
           no que el script tarde. */}
-      {errorDeIngreso && (
-        <p role="alert" className="text-destructive mt-6 text-sm">
-          {errorDeIngreso}
+      {errorDeIngreso === PILOTO.noHabilitado ? (
+        // No es un error que se arregle reintentando: va con el camino para anotarse.
+        <p role="alert" className="mt-6 text-sm">
+          {errorDeIngreso}{" "}
+          <a href={PILOTO.inscripcion} className="text-primary underline">
+            {PILOTO.anotarse}
+          </a>
+          .
         </p>
+      ) : (
+        errorDeIngreso && (
+          <p role="alert" className="text-destructive mt-6 text-sm">
+            {errorDeIngreso}
+          </p>
+        )
       )}
 
       {error && (

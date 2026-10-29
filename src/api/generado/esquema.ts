@@ -1880,6 +1880,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Lista blanca del piloto: el correo no está anotado. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {

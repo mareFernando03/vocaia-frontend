@@ -37,11 +37,20 @@ export class ErrorDeApi extends Error {
      * armando dice en cuánto volver a pedirlo.
      */
     readonly reintentarEn: number | null = null,
+    /**
+     * `X-Motivo`, si vino. Separa dos 403 que piden cosas distintas: el del
+     * consentimiento se resuelve registrándolo, y el de la lista blanca del
+     * piloto, anotándose.
+     */
+    readonly motivo: string | null = null,
   ) {
     super(mensaje);
     this.name = "ErrorDeApi";
   }
 }
+
+/** El `X-Motivo` del 403 de quien no está en la lista blanca del piloto. */
+export const MOTIVO_NO_HABILITADO = "correo-no-habilitado";
 
 export async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   const token = obtenerToken();
@@ -60,6 +69,7 @@ export async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promis
       respuesta.status,
       await leerDetalle(respuesta),
       reintento === null ? null : Number(reintento),
+      respuesta.headers.get("X-Motivo"),
     );
   }
   // 204 y compañía no traen cuerpo: parsearlo tiraría un error de JSON.
