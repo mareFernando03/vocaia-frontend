@@ -56,7 +56,7 @@ export const NOTIFICACION = {
   // Quien aceptó un texto anterior: el backend no avisa con él. Tampoco forma
   // parte de la huella. Dice qué cambió para que la persona decida de nuevo.
   versionAnterior:
-    "Lo habías autorizado con un texto anterior, que no decía qué área recibe el aviso. Para que siga funcionando, tenés que volver a autorizarlo.",
+    "Lo habías autorizado con un texto anterior, que no decía qué área recibe el aviso. Para que el aviso pueda salir, tenés que volver a autorizarlo.",
   // Cuando la respuesta se cortó pero se pudo volver a preguntar: lo que se ve
   // arriba es lo que quedó registrado, y «probá de nuevo» invitaría a deshacerlo.
   respuestaCortada: "Se cortó la respuesta del servidor. Arriba está lo que quedó registrado.",
