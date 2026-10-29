@@ -13,11 +13,9 @@
 export const NOTIFICACION = {
   // Tiene que coincidir con `VERSIONES_NOTIFICACION` del backend, que solo
   // avisa con un consentimiento sobre una de esas versiones. Cambiar el texto
-  // es cambiar la versión: la prueba de la huella lo hace fallar si no.
-  //
-  // ponytail: la pantalla muestra `vigente`, que no mira la versión. Al subir a
-  // v2, quien otorgó la v1 tiene que verse como no autorizado.
-  version: "notificacion-v1",
+  // es cambiar la versión: la prueba de la huella lo hace fallar si no. Quien
+  // otorgó una versión anterior se ve como no autorizado (`versionAnterior`).
+  version: "notificacion-v2",
 
   titulo: "Avisar a la Facultad si necesitás ayuda",
 
@@ -34,9 +32,9 @@ export const NOTIFICACION = {
   // de IA promete que no se le pasan a nadie, y este consentimiento es la
   // excepción. No se promete que alguien vaya a escribir.
   //
-  // El destino no está acordado (S5-11): hoy el aviso va a una casilla de
-  // prueba. Cuando se acuerde, nombrarlo cambia el texto y por lo tanto la
-  // versión, y quien otorgó la v1 tiene que volver a aceptar.
+  // La v2 nombra el área: la Secretaría aceptó recibir el aviso (S5-11) y el
+  // backend lo manda de verdad (VOCAIA-173). La v1 decía que el área estaba por
+  // acordarse y que el aviso no le llegaba a nadie.
   detalles: [
     {
       titulo: "Qué se avisa",
@@ -46,7 +44,7 @@ export const NOTIFICACION = {
     {
       titulo: "A quién",
       texto:
-        "A la Facultad. Todavía se está acordando qué área lo recibe, y hasta que esté acordado el aviso no le llega a nadie.",
+        "A la Secretaría de Coordinación y Políticas Universitarias de la Facultad, que asesora a aspirantes y estudiantes o los pone en contacto con quien los pueda acompañar.",
     },
     { titulo: "Qué no se comparte", texto: "Ni tu conversación ni tu perfil vocacional." },
   ],
@@ -55,6 +53,10 @@ export const NOTIFICACION = {
     "Es opcional. Si no lo autorizás, seguís usando VocaIA igual, y podés cambiarlo cuando quieras.",
 
   noAutorizado: "Hoy no está autorizado.",
+  // Quien aceptó un texto anterior: el backend no avisa con él. Tampoco forma
+  // parte de la huella. Dice qué cambió para que la persona decida de nuevo.
+  versionAnterior:
+    "Lo habías autorizado con un texto anterior, que no decía qué área recibe el aviso. Para que siga funcionando, tenés que volver a autorizarlo.",
   // Cuando la respuesta se cortó pero se pudo volver a preguntar: lo que se ve
   // arriba es lo que quedó registrado, y «probá de nuevo» invitaría a deshacerlo.
   respuestaCortada: "Se cortó la respuesta del servidor. Arriba está lo que quedó registrado.",

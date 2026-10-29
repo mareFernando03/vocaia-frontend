@@ -28,6 +28,7 @@ const OTORGADO: Notificacion = {
  */
 const HUELLAS: Record<string, string> = {
   "notificacion-v1": "28c9266f29aa89d3",
+  "notificacion-v2": "07e38f6c36bfdcce",
 };
 
 async function huella(): Promise<string> {
@@ -236,6 +237,25 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(screen.getByText(/Lo autorizaste el 14 de octubre de 2026/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: NOTIFICACION.revocar })).toBeInTheDocument();
     expect(espia).toHaveBeenCalledTimes(1);
+  });
+
+  it("quien lo autorizó con un texto anterior se ve sin autorizar y puede aceptar el nuevo", async () => {
+    const espia = responder({
+      "GET /api/identidad/notificacion": { ...OTORGADO, version: "notificacion-v1" },
+      "POST /api/identidad/notificacion": OTORGADO,
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.versionAnterior)).toBeInTheDocument();
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByText(/Lo autorizaste el/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.otorgar }));
+
+    const [, init] = espia.mock.calls[1];
+    expect(JSON.parse(String(init?.body))).toEqual({ version: NOTIFICACION.version });
+    expect(await screen.findByText(/Lo autorizaste el/)).toBeInTheDocument();
+    expect(screen.queryByText(NOTIFICACION.versionAnterior)).not.toBeInTheDocument();
   });
 
   it("si el correo dejó de estar entre la consulta y el clic, vuelve a preguntar", async () => {

@@ -82,10 +82,14 @@ export function ConsentimientoNotificacion() {
   // un estado desconocido podría ser el contrario del que la persona cree estar
   // tocando. Si la consulta falló, lo único que se ofrece es reintentarla. Sin
   // correo tampoco: el backend lo rechazaría, y revocar sigue disponible.
+  // Vigente sobre un texto anterior no cuenta: el backend no avisa con él, y
+  // mostrarlo como autorizado le diría a la persona algo que no pasa.
+  const autorizado = estado !== null && estado.vigente && estado.version === NOTIFICACION.version;
+  const deOtroTexto = estado !== null && estado.vigente && !autorizado;
   const accion =
     estado === null
       ? error !== null && { texto: "Reintentar", pedido: consultarNotificacion, clases: SECUNDARIO }
-      : estado.vigente
+      : autorizado
         ? { texto: NOTIFICACION.revocar, pedido: revocarNotificacion, clases: SECUNDARIO }
         : estado.hay_contacto && {
             texto: NOTIFICACION.otorgar,
@@ -134,14 +138,13 @@ export function ConsentimientoNotificacion() {
         <span className="font-medium">
           {estado === null
             ? ""
-            : estado.vigente && estado.otorgado_en
+            : autorizado && estado.otorgado_en
               ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
               : NOTIFICACION.noAutorizado}
         </span>
+        {deOtroTexto && <span>{NOTIFICACION.versionAnterior}</span>}
         {estado !== null && !estado.hay_contacto && (
-          <span>
-            {estado.vigente ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}
-          </span>
+          <span>{autorizado ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}</span>
         )}
       </p>
 
