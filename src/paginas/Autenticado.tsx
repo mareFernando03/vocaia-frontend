@@ -26,11 +26,12 @@ import Perfil from "./Perfil";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
+  alDarDeBaja: () => Promise<void>;
 }
 
 type Desvio = "historial" | "perfil" | "carreras";
 
-export default function Autenticado({ alSalir }: Propiedades) {
+export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
   const [desvio, setDesvio] = useState<Desvio | null>(null);
   const [epoca, setEpoca] = useState(0);
   // El informe va aparte del desvío porque se abre encima de la pantalla de la
@@ -60,7 +61,7 @@ export default function Autenticado({ alSalir }: Propiedades) {
   }
 
   if (desvio === "perfil") {
-    return <Perfil alVolver={() => setDesvio(null)} />;
+    return <Perfil alVolver={() => setDesvio(null)} alDarDeBaja={alDarDeBaja} />;
   }
 
   if (desvio === "carreras") {

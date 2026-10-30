@@ -27,4 +27,14 @@ describe("Ingresar", () => {
     const alertas = screen.queryAllByRole("alert").map((alerta) => alerta.textContent ?? "");
     expect(alertas.some((texto) => texto.includes("rechazado"))).toBe(false);
   });
+
+  it("cuenta que la baja terminó como estado, no como alerta (HU-04)", () => {
+    render(<Ingresar alIngresar={() => {}} aviso="Borramos tu cuenta de VocaIA." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Borramos tu cuenta de VocaIA.");
+    // Sin el identificador de Google —como en CI— la pantalla suma su propia
+    // alerta de configuración: lo que se prueba es que la baja no sea una.
+    const alertas = screen.queryAllByRole("alert").map((alerta) => alerta.textContent ?? "");
+    expect(alertas.some((texto) => texto.includes("Borramos"))).toBe(false);
+  });
 });

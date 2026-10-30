@@ -95,7 +95,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await screen.findByRole("heading", { name: /lo que fui entendiendo/i });
 
     // La lista es la de los nombres que el backend usa para pensar el perfil.
@@ -126,7 +126,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       perfil({ rasgos: [rasgo({ confianza: "alta", unidades: 1, soporte: 3 })] }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     expect(await screen.findByText(/sale de una sola cosa que me contaste/i)).toBeInTheDocument();
     expect(screen.queryByText(/más de una vez/i)).not.toBeInTheDocument();
@@ -142,7 +142,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByText(/en qué me baso/i));
 
     // Literal y no parafraseada: lo que la persona tiene que poder reconocer
@@ -166,7 +166,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     expect(
       await screen.findByRole("heading", { name: "Circunstancias y restricciones" }),
@@ -187,7 +187,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await screen.findByRole("heading", { name: "Investigador" });
 
     const tarjetas = screen.getAllByRole("article").map((tarjeta) => tarjeta.querySelector("h2"));
@@ -216,7 +216,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await screen.findByText(/de esto todavía no hablamos/i);
 
     // «Realista» aparece en la sección de lo no conversado, y no como una
@@ -230,7 +230,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
   it("cuando no alcanza para recomendar carreras, lo dice sin que haya que desplegar nada", async () => {
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ publicable: false, rasgos: [rasgo()] }));
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     const salvedad = await screen.findByText(/para recomendarte carreras/i);
     expect(salvedad).toBeInTheDocument();
@@ -240,7 +240,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
   it("quien todavía no conversó recibe una invitación, no una pantalla vacía", async () => {
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ actualizado_en: null, rasgos: [] }));
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     expect(await screen.findByText(/cuando termina la primera parte/i)).toBeInTheDocument();
   });
@@ -251,7 +251,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       .mockRejectedValueOnce(new ErrorDeApi(500, "El servidor respondió 500."))
       .mockResolvedValueOnce(perfil({ rasgos: [rasgo()] }));
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /reintentar/i }));
 
     await waitFor(() =>
@@ -264,7 +264,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
       new ErrorDeApi(500, "El servidor respondió 500."),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     expect(await screen.findByRole("button", { name: /reintentar/i })).toBeInTheDocument();
     expect(
@@ -284,7 +284,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockResolvedValue(objecion());
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.type(screen.getByLabelText(/por qué/i), "lo estudio por mi viejo");
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
@@ -299,7 +299,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockResolvedValue(objecion());
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -315,7 +315,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       );
     vi.mocked(objetar).mockResolvedValue(objecion({ motivo: "lo hago por obligación" }));
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -337,7 +337,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await screen.findByText(/marcaste que esto no te representa/i);
 
     // El desacuerdo entre lo que el sistema infiere y lo que la persona
@@ -354,7 +354,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
     vi.mocked(obtenerPerfil).mockResolvedValue(perfil({ rasgos: [rasgo()] }));
     vi.mocked(objetar).mockRejectedValue(new ErrorDeApi(500, "El servidor respondió 500."));
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /no me representa/i }));
     await usuario.click(screen.getByRole("button", { name: /registrar/i }));
 
@@ -367,7 +367,7 @@ describe("Perfil · objetar una inferencia que no me representa (HU-13, S2-12)",
       perfil({ rasgos: [rasgo({ objecion: objecion() })] }),
     );
 
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
     await screen.findByText(/marcaste que esto no te representa/i);
 
     expect(screen.queryByRole("button", { name: /no me representa/i })).not.toBeInTheDocument();

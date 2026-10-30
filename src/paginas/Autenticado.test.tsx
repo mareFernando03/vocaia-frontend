@@ -92,7 +92,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       ),
     );
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     // La pestaña nueva abre en la conversación y no en el listado: es lo que
     // hace que recargar en medio de una charla devuelva a la charla (HU-07).
     expect(screen.getByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       Promise.resolve(historial(id, [turno(1, "usuario", "Estoy entre sistemas y diseño")])),
     );
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
@@ -145,7 +145,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       historial(ANTERIOR, [turno(1, "usuario", "Estoy entre sistemas y diseño")]),
     );
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
     await screen.findByRole("button", { name: /entre sistemas y diseño/ });
 
@@ -170,7 +170,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       resumen(ANTERIOR, "Estoy entre sistemas y diseño"),
     ]);
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
 
     // Un solo botón por conversación, con todo adentro: quien usa lector de
@@ -186,7 +186,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     const usuario = userEvent.setup();
     vi.mocked(listarSesiones).mockResolvedValue([]);
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
 
     expect(await screen.findByText(/todavía no hablaste con vocaia/i)).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       resumen(ANTERIOR, "Estoy terminando el secundario"),
     ]);
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo conectar/i);
@@ -227,7 +227,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       rasgos: [],
     } as never);
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
     await usuario.click(screen.getByRole("button", { name: /tu perfil/i }));
@@ -270,7 +270,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       notas: ["Todavía no conversamos lo suficiente."],
     });
 
-    render(<Autenticado alSalir={salir} />);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /ver tu informe/i }));
 
     expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();

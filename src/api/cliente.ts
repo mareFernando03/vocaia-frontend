@@ -109,6 +109,17 @@ export function cerrarSesionEnBackend(): Promise<void> {
   return pedir<void>("/api/identidad/salir", { method: "POST" });
 }
 
+export type Baja = components["schemas"]["BajaSalida"];
+
+/**
+ * Da de baja la cuenta y borra todo lo de la persona (HU-04, ADR-014). No se
+ * deshace. Si falla, el backend dice que se vuelva a pedir: todos sus pasos se
+ * pueden repetir.
+ */
+export function darDeBajaEnBackend(): Promise<Baja> {
+  return pedir<Baja>("/api/identidad/baja", { method: "POST" });
+}
+
 /**
  * Registra el consentimiento informado y crea la identidad (HU-03a).
  *
