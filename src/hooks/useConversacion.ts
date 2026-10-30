@@ -28,7 +28,13 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { describir } from "../api/cliente";
-import { enviarMensaje, type Fuente, obtenerHistorial, type Turno } from "../api/conversacion";
+import {
+  enviarMensaje,
+  type Fuente,
+  obtenerHistorial,
+  terminarConversacion,
+  type Turno,
+} from "../api/conversacion";
 import { alCambiarSesion } from "../auth/sesion";
 
 const CLAVE = "vocaia:conversacion:sesion";
@@ -106,6 +112,10 @@ export interface Conversacion {
    */
   tieneInforme: boolean;
   enviar: (contenido: string) => Promise<void>;
+  /** Cierra esta parte a pedido de la persona. Devuelve si cerró. */
+  terminar: () => Promise<boolean>;
+  /** Si el error a la vista es de «Terminar»: reintentar es volver a terminar. */
+  errorAlTerminar: boolean;
   reintentar: () => void;
 }
 
@@ -208,6 +218,22 @@ export function useConversacion(): Conversacion {
     [sesion.id, enviando, traer],
   );
 
+  const [errorAlTerminar, setErrorAlTerminar] = useState(false);
+  const terminar = useCallback(async () => {
+    setError(null);
+    setErrorAlTerminar(false);
+    try {
+      const historial = await terminarConversacion(sesion.id);
+      setEstado(historial.estado);
+      setTieneInforme(historial.tiene_informe);
+      return true;
+    } catch (fallo) {
+      setError(describir(fallo));
+      setErrorAlTerminar(true);
+      return false;
+    }
+  }, [sesion.id]);
+
   const intercambios = turnos.filter((turno) => turno.rol === "usuario").length;
 
   return {
@@ -222,6 +248,8 @@ export function useConversacion(): Conversacion {
     estado,
     tieneInforme,
     enviar,
+    terminar,
+    errorAlTerminar,
     reintentar: () => void cargar(),
   };
 }

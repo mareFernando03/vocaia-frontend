@@ -38,6 +38,7 @@ import {
 import { Referencia } from "../componentes/Referencia";
 import { comoTeCae } from "../contenido/como-te-cae";
 import { PILOTO } from "../contenido/piloto";
+import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 
 interface Propiedades {
   sesionId: string;
@@ -173,6 +174,16 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   const provisional = informe.recomendaciones.some((carrera) =>
     carrera.fuentes.some((fuente) => fuente.estado_validacion === "provisional"),
   );
+  const derivacion = informe.recomendaciones.find(
+    (carrera) => carrera.derivacion != null,
+  )?.derivacion;
+  const deOtra = informe.evidencia.some((d) =>
+    d.citas.some((cita) => cita.sesion_id !== informe.sesion_id),
+  );
+  const inicios = useInicios(deOtra);
+  const notaHabilitantes = informe.recomendaciones.find(
+    (carrera) => carrera.habilitantes?.nota != null,
+  )?.habilitantes?.nota;
 
   return (
     <>
@@ -222,18 +233,33 @@ function Contenido({ informe }: { informe: DatosInforme }) {
             donde sale todo lo anterior.
           </p>
           {informe.evidencia.map((dimension) => (
-            <Dimension key={dimension.dimension} dimension={dimension} />
+            <Dimension
+              key={dimension.dimension}
+              dimension={dimension}
+              sesionDelInforme={informe.sesion_id}
+              inicios={inicios}
+            />
           ))}
         </section>
       )}
 
-      <p className="text-muted-foreground border-border border-t pt-3 text-xs">
-        {/* Para quien lo lea después —el asesor, una medición de
-            concordancia—: con qué reglas se armó. */}
-        Armado con la versión {informe.version_instrumento} de las reglas de VocaIA.
-        {informe.perfil_actualizado_en !== null &&
-          ` Perfil calculado el ${FECHA_LARGA.format(new Date(informe.perfil_actualizado_en))}.`}
-      </p>
+      {/* Una vez y al final, no debajo de cada carrera: es el mismo contacto de
+          área para todas, y repetido tres veces se leía como relleno. */}
+      {derivacion != null && <ConQuienHablar derivacion={derivacion} />}
+
+      {/* Una vez y no en cada carrera, por lo mismo. */}
+      {notaHabilitantes != null && (
+        <p className="text-muted-foreground text-sm">{notaHabilitantes}</p>
+      )}
+
+      {/* La versión del instrumento sigue guardada en el informe, que es donde
+          la leen el asesor y la medición de concordancia; a la persona no le
+          dice nada (prueba del piloto). */}
+      {informe.perfil_actualizado_en !== null && (
+        <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+          Perfil calculado el {FECHA_LARGA.format(new Date(informe.perfil_actualizado_en))}.
+        </p>
+      )}
     </>
   );
 }
@@ -251,7 +277,7 @@ function Carrera({ carrera }: { carrera: CarreraInforme }) {
             {carrera.fuentes.map((fuente) => (
               <li key={fuente.id} className="break-inside-avoid">
                 <blockquote className="border-accent-strong border-l-4 pl-3 whitespace-pre-wrap">
-                  {fuente.texto}
+                  {paraLaPersona(fuente.texto)}
                 </blockquote>
                 <p className="mt-1">
                   Fuente: <Referencia texto={fuente.fuente} />
@@ -263,10 +289,19 @@ function Carrera({ carrera }: { carrera: CarreraInforme }) {
       )}
 
       {carrera.habilitantes != null && <SiAlgoTeFrena habilitantes={carrera.habilitantes} />}
-
-      {carrera.derivacion != null && <ConQuienHablar derivacion={carrera.derivacion} />}
     </article>
   );
+}
+
+/**
+ * La ficha de la carrera sin la oración que le avisa al modelo qué no publica
+ * ninguna fuente: «Ninguna fuente publica: turnos de cursado» es una
+ * instrucción para no inventar el dato, y en el informe se leía como jerga.
+ * Se saca al mostrar y no del corpus: la ficha está congelada contra el banco de
+ * la medición de alucinación.
+ */
+function paraLaPersona(texto: string): string {
+  return texto.replace(/\s*Ninguna fuente publica:[^.]*\./g, "").trim();
 }
 
 /**
@@ -282,7 +317,7 @@ function ConQuienHablar({ derivacion }: { derivacion: Derivacion }) {
       {derivacion.disponible && contacto != null ? (
         <>
           <p className="mt-1">
-            Si querés hablar con alguien de la Facultad sobre esta carrera: {contacto.area}.
+            Si querés hablar con alguien de la Facultad sobre estas carreras: {contacto.area}.
           </p>
           <ul className="mt-1 flex flex-col gap-1">
             <li>
@@ -304,9 +339,7 @@ function ConQuienHablar({ derivacion }: { derivacion: Derivacion }) {
           </ul>
         </>
       ) : (
-        <p className="mt-1">
-          Todavía no tenemos un contacto de la Facultad confirmado para esta carrera.
-        </p>
+        <p className="mt-1">Todavía no tenemos un contacto de la Facultad confirmado.</p>
       )}
     </div>
   );
@@ -321,15 +354,14 @@ const RESTRICCIONES: Record<string, string> = {
 };
 
 function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
-  const { por_restriccion, alternativas, nota } = habilitantes;
-  // Sin nada que mostrar y sin nota, la sección no existe: un título con nada
-  // abajo se lee como «no cargó».
-  if (por_restriccion.length === 0 && alternativas.length === 0 && nota == null) return null;
+  const { por_restriccion, alternativas } = habilitantes;
+  // Sin nada que mostrar, la sección no existe: un título con nada abajo se lee
+  // como «no cargó». La nota, si la hay, va una sola vez al pie del informe.
+  if (por_restriccion.length === 0 && alternativas.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-3">
       <h4 className="font-medium">Si hay algo que te frena</h4>
-      {nota != null && <p className="text-muted-foreground">{nota}</p>}
 
       {por_restriccion.map((grupo) => (
         <div key={grupo.restriccion} className="flex flex-col gap-2">
@@ -427,7 +459,15 @@ function queFaltaConfirmar(habilitante: Habilitante): string {
   return "La fuente no dice si alcanza a esta carrera. Consultalo antes de contar con él.";
 }
 
-function Dimension({ dimension }: { dimension: EvidenciaInforme }) {
+function Dimension({
+  dimension,
+  sesionDelInforme,
+  inicios,
+}: {
+  dimension: EvidenciaInforme;
+  sesionDelInforme: string;
+  inicios: Map<string, string | null>;
+}) {
   return (
     <div className="border-border flex break-inside-avoid flex-col gap-2 border-b pb-3 text-sm">
       <h3 className="flex flex-wrap items-baseline justify-between gap-2 font-medium">
@@ -450,6 +490,13 @@ function Dimension({ dimension }: { dimension: EvidenciaInforme }) {
                 arreglar cosas» debajo de una dimensión se leería como afinidad. */}
             {cita.valencia < 0 && (
               <p className="text-muted-foreground text-xs">Lo dijiste como algo que no te gusta.</p>
+            )}
+            {/* El perfil junta todas las conversaciones; sin esto, el informe de
+                una charla mostraba citas de otra como si fueran de esta. */}
+            {cita.sesion_id !== sesionDelInforme && (
+              <p className="text-muted-foreground text-xs">
+                {enOtraConversacion(inicios.get(cita.sesion_id))}
+              </p>
             )}
           </li>
         ))}
