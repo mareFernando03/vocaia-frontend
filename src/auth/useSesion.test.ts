@@ -1,11 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { ErrorDeApi, MOTIVO_NO_HABILITADO, SesionVencida } from "../api/cliente";
 import { AVISO } from "../contenido/aviso-ia";
 import { BAJA } from "../contenido/baja";
+import { PILOTO } from "../contenido/piloto";
 import { useAvisoAceptado } from "../hooks/useAvisoAceptado";
-import { borrarToken, guardarToken } from "./sesion";
+import { borrarToken, guardarToken, obtenerToken } from "./sesion";
 import { INGRESO_RECHAZADO, SIN_RESPUESTA, useSesion } from "./useSesion";
 
 /**
@@ -51,6 +52,24 @@ describe("useSesion · consentimiento", () => {
 
     await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
     expect(registrarConsentimiento).toHaveBeenCalledWith(AVISO.version);
+  });
+
+  it("fuera de la lista blanca no registra el consentimiento y pide anotarse", async () => {
+    // El 403 de la lista se parece al del consentimiento; registrarlo no
+    // arreglaría nada y dejaría a la persona en un error genérico.
+    guardarToken("token-de-prueba");
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", AVISO.version);
+    consultarUsuario.mockRejectedValue(
+      new ErrorDeApi(403, "Por invitación.", null, MOTIVO_NO_HABILITADO),
+    );
+
+    const { result } = renderHook(() => useSesion());
+
+    await waitFor(() => expect(result.current.error).toBe(PILOTO.noHabilitado));
+    expect(result.current.sesion.estado).toBe("anonimo");
+    expect(registrarConsentimiento).not.toHaveBeenCalled();
+    // Suelta el token para que pueda entrar con la cuenta con que se anotó.
+    expect(obtenerToken()).toBeNull();
   });
 
   it("ante un 403, una versión vieja aceptada no se registra (VOCAIA-102)", async () => {

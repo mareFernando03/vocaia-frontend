@@ -37,6 +37,7 @@ import {
 } from "../api/informe";
 import { Referencia } from "../componentes/Referencia";
 import { comoTeCae } from "../contenido/como-te-cae";
+import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 
 interface Propiedades {
@@ -114,6 +115,14 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
             <button type="button" onClick={() => window.print()} className={BOTON}>
               Descargar en PDF
             </button>
+          )}
+          {/* La encuesta final del piloto vive en la página de inscripción, que
+              la reconoce por la misma cuenta de Google. Se ofrece acá porque es
+              cuando la persona acaba de leer el informe. */}
+          {informe !== null && (
+            <a href={PILOTO.inscripcion} target="_blank" rel="noopener" className={BOTON}>
+              {PILOTO.comoTeFue}
+            </a>
           )}
           <button type="button" onClick={alVolver} className={BOTON}>
             Volver
