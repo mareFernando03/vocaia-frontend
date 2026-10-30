@@ -407,7 +407,7 @@ describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
       version_prompt: "sistema-v7",
       tiene_informe: true,
     });
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     await usuario.click(await screen.findByText("En qué me baso"));
 
@@ -426,7 +426,7 @@ describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
         ],
       }),
     );
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     await screen.findByText("En qué me baso");
     expect(screen.queryByText(/Lo dijiste el/)).not.toBeInTheDocument();
@@ -445,7 +445,7 @@ describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
         ],
       }),
     );
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     await screen.findByText("En qué me baso");
     expect(screen.queryByText(/con pinzas/)).not.toBeInTheDocument();
@@ -471,7 +471,7 @@ describe("Perfil · de qué conversación sale cada cita", () => {
         ],
       }),
     );
-    render(<Perfil alVolver={() => {}} />);
+    render(<Perfil alVolver={() => {}} alDarDeBaja={async () => {}} />);
 
     await usuario.click(await screen.findByText("En qué me baso"));
 
