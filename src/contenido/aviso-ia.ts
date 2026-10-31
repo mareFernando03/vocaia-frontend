@@ -58,7 +58,10 @@ export interface AvisoIA {
 export const AVISO: AvisoIA = {
   // v2 (VOCAIA-102): agrega qué pasa con los datos y los contactos de la
   // Facultad. Los cuatro párrafos de v1 quedan idénticos.
-  version: "aviso-v2",
+  // v3 (VOCAIA-184): agrega la moderación como finalidad (P-13), porque desde
+  // S5-01 cada mensaje va también al filtro de seguridad del proveedor, y lo que
+  // el proveedor retiene de cada uso (V-09). Lo demás queda idéntico a v2.
+  version: "aviso-v3",
 
   titulo: "Antes de empezar, algo importante",
 
@@ -77,7 +80,10 @@ export const AVISO: AvisoIA = {
   tituloDatos: "Qué pasa con lo que contás",
   datos: [
     "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
-    "Para responderte y para armar tu perfil, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
+    "Para responderte, para armar tu perfil y para revisar cada mensaje por seguridad, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
+    // V-09: la moderación no entra en los registros de abuso del proveedor; la
+    // conversación, hasta 30 días. Ninguna se usa para entrenar.
+    "Ese proveedor no usa lo que escribís para entrenar sus modelos. Lo que revisa por seguridad no lo guarda, y lo demás lo puede guardar hasta 30 días para controlar abusos.",
     "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
     "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
