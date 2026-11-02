@@ -108,7 +108,7 @@ export default function Carreras({ alVolver }: Propiedades) {
         </button>
       </form>
 
-      {buscado !== "" && !cargando && error === null && (
+      {buscado !== "" && !cargando && error === null && carreras.length > 0 && (
         <p className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
           <span>
             Ordenadas de la más a la menos parecida a «{buscado}». No es una recomendación.

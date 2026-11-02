@@ -11,8 +11,10 @@ import type { CarreraInforme, Habilitante, Informe as DatosInforme } from "../ap
  */
 
 vi.mock("../api/informe", () => ({ obtenerInforme: vi.fn() }));
+vi.mock("../api/conversacion", () => ({ listarSesiones: vi.fn() }));
 
 const { obtenerInforme } = await import("../api/informe");
+const { listarSesiones } = await import("../api/conversacion");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Informe } = await import("./Informe");
 
@@ -265,10 +267,12 @@ describe("Informe", () => {
     );
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    const titulos = await screen.findAllByRole("heading", { name: /si hay algo que te frena/i });
-    expect(titulos).toHaveLength(1);
-    expect(titulos[0].closest("article")).toHaveTextContent(/Licenciatura en Administración/);
-    expect(screen.getByText(/todavía no podemos mostrar los habilitantes/i)).toBeInTheDocument();
+    // La nota va una sola vez al pie y no debajo de cada carrera (prueba del
+    // piloto): sin habilitantes que mostrar, ninguna carrera tiene la sección.
+    expect(
+      await screen.findByText(/todavía no podemos mostrar los habilitantes/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /si hay algo que te frena/i })).toBeNull();
   });
 
   it("una restricción que no conoce lleva un título genérico y no nombra el tipo", async () => {
@@ -369,5 +373,50 @@ describe("Informe", () => {
     expect(
       await screen.findByRole("heading", { name: "Ingeniería en Sistemas de Información" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Informe · citas de otra conversación (recorrido local del 27/10)", () => {
+  it("dice de qué conversación es una cita que no es de esta, por cómo empezó y no por la fecha", async () => {
+    const otra = "22222222-2222-4222-8222-222222222222";
+    vi.mocked(listarSesiones).mockResolvedValue([
+      {
+        sesion_id: otra,
+        estado: "cerrada",
+        iniciada_en: "2026-10-27T13:00:00Z",
+        actualizada_en: "2026-10-27T13:18:00Z",
+        cantidad_turnos: 37,
+        vista_previa: "Estoy en primer año, estoy estudiando ingenieria electronica",
+        tiene_informe: true,
+      },
+    ] as never);
+    const base = informe();
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      ...base,
+      evidencia: [
+        {
+          ...base.evidencia[0],
+          citas: [
+            {
+              evidencia_id: "e9",
+              sesion_id: otra,
+              turno: 18,
+              texto: "me gusta armar plaquetas",
+              valencia: 2,
+            },
+            ...base.evidencia[0].citas,
+          ],
+        },
+      ],
+    });
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(
+      await screen.findByText(
+        "Lo contaste en otra conversación, la que empezaste con «Estoy en primer año, estoy estudiando ingenieria electronica».",
+      ),
+    ).toBeInTheDocument();
+    // La cita de esta conversación no lleva la aclaración.
+    expect(screen.getAllByText(/Lo contaste en otra conversación/)).toHaveLength(1);
   });
 });

@@ -106,12 +106,12 @@ export default function Historial({
                 {/* Una sola cadena y no tres elementos con separadores
                     ocultos: el nombre accesible del boton concatena los hijos
                     sin espacios, asi que «2026» y «2 mensajes» se pegaban y el
-                    lector de pantalla leia «20262 mensajes». Mensajes y no
-                    intercambios: el backend cuenta los turnos de las dos partes
-                    y aca no hay forma de separarlos. */}
+                    lector de pantalla leia «20262 mensajes». Intercambios, como
+                    en la charla: el backend cuenta los turnos de las dos partes,
+                    y cada intercambio son dos (el saludo suelto no suma). */}
                 <span className="text-muted-foreground text-sm">
-                  {`${FECHA.format(new Date(sesion.actualizada_en))} · ${sesion.cantidad_turnos} ${
-                    sesion.cantidad_turnos === 1 ? "mensaje" : "mensajes"
+                  {`${FECHA.format(new Date(sesion.actualizada_en))} · ${intercambiosDe(sesion.cantidad_turnos)} ${
+                    intercambiosDe(sesion.cantidad_turnos) === 1 ? "intercambio" : "intercambios"
                   }`}
                 </span>{" "}
                 {/* El espacio de arriba no se dibuja —flex descarta los nodos
@@ -155,4 +155,8 @@ export default function Historial({
       </button>
     </div>
   );
+}
+
+function intercambiosDe(turnos: number): number {
+  return Math.floor(turnos / 2);
 }

@@ -7,9 +7,10 @@
  * `npm run verificar-contraste`.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
-import type { Fuente } from "../api/conversacion";
+import { obtenerEncuadre, type Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
 import { Referencia } from "../componentes/Referencia";
 import { Trazabilidad } from "../componentes/Trazabilidad";
@@ -42,9 +43,12 @@ export default function Conversacion({
     estado,
     tieneInforme,
     enviar,
+    terminar,
     reintentar,
+    errorAlTerminar,
   } = useConversacion();
   const [borrador, setBorrador] = useState("");
+  const [encuadre, setEncuadre] = useState<string | null>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const botonInforme = useRef<HTMLButtonElement>(null);
   const finDeLista = useRef<HTMLLIElement>(null);
@@ -63,6 +67,10 @@ export default function Conversacion({
     finDeLista.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [turnos, enCurso]);
 
+  async function terminarYVer() {
+    if (await terminar()) alVerInforme(sesionId);
+  }
+
   async function mandar() {
     const texto = borrador;
     setBorrador("");
@@ -70,6 +78,26 @@ export default function Conversacion({
   }
 
   const vacia = turnos.length === 0 && enCurso === null;
+  // El saludo se ve mientras no haya turnos guardados, también mientras se
+  // contesta el primer mensaje: con `vacia` desaparecía al enviar y volvía
+  // arriba al terminar (revisión del #38).
+  const sinTurnos = turnos.length === 0;
+  // Escalada: la sesión se cortó por una señal de riesgo. No se le ofrece el
+  // informe ni se le muestran fuentes a alguien a quien se acaba de contener.
+  const derivada = estado === "derivada";
+
+  // La sesión nace con el primer mensaje, y con ella su saludo: sin esto el
+  // saludo aparecía después de lo que la persona ya había escrito. Se muestra
+  // el mismo texto antes, y al primer envío lo reemplaza el turno guardado. Si
+  // no llega, queda la invitación de siempre: no es motivo para un error.
+  const sinEncuadre = encuadre === null;
+  useEffect(() => {
+    if (!sinTurnos || cargando || !sinEncuadre) return;
+    obtenerEncuadre().then(
+      (recibido) => setEncuadre(recibido.texto),
+      () => undefined,
+    );
+  }, [sinTurnos, cargando, sinEncuadre]);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -114,7 +142,7 @@ export default function Conversacion({
           </button>
           {/* Una sesión reabierta sigue teniendo el informe de su cierre
               anterior; recién cerrada, el acceso es el aviso de abajo. */}
-          {tieneInforme && estado !== "cerrada" && (
+          {tieneInforme && estado !== "cerrada" && !derivada && (
             <button
               type="button"
               onClick={() => alVerInforme(sesionId)}
@@ -154,7 +182,9 @@ export default function Conversacion({
           <li className="text-muted-foreground text-sm">Recuperando la conversación…</li>
         )}
 
-        {!cargando && vacia && (
+        {!cargando && sinTurnos && encuadre !== null && <Burbuja rol="agente" texto={encuadre} />}
+
+        {!cargando && vacia && encuadre === null && (
           <li className="text-muted-foreground text-sm">
             Contame por dónde andás: qué estás cursando o terminando, y qué te trajo hasta acá. No
             hace falta que tengas una respuesta armada.
@@ -180,7 +210,7 @@ export default function Conversacion({
         <li aria-hidden="true" ref={finDeLista} />
       </ol>
 
-      {fuentes.length > 0 && !enviando && <Fuentes fuentes={fuentes} />}
+      {fuentes.length > 0 && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
 
       {/* La región viva existe siempre y lo que cambia es su contenido: una
           que aparece ya llena no se anuncia en todos los lectores. Sin el
@@ -193,9 +223,33 @@ export default function Conversacion({
           sesión del otro lado sin perder lo que ya contó, y el informe del
           cierre se sigue pudiendo leer desde la cabecera. */}
       <div role="status">
+        {/* Sin «Ver tu informe»: la charla se cortó por lo que contó, no porque
+            se completara, y ofrecerle un resultado ahí es no haberla escuchado.
+            Las líneas dependen de la señal y ya están en la respuesta; el 911
+            vale para todas. */}
+        {derivada && !enviando && (
+          <div className="bg-accent-soft text-accent-foreground flex flex-col gap-1 rounded-md p-3 text-sm">
+            <p>
+              Dejamos la charla sobre carreras acá. Lo que importa ahora es que hables con alguien:
+              los teléfonos están en la última respuesta, y si estás en peligro ahora mismo, llamá
+              al{" "}
+              {/* El preflight de Tailwind le saca color y subrayado a un enlace:
+                  sin clases no se veía como tal, y es el único dato de seguridad
+                  que garantiza la pantalla. */}
+              <a
+                href="tel:911"
+                className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
+              >
+                911
+              </a>
+              .
+            </p>
+            <p>Si más adelante querés retomar, podés volver a escribir acá.</p>
+          </div>
+        )}
         {estado === "cerrada" && !enviando && (
           <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
-            <p>La conversación terminó.</p>
+            <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
             <button
               ref={botonInforme}
               type="button"
@@ -213,7 +267,7 @@ export default function Conversacion({
           <span>{error}</span>
           <button
             type="button"
-            onClick={reintentar}
+            onClick={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
             className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
           >
             Reintentar
@@ -257,33 +311,48 @@ export default function Conversacion({
           Enviar
         </button>
       </form>
+
+      {/* Para quien quiere cortar antes del final: el perfil y el informe se
+          arman al cierre, y sin esto se iba con nada (H24). No cierra para
+          siempre: seguir escribiendo abre la parte siguiente. */}
+      {intercambios > 0 && estado === "abierta" && !enviando && (
+        <button
+          type="button"
+          onClick={() => {
+            void terminarYVer();
+          }}
+          className="text-primary inline-flex min-h-11 items-center self-start text-sm underline underline-offset-2"
+        >
+          Terminar acá y ver mi informe
+        </button>
+      )}
     </div>
   );
 }
 
 function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
+  const [abierta, setAbierta] = useState(false);
   return (
-    <div className="border-border bg-surface rounded-md border p-3 text-sm">
-      {/* Fuera del <details> a propósito. Lo que se pliega es la lista, que es
-          material de respaldo y desplegada le roba la vista al campo de
-          escritura en un teléfono. Esta línea no: sin ella, la respuesta se lee
-          como información oficial de la Facultad, que es exactamente lo que
-          R-002 pide no hacer mientras el corpus no esté validado. Una salvedad
-          que hay que desplegar para leer no es una salvedad. */}
-      <p className="text-muted-foreground">
-        Datos <strong>provisionales</strong>, todavía sin validar por la Facultad.
+    <>
+      {/* Una línea y no un recuadro: en la prueba del piloto el recuadro cargaba
+          el chat. La salvedad de R-002 va en la línea misma y no en la ventana:
+          una salvedad que hay que abrir para leer no es una salvedad. */}
+      <p className="text-muted-foreground text-sm">
+        <button
+          type="button"
+          onClick={() => setAbierta(true)}
+          className="text-primary inline-flex min-h-11 items-center underline underline-offset-2"
+        >
+          Fuentes de la Facultad ({fuentes.length})
+        </button>{" "}
+        · datos <strong>provisionales</strong>, todavía sin validar.
       </p>
-      <details className="mt-2">
-        <summary className="cursor-pointer font-medium">
-          Fuentes consultadas ({fuentes.length})
-        </summary>
+      <Ventana titulo="Fuentes consultadas" abierta={abierta} alCerrar={() => setAbierta(false)}>
         {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
-            lo que se escribió y el modelo puede haber ignorado todo. Decir
-            «citadas» le atribuiría a la respuesta un respaldo que puede no
-            tener. */}
-        <p className="text-muted-foreground mt-2">
-          Material del corpus institucional que VocaIA consultó para armar la última respuesta. No
-          necesariamente lo citó.
+            lo que se escribió y el modelo puede haber ignorado todo. */}
+        <p className="text-muted-foreground">
+          Material de la Facultad que VocaIA consultó para armar la última respuesta. No
+          necesariamente lo citó. Son datos provisionales, todavía sin validar.
         </p>
         <ul className="mt-2 flex flex-col gap-1">
           {fuentes.map((fuente) => (
@@ -292,8 +361,62 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
             </li>
           ))}
         </ul>
-      </details>
-    </div>
+      </Ventana>
+    </>
+  );
+}
+
+/**
+ * Una ventana sobre la conversación, con el `<dialog>` del navegador: trae el
+ * foco atrapado, Escape para cerrar y el fondo inerte sin código propio.
+ */
+function Ventana({
+  titulo,
+  abierta,
+  alCerrar,
+  children,
+}: {
+  titulo: string;
+  abierta: boolean;
+  alCerrar: () => void;
+  children: ReactNode;
+}) {
+  const dialogo = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const actual = dialogo.current;
+    if (actual === null) return;
+    // ponytail: jsdom no implementa showModal; ahí alcanza con el atributo.
+    if (abierta && !actual.open) {
+      if (typeof actual.showModal === "function") actual.showModal();
+      else actual.setAttribute("open", "");
+    }
+    if (!abierta && actual.open) {
+      if (typeof actual.close === "function") actual.close();
+      else actual.removeAttribute("open");
+    }
+  }, [abierta]);
+  // En un portal: la burbuja vive dentro de la región `aria-live` de la
+  // conversación, y la ventana adentro se anunciaba como parte de la respuesta.
+  return createPortal(
+    <dialog
+      ref={dialogo}
+      aria-label={titulo}
+      onClose={alCerrar}
+      className="bg-surface text-foreground border-border backdrop:bg-foreground/40 m-auto max-h-[80vh] w-[min(36rem,calc(100%-2rem))] overflow-y-auto rounded-xl border p-4 text-sm"
+    >
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="font-semibold">{titulo}</h2>
+        <button
+          type="button"
+          onClick={alCerrar}
+          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
+        >
+          Cerrar
+        </button>
+      </div>
+      {abierta && children}
+    </dialog>,
+    document.body,
   );
 }
 
@@ -330,20 +453,31 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
         ) : (
           <Prosa texto={texto} />
         )}
+        {/* Un ícono y no una línea de texto bajo cada respuesta: repetida en
+            todas, cargaba el chat (prueba del piloto). El nombre accesible es
+            la pregunta entera, y `title` se la muestra a quien pasa el mouse. */}
         {traza !== undefined && (
-          <details
-            className="border-border mt-3 border-t pt-2"
-            onToggle={(evento) => setAbierta(evento.currentTarget.open)}
-          >
-            <summary className="text-primary cursor-pointer text-sm font-medium">
-              ¿De dónde salió esto?
-            </summary>
-            {abierta && (
-              <div className="mt-2">
-                <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
-              </div>
-            )}
-          </details>
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setAbierta(true)}
+              aria-label="¿De dónde salió esto?"
+              title="¿De dónde salió esto?"
+              className="text-muted-foreground hover:text-primary inline-flex size-11 items-center justify-center rounded-full"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <path d="M12 11v6M12 7.5v.5" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </button>
+            <Ventana
+              titulo="¿De dónde salió esto?"
+              abierta={abierta}
+              alCerrar={() => setAbierta(false)}
+            >
+              <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
+            </Ventana>
+          </div>
         )}
       </div>
     </li>

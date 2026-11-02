@@ -19,11 +19,13 @@ import {
   consultarUsuario,
   darDeBajaEnBackend,
   ErrorDeApi,
+  MOTIVO_NO_HABILITADO,
   registrarConsentimiento,
   type Usuario,
 } from "../api/cliente";
 import { AVISO } from "../contenido/aviso-ia";
 import { BAJA } from "../contenido/baja";
+import { PILOTO } from "../contenido/piloto";
 import { versionAceptada } from "../hooks/useAvisoAceptado";
 import { olvidarSesion } from "../hooks/useConversacion";
 import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesion";
@@ -54,6 +56,10 @@ export const INGRESO_RECHAZADO =
 export const SIN_RESPUESTA =
   "No pudimos conectarnos para validar tu ingreso. Revisá tu conexión y probá de nuevo.";
 
+function noHabilitado(fallo: unknown): boolean {
+  return fallo instanceof ErrorDeApi && fallo.motivo === MOTIVO_NO_HABILITADO;
+}
+
 /**
  * `avisoVigenteAceptado` es la versión del aviso que la persona aceptó en esta
  * sesión, **solo si es la vigente**, o `null` mientras la puerta siga abierta.
@@ -81,12 +87,24 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
     // del hook, y taparlo en el bloque que decide qué mensaje mostrar es el
     // lugar exacto donde no conviene tener dos cosas con el mismo nombre.
     let huboRespuesta = false;
+    const rechazarPorLista = () => {
+      borrarToken();
+      setSesion({ estado: "anonimo" });
+      setError(PILOTO.noHabilitado);
+    };
     try {
       setSesion({ estado: "autenticado", usuario: await consultarUsuario() });
       setError(null);
       return;
     } catch (fallo) {
       huboRespuesta = fallo instanceof ErrorDeApi;
+      // Fuera de la lista blanca del piloto registrar el consentimiento no
+      // arregla nada: lo que falta es anotarse. Se suelta el token para que
+      // pueda volver a entrar con la cuenta con la que se anotó.
+      if (noHabilitado(fallo)) {
+        rechazarPorLista();
+        return;
+      }
       // 403 es «la credencial vale pero falta el consentimiento» (HU-03a), y
       // se puede resolver sin molestar a nadie: la persona ya lo dio al
       // atravesar la puerta antes de ingresar. Se registra y se reintenta.
@@ -105,6 +123,10 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
           setSesion({ estado: "autenticado", usuario: await registrarConsentimiento(version) });
           return;
         } catch (segundoFallo) {
+          if (noHabilitado(segundoFallo)) {
+            rechazarPorLista();
+            return;
+          }
           // Cae al anónimo de abajo, como cualquier otro fallo.
           huboRespuesta = segundoFallo instanceof ErrorDeApi;
         }
