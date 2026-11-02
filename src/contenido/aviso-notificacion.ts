@@ -54,7 +54,8 @@ export const NOTIFICACION = {
 
   noAutorizado: "Hoy no está autorizado.",
   // Quien aceptó un texto anterior: el backend no avisa con él. Tampoco forma
-  // parte de la huella. Dice qué cambió para que la persona decida de nuevo.
+  // parte de la huella. Dice que el texto cambió, no qué: tiene que valer para
+  // cualquier versión anterior, y lo nuevo está arriba, en los detalles.
   versionAnterior:
     "Lo habías autorizado con una versión anterior de este texto, y el texto cambió. Si querés que el aviso pueda salir, volvé a autorizarlo.",
   // Cuando la respuesta se cortó pero se pudo volver a preguntar: lo que se ve

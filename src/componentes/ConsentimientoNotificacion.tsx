@@ -144,7 +144,9 @@ export function ConsentimientoNotificacion() {
               ? `${NOTIFICACION.autorizado} ${fecha(estado.otorgado_en)}.`
               : NOTIFICACION.noAutorizado}
         </span>
-        {deOtroTexto && <span>{NOTIFICACION.versionAnterior}</span>}
+        {/* El espacio no se ve —el contenedor es flex— y evita que el lector de
+            pantalla lea las frases pegadas. */}{" "}
+        {deOtroTexto && <span>{NOTIFICACION.versionAnterior}</span>}{" "}
         {estado !== null && !estado.hay_contacto && (
           <span>{autorizado ? NOTIFICACION.autorizadoSinContacto : NOTIFICACION.sinContacto}</span>
         )}

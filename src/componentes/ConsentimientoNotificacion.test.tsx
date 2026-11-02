@@ -358,6 +358,16 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect((await screen.findByText(NOTIFICACION.sinContacto)).closest("p")).not.toHaveFocus();
   });
 
+  // La huella ata el texto a su versión pero no mira qué dice: esta prueba falla
+  // si una versión nueva deja de nombrar a quién le llega el aviso (HU-21).
+  it("el consentimiento dice que el aviso le llega a la Secretaría", async () => {
+    responder({ "GET /api/identidad/notificacion": NO_OTORGADO });
+    render(<ConsentimientoNotificacion />);
+
+    const aQuien = (await screen.findByText("A quién")).nextElementSibling;
+    expect(aQuien).toHaveTextContent("Secretaría de Coordinación y Políticas Universitarias");
+  });
+
   it("el texto que se acepta está atado a su versión", async () => {
     expect(
       await huella(),
