@@ -2,11 +2,12 @@
  * El informe del cierre de una sesión (HU-16, S4-04).
  *
  * Es lo que la persona se lleva: por eso se descarga, y por eso el orden es el
- * de alguien que lo lee sin haber estado en la conversación. Primero las
- * carreras, que es lo que vino a buscar; en cada una, por qué, qué dice la
- * Facultad, qué hay si algo la frena y con quién hablar. Después lo que contó, que es el
- * respaldo de todo lo anterior. Al pie, con qué versión se armó, para que el
- * PDF quede fechado.
+ * de lo que le importa a quien lo lee sin haber estado en la conversación:
+ * las carreras con una línea de por qué, lo que la puede frenar (becas y
+ * habilitantes), lo que contó como respaldo, lo largo plegado (la ficha de la
+ * Facultad con sus fuentes, las notas) y con quién hablar, siempre a la vista.
+ * Que el dato es provisional o el perfil parcial va arriba, sin desplegar.
+ * Al pie, cuándo se calculó el perfil, para que el PDF quede fechado.
  *
  * Lo que contó va en una sección propia y no dentro de cada carrera porque el
  * contrato todavía no dice qué citas sostienen cuál: la evidencia llega para el
@@ -23,7 +24,7 @@
  * pero en pantalla se leería como un porcentaje de acierto.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { describir, ErrorDeApi } from "../api/cliente";
 import {
@@ -184,11 +185,20 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   const notaHabilitantes = informe.recomendaciones.find(
     (carrera) => carrera.habilitantes?.nota != null,
   )?.habilitantes?.nota;
+  const conApoyos = informe.recomendaciones.filter(
+    (carrera) => carrera.habilitantes != null && hayApoyos(carrera.habilitantes),
+  );
+  const conFicha = informe.recomendaciones.filter((carrera) => carrera.fuentes.length > 0);
+  const hayCarreras = informe.recomendaciones.length > 0;
+  const hayPlegado = conFicha.length > 0 || (hayCarreras && informe.notas.length > 0);
+
+  useAbrirPlegadosAlImprimir();
 
   return (
-    <>
+    <div className="flex flex-col gap-6 break-words">
       {/* La franja de divulgación de `App` no sale en el PDF, y el PDF es
-          justamente lo que circula sin la pantalla al lado. */}
+          justamente lo que circula sin la pantalla al lado. Lo que cambia cuánto
+          creerle al informe va arriba y a la vista, no plegado. */}
       <div className="flex flex-col gap-1 text-sm">
         <p className="text-muted-foreground">
           Armado el {FECHA_LARGA.format(new Date(informe.generado_en))}.
@@ -204,19 +214,19 @@ function Contenido({ informe }: { informe: DatosInforme }) {
             y todavía no la validó.
           </p>
         )}
+        {!informe.publicable && (
+          <p className="text-muted-foreground">
+            Tu perfil es <strong>parcial</strong>: todavía no alcanza para sugerirte carreras con
+            seguridad.
+          </p>
+        )}
       </div>
 
       {/* Sin carreras no es un error: las notas dicen por qué, y es lo que se
           muestra en lugar de las carreras, no un aviso encima de nada. */}
-      {informe.notas.length > 0 && (
-        <div className="bg-accent-soft text-accent-foreground flex flex-col gap-1 rounded-md p-3 text-sm">
-          {informe.notas.map((nota) => (
-            <p key={nota}>{nota}</p>
-          ))}
-        </div>
-      )}
+      {!hayCarreras && informe.notas.length > 0 && <Notas notas={informe.notas} />}
 
-      {informe.recomendaciones.length > 0 && (
+      {hayCarreras && (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Carreras que te sugerimos</h2>
           <p className="text-muted-foreground text-sm">
@@ -227,6 +237,23 @@ function Contenido({ informe }: { informe: DatosInforme }) {
             <Carrera key={carrera.carrera} carrera={carrera} />
           ))}
         </section>
+      )}
+
+      {conApoyos.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">Si hay algo que te frena</h2>
+          {conApoyos.map((carrera) => (
+            <div key={carrera.carrera} className="flex flex-col gap-3 text-sm">
+              <h3 className="text-base font-semibold">{carrera.titulo}</h3>
+              <SiAlgoTeFrena habilitantes={carrera.habilitantes!} />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Una vez y no en cada carrera: es la misma nota para todas. */}
+      {notaHabilitantes != null && (
+        <p className="text-muted-foreground text-sm">{notaHabilitantes}</p>
       )}
 
       {informe.evidencia.length > 0 && (
@@ -247,14 +274,24 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         </section>
       )}
 
+      {/* Lo largo, plegado: sirve para verificar, no para decidir. */}
+      {hayPlegado && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Para leer con más calma</h2>
+          {conFicha.map((carrera) => (
+            <FichaPlegada key={carrera.carrera} carrera={carrera} />
+          ))}
+          {hayCarreras && informe.notas.length > 0 && (
+            <Plegado titulo="Notas del informe">
+              <Notas notas={informe.notas} />
+            </Plegado>
+          )}
+        </section>
+      )}
+
       {/* Una vez y al final, no debajo de cada carrera: es el mismo contacto de
           área para todas, y repetido tres veces se leía como relleno. */}
       {derivacion != null && <ConQuienHablar derivacion={derivacion} />}
-
-      {/* Una vez y no en cada carrera, por lo mismo. */}
-      {notaHabilitantes != null && (
-        <p className="text-muted-foreground text-sm">{notaHabilitantes}</p>
-      )}
 
       {/* La versión del instrumento sigue guardada en el informe, que es donde
           la leen el asesor y la medición de concordancia; a la persona no le
@@ -264,35 +301,79 @@ function Contenido({ informe }: { informe: DatosInforme }) {
           Perfil calculado el {FECHA_LARGA.format(new Date(informe.perfil_actualizado_en))}.
         </p>
       )}
-    </>
+    </div>
+  );
+}
+
+function Notas({ notas }: { notas: string[] }) {
+  return (
+    <div className="bg-accent-soft text-accent-foreground flex flex-col gap-1 rounded-md p-3 text-sm">
+      {notas.map((nota) => (
+        <p key={nota}>{nota}</p>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Un `<details>` cerrado no se imprime, y el PDF es lo que la persona se lleva:
+ * se abren todos al imprimir y se cierran los que se abrieron.
+ */
+function useAbrirPlegadosAlImprimir() {
+  useEffect(() => {
+    let abiertos: HTMLDetailsElement[] = [];
+    const antes = () => {
+      abiertos = [...document.querySelectorAll("details")].filter((d) => !d.open);
+      abiertos.forEach((d) => (d.open = true));
+    };
+    const despues = () => abiertos.forEach((d) => (d.open = false));
+    window.addEventListener("beforeprint", antes);
+    window.addEventListener("afterprint", despues);
+    return () => {
+      window.removeEventListener("beforeprint", antes);
+      window.removeEventListener("afterprint", despues);
+    };
+  }, []);
+}
+
+function Plegado({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <details className="border-border rounded-md border text-sm">
+      <summary className="min-h-11 cursor-pointer px-3 py-3 font-medium">{titulo}</summary>
+      <div className="px-3 pb-3">{children}</div>
+    </details>
+  );
+}
+
+function hayApoyos(habilitantes: Habilitantes): boolean {
+  return habilitantes.por_restriccion.length > 0 || habilitantes.alternativas.length > 0;
+}
+
+/** Lo que dice la Facultad de una carrera, con sus fuentes. */
+function FichaPlegada({ carrera }: { carrera: CarreraInforme }) {
+  return (
+    <Plegado titulo={`Qué dice la Facultad: ${carrera.titulo}`}>
+      <ul className="flex flex-col gap-3">
+        {carrera.fuentes.map((fuente) => (
+          <li key={fuente.id} className="break-inside-avoid">
+            <blockquote className="border-accent-strong border-l-4 pl-3 whitespace-pre-wrap">
+              {paraLaPersona(fuente.texto)}
+            </blockquote>
+            <p className="mt-1">
+              Fuente: <Referencia texto={fuente.fuente} />
+            </p>
+          </li>
+        ))}
+      </ul>
+    </Plegado>
   );
 }
 
 function Carrera({ carrera }: { carrera: CarreraInforme }) {
   return (
-    <article className="border-border bg-surface flex flex-col gap-3 rounded-md border p-4 text-sm print:border-0 print:p-0">
+    <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4 text-sm print:border-0 print:p-0">
       <h3 className="text-base font-semibold">{carrera.titulo}</h3>
-      <p className="whitespace-pre-wrap">{carrera.justificacion}</p>
-
-      {carrera.fuentes.length > 0 && (
-        <div>
-          <h4 className="font-medium">Qué dice la Facultad</h4>
-          <ul className="mt-2 flex flex-col gap-3">
-            {carrera.fuentes.map((fuente) => (
-              <li key={fuente.id} className="break-inside-avoid">
-                <blockquote className="border-accent-strong border-l-4 pl-3 whitespace-pre-wrap">
-                  {paraLaPersona(fuente.texto)}
-                </blockquote>
-                <p className="mt-1">
-                  Fuente: <Referencia texto={fuente.fuente} />
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {carrera.habilitantes != null && <SiAlgoTeFrena habilitantes={carrera.habilitantes} />}
+      <p>{carrera.justificacion}</p>
     </article>
   );
 }
@@ -317,7 +398,7 @@ function ConQuienHablar({ derivacion }: { derivacion: Derivacion }) {
   const { contacto } = derivacion;
   return (
     <div className="break-inside-avoid">
-      <h4 className="font-medium">Con quién hablar</h4>
+      <h2 className="text-lg font-semibold">Con quién hablar</h2>
       {derivacion.disponible && contacto != null ? (
         <>
           <p className="mt-1">
@@ -359,21 +440,16 @@ const RESTRICCIONES: Record<string, string> = {
 
 function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
   const { por_restriccion, alternativas } = habilitantes;
-  // Sin nada que mostrar, la sección no existe: un título con nada abajo se lee
-  // como «no cargó». La nota, si la hay, va una sola vez al pie del informe.
-  if (por_restriccion.length === 0 && alternativas.length === 0) return null;
-
+  // El título y el «sin nada que mostrar» los resuelve la sección de arriba.
   return (
     <div className="flex flex-col gap-3">
-      <h4 className="font-medium">Si hay algo que te frena</h4>
-
       {por_restriccion.map((grupo) => (
         <div key={grupo.restriccion} className="flex flex-col gap-2">
-          <h5 className="font-medium">
+          <h4 className="font-medium">
             {/* Un tipo que no conocemos no se nombra: podría ser una categoría
                 sensible, y el informe se imprime y se comparte. */}
             {RESTRICCIONES[grupo.restriccion] ?? "Otras circunstancias que mencionaste"}
-          </h5>
+          </h4>
           {/* La restricción ya no está en «En qué me baso» (P-11): sin la cita no
               se entiende por qué se ofrece lo que sigue. Un informe viejo llega vacío. */}
           {grupo.citas.length > 0 && (
@@ -399,7 +475,7 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
 
       {alternativas.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h5 className="font-medium">Carreras cercanas</h5>
+          <h4 className="font-medium">Carreras cercanas</h4>
           <ul className="flex flex-col gap-2">
             {alternativas.map((alternativa) => (
               <li key={alternativa.carrera} className="break-inside-avoid">

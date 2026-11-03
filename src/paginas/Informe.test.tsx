@@ -388,6 +388,81 @@ describe("Informe", () => {
   });
 });
 
+describe("Informe · orden de lectura", () => {
+  it("va de las carreras a lo que frena, a lo que contó, a lo plegado y a con quién hablar", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            habilitantes: {
+              por_restriccion: [
+                {
+                  restriccion: "economica",
+                  citas: [],
+                  evidencias: [],
+                  verificados: [habilitante()],
+                  no_verificados: [],
+                },
+              ],
+              alternativas: [],
+            },
+            derivacion: {
+              carrera: "ingenieria-en-sistemas-de-informacion",
+              disponible: false,
+              contacto: null,
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: "Con quién hablar" });
+    const titulos = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(titulos).toEqual([
+      "Carreras que te sugerimos",
+      "Si hay algo que te frena",
+      "Lo que contaste",
+      "Para leer con más calma",
+      "Con quién hablar",
+    ]);
+  });
+
+  it("la ficha de la Facultad y sus fuentes quedan plegadas, y se abren al tocar el resumen", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    const usuario = userEvent.setup();
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const resumen = await screen.findByText(/^Qué dice la Facultad: Ingeniería/);
+    const ficha = resumen.closest("details")!;
+    expect(ficha).not.toHaveAttribute("open");
+
+    await usuario.click(resumen);
+    expect(ficha).toHaveAttribute("open");
+  });
+
+  it("el dato provisional y el perfil parcial se leen sin abrir nada", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe({ publicable: false }));
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const provisional = await screen.findByText(/la información de la facultad es/i);
+    const parcial = screen.getByText(/tu perfil es/i);
+    expect(provisional.closest("details")).toBeNull();
+    expect(parcial.closest("details")).toBeNull();
+    expect(parcial).toHaveTextContent("parcial");
+  });
+
+  it("no usa vocabulario interno", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    await screen.findByRole("heading", { name: "Lo que contaste" });
+
+    expect(document.body.textContent).not.toMatch(
+      /corpus|dimensi[oó]n|valencia|isi-perfil|instrumento-v3/i,
+    );
+  });
+});
+
 describe("Informe · valencia de las citas", () => {
   async function conCita(valencia: number) {
     const base = informe();
