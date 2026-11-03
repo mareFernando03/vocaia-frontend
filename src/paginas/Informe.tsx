@@ -486,9 +486,11 @@ function Dimension({
         {dimension.citas.map((cita) => (
           <li key={cita.evidencia_id}>
             <blockquote className="italic">«{cita.texto}»</blockquote>
-            {/* La misma frase puede sostener un rechazo: sin decirlo, «odio
-                arreglar cosas» debajo de una dimensión se leería como afinidad. */}
-            {cita.valencia < 0 && (
+            {/* Solo el rechazo explícito (−2) se rotula: sin decirlo, «odio
+                arreglar cosas» se leería como afinidad. Con −1 es una
+                aclaración («no fue por arte») y rotularla como rechazo la
+                falsea. Arreglo parcial: el de fondo es del backend. */}
+            {cita.valencia === -2 && (
               <p className="text-muted-foreground text-xs">Lo dijiste como algo que no te gusta.</p>
             )}
             {/* El perfil junta todas las conversaciones; sin esto, el informe de

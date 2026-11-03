@@ -376,6 +376,33 @@ describe("Informe", () => {
   });
 });
 
+describe("Informe · valencia de las citas", () => {
+  async function conCita(valencia: number) {
+    const base = informe();
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      ...base,
+      evidencia: [
+        {
+          ...base.evidencia[0],
+          citas: [{ ...base.evidencia[0].citas[0], texto: "no fue por arte", valencia }],
+        },
+      ],
+    });
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    await screen.findByText(/no fue por arte/);
+  }
+
+  it("un rechazo explícito (−2) lo dice", async () => {
+    await conCita(-2);
+    expect(screen.getByText("Lo dijiste como algo que no te gusta.")).toBeInTheDocument();
+  });
+
+  it("una aclaración (−1) muestra solo la cita, sin rotularla como rechazo", async () => {
+    await conCita(-1);
+    expect(screen.queryByText(/no te gusta/)).toBeNull();
+  });
+});
+
 describe("Informe · citas de otra conversación (recorrido local del 27/10)", () => {
   it("dice de qué conversación es una cita que no es de esta, por cómo empezó y no por la fecha", async () => {
     const otra = "22222222-2222-4222-8222-222222222222";
