@@ -106,6 +106,18 @@ describe("Informe", () => {
     expect(screen.queryByText(/0[.,]8/)).not.toBeInTheDocument();
   });
 
+  it("debajo del título de las carreras aclara que no salen solo de lo último que se charló", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: /carreras que te sugerimos/i });
+    expect(
+      screen.getByText(
+        "Se arman con todo lo que contaste en la conversación, no solo con lo último que charlamos.",
+      ),
+    ).toBeVisible();
+  });
+
   it("al lado de cada carrera dice con quién de la Facultad hablar", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({

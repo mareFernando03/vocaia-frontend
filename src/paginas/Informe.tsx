@@ -219,6 +219,10 @@ function Contenido({ informe }: { informe: DatosInforme }) {
       {informe.recomendaciones.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Carreras que te sugerimos</h2>
+          <p className="text-muted-foreground text-sm">
+            Se arman con todo lo que contaste en la conversación, no solo con lo último que
+            charlamos.
+          </p>
           {informe.recomendaciones.map((carrera) => (
             <Carrera key={carrera.carrera} carrera={carrera} />
           ))}
