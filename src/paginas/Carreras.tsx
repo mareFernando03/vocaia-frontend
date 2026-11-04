@@ -173,7 +173,7 @@ function Ficha({ carrera }: { carrera: Carrera }) {
       {conFuente ? (
         <details>
           <summary className="min-h-11 cursor-pointer py-2 font-medium">
-            Qué dice la Facultad
+            Datos de la carrera
           </summary>
           <Datos carrera={carrera} />
           <p className="mt-2">
@@ -276,7 +276,7 @@ function Datos({ carrera }: { carrera: Carrera }) {
 
       {noPublicado.length > 0 && (
         <section>
-          <h3 className="font-medium">Lo que la Facultad todavía no publica</h3>
+          <h3 className="font-medium">Lo que no encontramos en las fuentes que consultamos</h3>
           <ul className="mt-1 list-disc pl-5">
             {noPublicado.map((dato) => (
               <li key={dato}>{dato}</li>

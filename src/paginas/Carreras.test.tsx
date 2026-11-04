@@ -41,7 +41,7 @@ describe("Carreras", () => {
     expect(await screen.findByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
     expect(screen.getByText("provisional")).toBeInTheDocument();
 
-    await usuario.click(screen.getByText("Qué dice la Facultad"));
+    await usuario.click(screen.getByText("Datos de la carrera"));
     expect(screen.getByText(/dura cinco años/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ordenanza C.S. N.º 1877" })).toHaveAttribute(
       "href",
@@ -63,7 +63,7 @@ describe("Carreras", () => {
     ]);
     const usuario = userEvent.setup();
     render(<Carreras alVolver={() => {}} />);
-    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+    await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText("Título que otorga").nextSibling).toHaveTextContent(
       "Ingeniero/a en Sistemas de Información",
@@ -79,7 +79,7 @@ describe("Carreras", () => {
     );
     expect(screen.getByRole("heading", { name: "Perfil profesional" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Lo que la Facultad todavía no publica" }),
+      screen.getByRole("heading", { name: "Lo que no encontramos en las fuentes que consultamos" }),
     ).toBeInTheDocument();
     expect(screen.getByText("turnos de cursado")).toBeInTheDocument();
     // Con los campos, el texto de corrido no se repite.
@@ -102,7 +102,7 @@ describe("Carreras", () => {
     ]);
     const usuario = userEvent.setup();
     render(<Carreras alVolver={() => {}} />);
-    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+    await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText(/duración en años: «5» según la ordenanza/)).toHaveTextContent(
       "«6» según el sitio de la Facultad",
@@ -114,7 +114,7 @@ describe("Carreras", () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera({ no_publicado: ["turnos de cursado"] })]);
     const usuario = userEvent.setup();
     render(<Carreras alVolver={() => {}} />);
-    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+    await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText(/dura cinco años/)).toBeInTheDocument();
     expect(screen.getByText("turnos de cursado")).toBeInTheDocument();

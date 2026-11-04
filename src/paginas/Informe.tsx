@@ -190,7 +190,7 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   );
   const conFicha = informe.recomendaciones.filter((carrera) => carrera.fuentes.length > 0);
   const hayCarreras = informe.recomendaciones.length > 0;
-  const hayPlegado = conFicha.length > 0 || (hayCarreras && informe.notas.length > 0);
+  const hayPlegado = conFicha.length > 0;
 
   useAbrirPlegadosAlImprimir();
 
@@ -232,8 +232,7 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Carreras que te sugerimos</h2>
           <p className="text-muted-foreground text-sm">
-            Se arman con todo lo que contaste en la conversación, no solo con lo último que
-            charlamos.
+            Las elegimos por los intereses que mostraste en todas tus charlas.
           </p>
           {informe.recomendaciones.map((carrera) => (
             <Carrera key={carrera.carrera} carrera={carrera} />
@@ -256,6 +255,14 @@ function Contenido({ informe }: { informe: DatosInforme }) {
       {/* Una vez y no en cada carrera: es la misma nota para todas. */}
       {notaHabilitantes != null && (
         <p className="text-muted-foreground text-sm">{notaHabilitantes}</p>
+      )}
+
+      {/* A la vista, no plegado: son salvedades sobre las carreras de arriba. */}
+      {hayCarreras && informe.notas.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Antes de decidir, tené en cuenta</h2>
+          <Notas notas={informe.notas} />
+        </section>
       )}
 
       {informe.evidencia.length > 0 && (
@@ -283,11 +290,6 @@ function Contenido({ informe }: { informe: DatosInforme }) {
           {conFicha.map((carrera) => (
             <FichaPlegada key={carrera.carrera} carrera={carrera} />
           ))}
-          {hayCarreras && informe.notas.length > 0 && (
-            <Plegado titulo="Notas del informe">
-              <Notas notas={informe.notas} />
-            </Plegado>
-          )}
         </section>
       )}
 
@@ -354,7 +356,7 @@ function hayApoyos(habilitantes: Habilitantes): boolean {
 /** Lo que dice la Facultad de una carrera, con sus fuentes. */
 function FichaPlegada({ carrera }: { carrera: CarreraInforme }) {
   return (
-    <Plegado titulo={`Qué dice la Facultad: ${carrera.titulo}`}>
+    <Plegado titulo={`Datos de la carrera: ${carrera.titulo}`}>
       <ul className="flex flex-col gap-3">
         {carrera.fuentes.map((fuente) => (
           <li key={fuente.id} className="break-inside-avoid">

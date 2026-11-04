@@ -106,15 +106,13 @@ describe("Informe", () => {
     expect(screen.queryByText(/0[.,]8/)).not.toBeInTheDocument();
   });
 
-  it("debajo del título de las carreras aclara que no salen solo de lo último que se charló", async () => {
+  it("debajo del título de las carreras dice por qué salen esas", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
     await screen.findByRole("heading", { name: /carreras que te sugerimos/i });
     expect(
-      screen.getByText(
-        "Se arman con todo lo que contaste en la conversación, no solo con lo último que charlamos.",
-      ),
+      screen.getByText("Las elegimos por los intereses que mostraste en todas tus charlas."),
     ).toBeVisible();
   });
 
@@ -433,12 +431,21 @@ describe("Informe · orden de lectura", () => {
     const usuario = userEvent.setup();
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    const resumen = await screen.findByText(/^Qué dice la Facultad: Ingeniería/);
+    const resumen = await screen.findByText(/^Datos de la carrera: Ingeniería/);
     const ficha = resumen.closest("details")!;
     expect(ficha).not.toHaveAttribute("open");
 
     await usuario.click(resumen);
     expect(ficha).toHaveAttribute("open");
+  });
+
+  it("con carreras, las notas del informe se leen sin abrir nada", async () => {
+    const nota = "Consultalo con la Facultad antes de decidir.";
+    vi.mocked(obtenerInforme).mockResolvedValue(informe({ notas: [nota] }));
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: "Antes de decidir, tené en cuenta" });
+    expect(screen.getByText(nota).closest("details")).toBeNull();
   });
 
   it("el dato provisional y el perfil parcial se leen sin abrir nada", async () => {
@@ -455,9 +462,7 @@ describe("Informe · orden de lectura", () => {
   it("al imprimir abre los plegados y después cierra los que abrió", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
-    const ficha = (await screen.findByText(/^Qué dice la Facultad: Ingeniería/)).closest(
-      "details",
-    )!;
+    const ficha = (await screen.findByText(/^Datos de la carrera: Ingeniería/)).closest("details")!;
 
     window.dispatchEvent(new Event("beforeprint"));
     expect(ficha).toHaveAttribute("open");
