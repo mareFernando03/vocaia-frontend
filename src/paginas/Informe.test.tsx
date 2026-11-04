@@ -106,6 +106,16 @@ describe("Informe", () => {
     expect(screen.queryByText(/0[.,]8/)).not.toBeInTheDocument();
   });
 
+  it("debajo del título de las carreras dice por qué salen esas", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: /carreras que te sugerimos/i });
+    expect(
+      screen.getByText("Las elegimos por los intereses que mostraste en todas tus charlas."),
+    ).toBeVisible();
+  });
+
   it("al lado de cada carrera dice con quién de la Facultad hablar", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({
@@ -373,6 +383,128 @@ describe("Informe", () => {
     expect(
       await screen.findByRole("heading", { name: "Ingeniería en Sistemas de Información" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Informe · orden de lectura", () => {
+  it("va de las carreras a lo que frena, a lo que contó, a lo plegado y a con quién hablar", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            habilitantes: {
+              por_restriccion: [
+                {
+                  restriccion: "economica",
+                  citas: [],
+                  evidencias: [],
+                  verificados: [habilitante()],
+                  no_verificados: [],
+                },
+              ],
+              alternativas: [],
+            },
+            derivacion: {
+              carrera: "ingenieria-en-sistemas-de-informacion",
+              disponible: false,
+              contacto: null,
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: "Con quién hablar" });
+    const titulos = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(titulos).toEqual([
+      "Carreras que te sugerimos",
+      "Si hay algo que te frena",
+      "Lo que contaste",
+      "Para leer con más calma",
+      "Con quién hablar",
+    ]);
+  });
+
+  it("la ficha de la Facultad y sus fuentes quedan plegadas, y se abren al tocar el resumen", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    const usuario = userEvent.setup();
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const resumen = await screen.findByText(/^Datos de la carrera: Ingeniería/);
+    const ficha = resumen.closest("details")!;
+    expect(ficha).not.toHaveAttribute("open");
+
+    await usuario.click(resumen);
+    expect(ficha).toHaveAttribute("open");
+  });
+
+  it("con carreras, las notas del informe se leen sin abrir nada", async () => {
+    const nota = "Consultalo con la Facultad antes de decidir.";
+    vi.mocked(obtenerInforme).mockResolvedValue(informe({ notas: [nota] }));
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: "Antes de decidir, tené en cuenta" });
+    expect(screen.getByText(nota).closest("details")).toBeNull();
+  });
+
+  it("el dato provisional y el perfil parcial se leen sin abrir nada", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe({ publicable: false }));
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const provisional = await screen.findByText(/la información de la facultad es/i);
+    const parcial = screen.getByText(/tu perfil es/i);
+    expect(provisional.closest("details")).toBeNull();
+    expect(parcial.closest("details")).toBeNull();
+    expect(parcial).toHaveTextContent("parcial");
+  });
+
+  it("al imprimir abre los plegados y después cierra los que abrió", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    const ficha = (await screen.findByText(/^Datos de la carrera: Ingeniería/)).closest("details")!;
+
+    window.dispatchEvent(new Event("beforeprint"));
+    expect(ficha).toHaveAttribute("open");
+    window.dispatchEvent(new Event("afterprint"));
+    expect(ficha).not.toHaveAttribute("open");
+  });
+
+  it("no usa vocabulario interno", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    await screen.findByRole("heading", { name: "Lo que contaste" });
+
+    expect(document.body.textContent).not.toMatch(
+      /corpus|dimensi[oó]n|valencia|isi-perfil|instrumento-v3/i,
+    );
+  });
+});
+
+describe("Informe · valencia de las citas", () => {
+  async function conCita(valencia: number) {
+    const base = informe();
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      ...base,
+      evidencia: [
+        {
+          ...base.evidencia[0],
+          citas: [{ ...base.evidencia[0].citas[0], texto: "no fue por arte", valencia }],
+        },
+      ],
+    });
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    await screen.findByText(/no fue por arte/);
+  }
+
+  it("un rechazo explícito (−2) lo dice", async () => {
+    await conCita(-2);
+    expect(screen.getByText("Lo dijiste como algo que no te gusta.")).toBeInTheDocument();
+  });
+
+  it("una aclaración (−1) muestra solo la cita, sin rotularla como rechazo", async () => {
+    await conCita(-1);
+    expect(screen.queryByText(/no te gusta/)).toBeNull();
   });
 });
 
