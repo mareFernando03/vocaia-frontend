@@ -47,7 +47,17 @@ describe("useAvisoAceptado", () => {
 
     const { result } = renderHook(() => useAvisoAceptado());
 
-    expect(AVISO.version).toBe("aviso-v2");
+    expect(AVISO.version).toBe("aviso-v3");
+    expect(result.current.aceptado).toBe(false);
+  });
+
+  it("haber aceptado aviso-v2 no da por aceptado aviso-v3 (VOCAIA-184)", () => {
+    // v2 no decía que cada mensaje se revisa por seguridad (P-13).
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v2");
+
+    const { result } = renderHook(() => useAvisoAceptado());
+
+    expect(AVISO.version).toBe("aviso-v3");
     expect(result.current.aceptado).toBe(false);
   });
 
