@@ -489,6 +489,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/perfil/descarga": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Descargar todo lo que VocaIA guarda de mí
+     * @description Devuelve `vocaia-mis-datos-AAAA-MM-DD.json` con todo lo de la persona (ADR-014 §3).
+     *
+     *     **No anota nada en la bitácora.** Descargar no es usar el producto, y un
+     *     evento de la descarga sería un dato más de la persona dentro del archivo
+     *     que acaba de pedir.
+     *
+     *     Lleva `no-store`: el archivo tiene datos de salud y no tiene que quedar en
+     *     ninguna caché intermedia.
+     */
+    get: operations["descargar_api_perfil_descarga_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/perfil/evolucion": {
     parameters: {
       query?: never;
@@ -2360,6 +2387,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PerfilSalida"];
+        };
+      };
+    };
+  };
+  descargar_api_perfil_descarga_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Un archivo JSON con la cuenta, las sesiones y el perfil. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };
