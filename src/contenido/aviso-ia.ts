@@ -60,7 +60,9 @@ export const AVISO: AvisoIA = {
   // Facultad. Los cuatro párrafos de v1 quedan idénticos.
   // v3 (VOCAIA-184): agrega la moderación como finalidad (P-13), porque desde
   // S5-01 cada mensaje va también al filtro de seguridad del proveedor, y lo que
-  // el proveedor retiene de cada uso (V-09). Lo demás queda idéntico a v2.
+  // el proveedor retiene de cada uso (V-09), y los cuatro agregados de ADR-014
+  // §5: la descarga, la baja, cuánto se guarda y qué no alcanza el borrado.
+  // Los párrafos de v1 quedan idénticos.
   version: "aviso-v3",
 
   titulo: "Antes de empezar, algo importante",
@@ -81,9 +83,9 @@ export const AVISO: AvisoIA = {
     // ADR-014 §5, con la descarga (backend #104, frontend #46) y la baja
     // (backend #96, frontend #41) ya integradas: dice cuánto se guarda y qué
     // alcanza el borrado.
-    "Desde tu perfil podés descargar todo lo que VocaIA guarda de vos, y borrar tu cuenta cuando quieras.",
+    "Desde tu perfil podés descargar lo que VocaIA guarda de vos, y borrar tu cuenta cuando quieras.",
     "Se guarda hasta que termine el proyecto, y después se borra.",
-    "Si borrás tu cuenta, se borra en el momento, salvo tres cosas que ya salieron de VocaIA: en la copia de seguridad puede quedar hasta 7 días más; lo que el proveedor de IA guarda para controlar abusos se borra a los 30 días; y si autorizaste el aviso a la Facultad y ya se mandó, ese correo queda allá.",
+    "Si borrás tu cuenta, se borra en el momento, salvo esto: el correo con el que te anotaste a la prueba queda en la lista de inscripción hasta que termine el proyecto; en la copia de seguridad puede quedar hasta 7 días más; lo que el proveedor de IA guarda para controlar abusos se borra dentro de los 30 días; y si autorizaste el aviso a la Facultad y ya se mandó, queda allá y en el registro del servicio que lo envía.",
     "Si te das de baja después de que publiquemos un resultado del grupo, ese resultado no cambia. Nunca lleva tu nombre.",
     "Para responderte, para armar tu perfil y para revisar cada mensaje por seguridad, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
     // V-09: la moderación no se guarda, pero el mismo texto va también a la
@@ -91,7 +93,7 @@ export const AVISO: AvisoIA = {
     // importa lo segundo, así que el aviso no separa los dos usos.
     "Ese proveedor no usa lo que escribís para entrenar sus modelos, y lo puede guardar hasta 30 días para controlar abusos.",
     "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
-    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
+    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA y de lo que vos autorices, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
   ],
 
