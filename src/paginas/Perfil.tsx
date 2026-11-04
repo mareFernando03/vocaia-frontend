@@ -31,8 +31,8 @@ import {
   type Rasgo,
 } from "../api/perfil";
 import { BajaDeLaCuenta } from "../componentes/BajaDeLaCuenta";
-import { DescargaDeDatos } from "../componentes/DescargaDeDatos";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
+import { DescargaDeDatos } from "../componentes/DescargaDeDatos";
 import { comoTeCae } from "../contenido/como-te-cae";
 import { descripcionParaLaPersona } from "../contenido/dimensiones";
 import { enLaConversacion, useInicios } from "../hooks/useConversaciones";

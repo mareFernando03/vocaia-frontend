@@ -9,7 +9,7 @@
 export const DESCARGA = {
   titulo: "Descargar lo que VocaIA guarda de vos",
   explicacion:
-    "Es un archivo con tu cuenta, cada conversación tal como la escribiste, lo que VocaIA leyó de cada una, tus informes y tu perfil. Está en formato JSON, que se abre con cualquier editor de texto y lo puede leer otro programa.",
+    "Es un archivo con tu cuenta, lo que decidiste sobre el aviso a la Facultad, cada conversación tal como la escribiste, lo que VocaIA leyó de cada una, tus informes y tu perfil. Está en formato JSON, que se abre con cualquier editor de texto y lo puede leer otro programa.",
   cuidado:
     "Puede tener cosas delicadas que contaste, como momentos en que la pasaste mal. Guardalo en un lugar donde no lo vea otra persona.",
   boton: "Descargar mis datos",
