@@ -112,7 +112,9 @@ la pantalla, comprobalo.
 rebota por detalles traba al equipo más que el detalle que corrige.
 
 - **No se pide más evidencia** de lo que el PR ya respalda. Si el cuerpo dice de
-  dónde sale un dato, o el equipo ya lo dio por suficiente, alcanza.
+  dónde sale un dato, o el equipo ya lo dio por suficiente, alcanza. **Salvo en lo
+  que afecta a personas** —riesgo, menores, datos personales, consentimiento—:
+  ahí una fuente que no dice lo que se le atribuye sigue siendo un hallazgo.
 - **No se pide precisar.** Que algo esté dicho en general no es un hallazgo: lo
   menos específico suele ser lo correcto. Tampoco se piden salvedades, listas de
   pendientes ni detalles que se desactualizan.
@@ -120,8 +122,8 @@ rebota por detalles traba al equipo más que el detalle que corrige.
 - **Lo que el cuerpo del PR declara no se vuelve a marcar.**
 - **Una segunda vuelta mira sólo lo que cambió**: no trae hallazgos nuevos sobre
   lo que ya estaba.
-- **Ante la duda entre pedir cambios y aprobar con un comentario, se aprueba con
-  el comentario.**
+- **Ante la duda, se aprueba y se integra.** Lo que no bloquea se arregla en el
+  momento, o va a una tarjeta o al cuerpo del PR: un comentario suelto se pierde.
 
 Pedir cambios queda para lo que bloquea según lo de arriba. **Decíselo a cada
 revisor en el encargo**: este criterio vale también para ellos.
