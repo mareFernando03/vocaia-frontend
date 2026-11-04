@@ -40,3 +40,19 @@ export function objetar(dimension: string, motivo: string): Promise<Objecion> {
     body: JSON.stringify({ dimension, motivo }),
   });
 }
+
+/**
+ * Todo lo que VocaIA guarda de la persona, listo para guardar (HU-04, S6-02).
+ *
+ * El backend devuelve el archivo armado (ADR-014 §3). Se vuelve a escribir
+ * indentado, como llegó, y el nombre sale de su fecha, que es la del servidor:
+ * así coincide con el que el backend le pondría.
+ */
+export async function descargarMisDatos(): Promise<{ nombre: string; contenido: string }> {
+  const archivo = await pedir<{ generado_en?: string }>("/api/perfil/descarga");
+  const dia = (archivo.generado_en ?? new Date().toISOString()).slice(0, 10);
+  return {
+    nombre: `vocaia-mis-datos-${dia}.json`,
+    contenido: JSON.stringify(archivo, null, 2),
+  };
+}
