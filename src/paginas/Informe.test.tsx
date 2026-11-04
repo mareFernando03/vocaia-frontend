@@ -452,6 +452,19 @@ describe("Informe · orden de lectura", () => {
     expect(parcial).toHaveTextContent("parcial");
   });
 
+  it("al imprimir abre los plegados y después cierra los que abrió", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+    const ficha = (await screen.findByText(/^Qué dice la Facultad: Ingeniería/)).closest(
+      "details",
+    )!;
+
+    window.dispatchEvent(new Event("beforeprint"));
+    expect(ficha).toHaveAttribute("open");
+    window.dispatchEvent(new Event("afterprint"));
+    expect(ficha).not.toHaveAttribute("open");
+  });
+
   it("no usa vocabulario interno", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     render(<Informe sesionId={SESION} alVolver={() => {}} />);

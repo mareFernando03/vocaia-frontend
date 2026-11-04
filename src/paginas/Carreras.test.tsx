@@ -110,6 +110,16 @@ describe("Carreras", () => {
     expect(screen.getByText(/confirmarlo con la Secretaría/)).toBeInTheDocument();
   });
 
+  it("con un solo dato suelto sigue mostrando el texto de la carrera", async () => {
+    vi.mocked(listarCarreras).mockResolvedValue([carrera({ no_publicado: ["turnos de cursado"] })]);
+    const usuario = userEvent.setup();
+    render(<Carreras alVolver={() => {}} />);
+    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+
+    expect(screen.getByText(/dura cinco años/)).toBeInTheDocument();
+    expect(screen.getByText("turnos de cursado")).toBeInTheDocument();
+  });
+
   it("una carrera sin fuente no muestra descripción y lo dice", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera({ fuente: " " })]);
     render(<Carreras alVolver={() => {}} />);

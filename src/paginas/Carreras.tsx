@@ -233,13 +233,14 @@ function Datos({ carrera }: { carrera: Carrera }) {
   const noPublicado = carrera.no_publicado ?? [];
   const discrepancias = carrera.discrepancias ?? [];
   const perfil = carrera.perfil_profesional?.trim() ?? "";
-  const estructurada =
-    filas.length > 0 || perfil !== "" || noPublicado.length > 0 || discrepancias.length > 0;
-
-  if (!estructurada) return <p className="mt-2 whitespace-pre-wrap">{carrera.texto}</p>;
+  // Con apenas un dato suelto (solo lo no publicado, solo una discrepancia) la
+  // ficha quedaría casi vacía: sin campos ni perfil se sigue mostrando el texto.
+  const sinCuerpo = filas.length === 0 && perfil === "";
 
   return (
     <div className="mt-2 flex flex-col gap-3 break-words">
+      {sinCuerpo && <p className="whitespace-pre-wrap">{carrera.texto}</p>}
+
       {filas.length > 0 && (
         <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
           {filas.map(([nombre, valor]) => (
@@ -269,10 +270,7 @@ function Datos({ carrera }: { carrera: Carrera }) {
               </li>
             ))}
           </ul>
-          <p>
-            Mostramos el dato de la primera fuente. Podés confirmarlo con la Secretaría de la
-            Facultad.
-          </p>
+          <p>Podés confirmarlo con la Secretaría de la Facultad.</p>
         </section>
       )}
 

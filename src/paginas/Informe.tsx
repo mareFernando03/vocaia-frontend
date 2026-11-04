@@ -211,13 +211,15 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         {provisional && (
           <p className="text-muted-foreground">
             La información de la Facultad es <strong>provisional</strong>: sale de fuentes públicas
-            y todavía no la validó.
+            y la Facultad todavía no la validó.
           </p>
         )}
         {!informe.publicable && (
           <p className="text-muted-foreground">
-            Tu perfil es <strong>parcial</strong>: todavía no alcanza para sugerirte carreras con
-            seguridad.
+            Tu perfil es <strong>parcial</strong>:{" "}
+            {hayCarreras
+              ? "tomá las carreras de abajo como orientativas."
+              : "todavía no alcanza para sugerirte carreras."}
           </p>
         )}
       </div>
