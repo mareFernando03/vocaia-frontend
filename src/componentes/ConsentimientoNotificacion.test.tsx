@@ -28,6 +28,7 @@ const OTORGADO: Notificacion = {
  */
 const HUELLAS: Record<string, string> = {
   "notificacion-v1": "28c9266f29aa89d3",
+  "notificacion-v2": "07e38f6c36bfdcce",
 };
 
 async function huella(): Promise<string> {
@@ -238,6 +239,41 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     expect(espia).toHaveBeenCalledTimes(1);
   });
 
+  it("quien lo autorizó con un texto anterior se ve sin autorizar y puede aceptar el nuevo", async () => {
+    const espia = responder({
+      "GET /api/identidad/notificacion": { ...OTORGADO, version: "notificacion-v1" },
+      "POST /api/identidad/notificacion": OTORGADO,
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.versionAnterior)).toBeInTheDocument();
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByText(/Lo autorizaste el/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.otorgar }));
+
+    const [, init] = espia.mock.calls[1];
+    expect(JSON.parse(String(init?.body))).toEqual({ version: NOTIFICACION.version });
+    expect(await screen.findByText(/Lo autorizaste el/)).toBeInTheDocument();
+    expect(screen.queryByText(NOTIFICACION.versionAnterior)).not.toBeInTheDocument();
+  });
+
+  it("con un texto anterior y sin correo no pide volver a autorizar: solo dice por qué no puede", async () => {
+    responder({
+      "GET /api/identidad/notificacion": {
+        ...OTORGADO,
+        version: "notificacion-v1",
+        hay_contacto: false,
+      },
+    });
+    render(<ConsentimientoNotificacion />);
+
+    expect(await screen.findByText(NOTIFICACION.sinContacto)).toBeInTheDocument();
+    expect(screen.getByText(NOTIFICACION.noAutorizado)).toBeInTheDocument();
+    expect(screen.queryByText(NOTIFICACION.versionAnterior)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("si el correo dejó de estar entre la consulta y el clic, vuelve a preguntar", async () => {
     responder({
       "GET /api/identidad/notificacion": [NO_OTORGADO, { ...NO_OTORGADO, hay_contacto: false }],
@@ -320,6 +356,16 @@ describe("ConsentimientoNotificacion (HU-03b, HU-21)", () => {
     render(<ConsentimientoNotificacion />);
 
     expect((await screen.findByText(NOTIFICACION.sinContacto)).closest("p")).not.toHaveFocus();
+  });
+
+  // La huella ata el texto a su versión pero no mira qué dice: esta prueba falla
+  // si una versión nueva deja de nombrar a quién le llega el aviso (HU-21).
+  it("el consentimiento dice que el aviso le llega a la Secretaría", async () => {
+    responder({ "GET /api/identidad/notificacion": NO_OTORGADO });
+    render(<ConsentimientoNotificacion />);
+
+    const aQuien = (await screen.findByText("A quién")).nextElementSibling;
+    expect(aQuien).toHaveTextContent("Secretaría de Coordinación y Políticas Universitarias");
   });
 
   it("el texto que se acepta está atado a su versión", async () => {
