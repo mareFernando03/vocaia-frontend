@@ -72,18 +72,24 @@ export const AVISO: AvisoIA = {
     "Puede equivocarse. Si algo de lo que te dice sobre una carrera te parece raro, verificalo antes de decidir.",
   ],
 
-  // No dice cuánto tiempo se guarda ni cómo pedir el borrado: eso llega con
-  // HU-04 (Sprint 6), y prometerlo antes sería prometer algo que el sistema no
-  // hace. El destinatario se nombra en genérico, decidido el 03/10. Por lo mismo
-  // no dice para qué es el nombre: hoy ningún prompt ni endpoint lo lee, y la
+  // El destinatario se nombra en genérico, decidido el 03/10. Por lo mismo no
+  // dice para qué es el nombre: hoy ningún prompt ni endpoint lo lee, y la
   // finalidad se agrega cuando exista.
   tituloDatos: "Qué pasa con lo que contás",
   datos: [
     "Lo que escribís se guarda, para que puedas retomar la charla y para armar tu perfil y tu informe.",
+    // ADR-014 §5, con la descarga (backend #104, frontend #46) y la baja
+    // (backend #96, frontend #41) ya integradas: dice cuánto se guarda y qué
+    // alcanza el borrado.
+    "Desde tu perfil podés descargar todo lo que VocaIA guarda de vos, y borrar tu cuenta cuando quieras.",
+    "Se guarda hasta que termine el proyecto, y después se borra.",
+    "Si borrás tu cuenta, se borra en el momento, salvo tres cosas que ya salieron de VocaIA: en la copia de seguridad puede quedar hasta 7 días más; lo que el proveedor de IA guarda para controlar abusos se borra a los 30 días; y si autorizaste el aviso a la Facultad y ya se mandó, ese correo queda allá.",
+    "Si te das de baja después de que publiquemos un resultado del grupo, ese resultado no cambia. Nunca lleva tu nombre.",
     "Para responderte, para armar tu perfil y para revisar cada mensaje por seguridad, lo que escribís se procesa con un proveedor externo de inteligencia artificial.",
-    // V-09: la moderación no entra en los registros de abuso del proveedor; la
-    // conversación, hasta 30 días. Ninguna se usa para entrenar.
-    "Ese proveedor no usa lo que escribís para entrenar sus modelos. Lo que revisa por seguridad no lo guarda, y lo demás lo puede guardar hasta 30 días para controlar abusos.",
+    // V-09: la moderación no se guarda, pero el mismo texto va también a la
+    // conversación, que el proveedor guarda hasta 30 días. Para quien lee
+    // importa lo segundo, así que el aviso no separa los dos usos.
+    "Ese proveedor no usa lo que escribís para entrenar sus modelos, y lo puede guardar hasta 30 días para controlar abusos.",
     "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
     "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA, no se le pasa a nadie más.",
     "Qué contar lo elegís vos.",
