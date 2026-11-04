@@ -497,7 +497,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Descargar todo lo que VocaIA guarda de mí
+     * Descargar lo que VocaIA guarda de mí
      * @description Devuelve `vocaia-mis-datos-AAAA-MM-DD.json` con todo lo de la persona (ADR-014 §3).
      *
      *     **No anota nada en la bitácora.** Descargar no es usar el producto, y un
@@ -664,6 +664,22 @@ export interface components {
       titulo: string;
     };
     /**
+     * CarreraRelacionadaSalida
+     * @description Otra carrera del corpus, nombrada como se muestra.
+     */
+    CarreraRelacionadaSalida: {
+      /**
+       * Denominacion
+       * @description Denominación oficial, para mostrar.
+       */
+      denominacion: string;
+      /**
+       * Id
+       * @description Slug de la carrera, para enlazar a su ficha.
+       */
+      id: string;
+    };
+    /**
      * CarreraSalida
      * @description Una carrera del corpus institucional, con la fuente que la respalda.
      *
@@ -674,10 +690,18 @@ export interface components {
      */
     CarreraSalida: {
       /**
+       * Convenio
+       * @description Institución con la que se dicta.
+       */
+      convenio?: string | null;
+      /**
        * Denominacion
        * @description Denominación oficial, para mostrar.
        */
       denominacion: string;
+      /** Discrepancias */
+      discrepancias?: components["schemas"]["DiscrepanciaSalida"][];
+      duracion?: components["schemas"]["DuracionSalida"] | null;
       /**
        * Estado
        * @description Situación de la carrera, por ejemplo `activa`.
@@ -698,16 +722,35 @@ export interface components {
        * @description Slug estable de la carrera en el corpus.
        */
       id: string;
+      /** @description Si esta carrera es el título intermedio de otra, cuál. */
+      intermedio_de?: components["schemas"]["CarreraRelacionadaSalida"] | null;
+      /** Modalidad */
+      modalidad?: string | null;
       /**
        * Nivel
        * @description `grado`, `tecnicatura` o `pregrado`.
        */
       nivel: string;
       /**
+       * No Publicado
+       * @description Lo que ninguna fuente publica de esta carrera, con nombre legible.
+       */
+      no_publicado?: string[];
+      norma?: components["schemas"]["NormaSalida"] | null;
+      /** Perfil Profesional */
+      perfil_profesional?: string | null;
+      /**
        * Texto
        * @description La descripción institucional completa.
        */
       texto: string;
+      /** @description Carrera cuyo título se obtiene a mitad de camino en esta. */
+      titulo_intermedio?: components["schemas"]["CarreraRelacionadaSalida"] | null;
+      /**
+       * Titulo Otorgado
+       * @description Título que otorga.
+       */
+      titulo_otorgado?: string | null;
     };
     /** CitaSalida */
     CitaSalida: {
@@ -791,6 +834,46 @@ export interface components {
       contacto: components["schemas"]["ContactoDerivacionSalida"] | null;
       /** Disponible */
       disponible: boolean;
+    };
+    /**
+     * DiscrepanciaSalida
+     * @description Un dato en el que dos fuentes no coinciden. El corpus adopta una y deja constancia.
+     */
+    DiscrepanciaSalida: {
+      /**
+       * Campo
+       * @description Qué dato, con nombre legible: «duración en años».
+       */
+      campo: string;
+      /** Fuente Adoptada */
+      fuente_adoptada: string;
+      /** Fuente Alternativa */
+      fuente_alternativa: string;
+      /** Valor Adoptado */
+      valor_adoptado: string;
+      /** Valor Alternativo */
+      valor_alternativo: string;
+    };
+    /**
+     * DuracionSalida
+     * @description Cuánto lleva recibirse, tal como lo declara el corpus. Lo que no declara es `null`.
+     */
+    DuracionSalida: {
+      /**
+       * Anios
+       * @description Duración en años.
+       */
+      anios?: number | null;
+      /**
+       * Condicion De Obtencion
+       * @description Para el título que no se obtiene por duración sino por una condición.
+       */
+      condicion_de_obtencion?: string | null;
+      /**
+       * Horas Reloj
+       * @description Carga horaria en horas reloj.
+       */
+      horas_reloj?: number | null;
     };
     /**
      * EncuadreSalida
@@ -1112,6 +1195,24 @@ export interface components {
        * @description Texto del mensaje. No puede estar vacío.
        */
       contenido: string;
+    };
+    /** NormaSalida */
+    NormaSalida: {
+      /**
+       * Anio
+       * @description Año de la norma.
+       */
+      anio?: number | null;
+      /**
+       * Ordenanza
+       * @description La norma que aprueba la carrera, por ejemplo la ordenanza.
+       */
+      ordenanza: string;
+      /**
+       * Plan
+       * @description Plan de estudios vigente.
+       */
+      plan?: string | null;
     };
     /**
      * NotificacionSalida
