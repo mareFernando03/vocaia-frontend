@@ -32,6 +32,7 @@ import {
 } from "../api/perfil";
 import { BajaDeLaCuenta } from "../componentes/BajaDeLaCuenta";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
+import { DescargaDeDatos } from "../componentes/DescargaDeDatos";
 import { comoTeCae } from "../contenido/como-te-cae";
 import { descripcionParaLaPersona } from "../contenido/dimensiones";
 import { enLaConversacion, useInicios } from "../hooks/useConversaciones";
@@ -51,6 +52,7 @@ export default function Perfil({ alVolver, alDarDeBaja }: Propiedades) {
     <div className="flex flex-col gap-8">
       <ContenidoPerfil alVolver={alVolver} />
       <ConsentimientoNotificacion />
+      <DescargaDeDatos />
       <BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />
     </div>
   );

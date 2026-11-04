@@ -2,7 +2,7 @@
  * Los textos de la lista blanca del piloto (protocolo del piloto §8).
  *
  * Mientras dura el piloto sólo entra quien se anotó en la página de inscripción,
- * que es la continuación de la encuesta de validación de agosto. El backend
+ * que es la continuación de la encuesta de validación de mayo. El backend
  * rechaza al resto con un 403 que trae `X-Motivo: correo-no-habilitado`.
  */
 export const PILOTO = {
