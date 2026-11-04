@@ -49,6 +49,67 @@ describe("Carreras", () => {
     );
   });
 
+  it("muestra la ficha en campos, el perfil aparte y lo que la Facultad no publica", async () => {
+    vi.mocked(listarCarreras).mockResolvedValue([
+      carrera({
+        titulo_otorgado: "Ingeniero/a en Sistemas de Información",
+        modalidad: "Presencial",
+        duracion: { anios: 5, horas_reloj: 3600 },
+        titulo_intermedio: { id: "tup", denominacion: "Analista Universitario" },
+        norma: { ordenanza: "Ordenanza C.S. N.º 1877", anio: 2008 },
+        perfil_profesional: "Diseña y mantiene sistemas de información.",
+        no_publicado: ["turnos de cursado"],
+      }),
+    ]);
+    const usuario = userEvent.setup();
+    render(<Carreras alVolver={() => {}} />);
+    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+
+    expect(screen.getByText("Título que otorga").nextSibling).toHaveTextContent(
+      "Ingeniero/a en Sistemas de Información",
+    );
+    expect(screen.getByText("Duración").nextSibling).toHaveTextContent(
+      "5 años · 3.600 horas reloj",
+    );
+    expect(screen.getByText("Título intermedio").nextSibling).toHaveTextContent(
+      "Analista Universitario",
+    );
+    expect(screen.getByText("Norma").nextSibling).toHaveTextContent(
+      "Ordenanza C.S. N.º 1877 (2008)",
+    );
+    expect(screen.getByRole("heading", { name: "Perfil profesional" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Lo que la Facultad todavía no publica" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("turnos de cursado")).toBeInTheDocument();
+    // Con los campos, el texto de corrido no se repite.
+    expect(screen.queryByText(/dura cinco años/)).not.toBeInTheDocument();
+  });
+
+  it("si dos fuentes no coinciden lo muestra y manda a confirmar con la Secretaría", async () => {
+    vi.mocked(listarCarreras).mockResolvedValue([
+      carrera({
+        discrepancias: [
+          {
+            campo: "duración en años",
+            valor_adoptado: "5",
+            fuente_adoptada: "la ordenanza",
+            valor_alternativo: "6",
+            fuente_alternativa: "el sitio de la Facultad",
+          },
+        ],
+      }),
+    ]);
+    const usuario = userEvent.setup();
+    render(<Carreras alVolver={() => {}} />);
+    await usuario.click(await screen.findByText("Qué dice la Facultad"));
+
+    expect(screen.getByText(/duración en años: «5» según la ordenanza/)).toHaveTextContent(
+      "«6» según el sitio de la Facultad",
+    );
+    expect(screen.getByText(/confirmarlo con la Secretaría/)).toBeInTheDocument();
+  });
+
   it("una carrera sin fuente no muestra descripción y lo dice", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera({ fuente: " " })]);
     render(<Carreras alVolver={() => {}} />);

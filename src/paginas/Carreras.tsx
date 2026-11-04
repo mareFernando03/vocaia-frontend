@@ -6,6 +6,10 @@
  * una carrera sin fuente no muestra descripción: la pantalla dice que no hay
  * respaldo en lugar de mostrar algo que nadie puede rastrear.
  *
+ * La ficha muestra los campos estructurados del corpus (título, duración,
+ * modalidad, norma, perfil), lo que la Facultad no publica y las discrepancias
+ * entre fuentes; el texto de corrido queda solo para la carrera sin campos.
+ *
  * El rótulo de validación no se pliega. Mientras el corpus sea provisional, la
  * diferencia entre «lo dice una ordenanza pública» y «lo validó la Facultad»
  * tiene que verse sin desplegar nada.
@@ -168,8 +172,10 @@ function Ficha({ carrera }: { carrera: Carrera }) {
       <Validacion estado={carrera.estado_validacion} />
       {conFuente ? (
         <details>
-          <summary className="cursor-pointer font-medium">Qué dice la Facultad</summary>
-          <p className="mt-2 whitespace-pre-wrap">{carrera.texto}</p>
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">
+            Qué dice la Facultad
+          </summary>
+          <Datos carrera={carrera} />
           <p className="mt-2">
             Fuente: <Referencia texto={carrera.fuente} />
           </p>
@@ -181,6 +187,106 @@ function Ficha({ carrera }: { carrera: Carrera }) {
         </p>
       )}
     </article>
+  );
+}
+
+/** «5 años», «3.600 horas reloj», o la condición si el título no sale por duración. */
+function duracionLegible(duracion: NonNullable<Carrera["duracion"]>): string | null {
+  const partes = [
+    duracion.anios != null && `${duracion.anios} ${duracion.anios === 1 ? "año" : "años"}`,
+    duracion.horas_reloj != null && `${duracion.horas_reloj.toLocaleString("es-AR")} horas reloj`,
+    duracion.condicion_de_obtencion,
+  ].filter((parte): parte is string => typeof parte === "string" && parte !== "");
+  return partes.length > 0 ? partes.join(" · ") : null;
+}
+
+function normaLegible(norma: NonNullable<Carrera["norma"]>): string {
+  const año = norma.anio != null ? ` (${norma.anio})` : "";
+  const plan = norma.plan != null && norma.plan !== "" ? `, plan ${norma.plan}` : "";
+  return `${norma.ordenanza}${año}${plan}`;
+}
+
+/**
+ * La ficha en campos y no de corrido: qué título da, cuánto dura, en qué
+ * modalidad. Si el backend no mandó ninguno (carrera sin datos separados), se
+ * muestra el texto tal como se indexó, que es lo que había.
+ */
+function Datos({ carrera }: { carrera: Carrera }) {
+  const duracion = carrera.duracion != null ? duracionLegible(carrera.duracion) : null;
+  const filas = (
+    [
+      ["Título que otorga", carrera.titulo_otorgado],
+      ["Modalidad", carrera.modalidad],
+      ["Duración", duracion],
+      [
+        "Título intermedio",
+        carrera.titulo_intermedio != null ? carrera.titulo_intermedio.denominacion : null,
+      ],
+      [
+        "Es el título intermedio de",
+        carrera.intermedio_de != null ? carrera.intermedio_de.denominacion : null,
+      ],
+      ["Se dicta con", carrera.convenio],
+      ["Norma", carrera.norma != null ? normaLegible(carrera.norma) : null],
+    ] as [string, string | null | undefined][]
+  ).filter((fila): fila is [string, string] => fila[1] != null && fila[1] !== "");
+  const noPublicado = carrera.no_publicado ?? [];
+  const discrepancias = carrera.discrepancias ?? [];
+  const perfil = carrera.perfil_profesional?.trim() ?? "";
+  const estructurada =
+    filas.length > 0 || perfil !== "" || noPublicado.length > 0 || discrepancias.length > 0;
+
+  if (!estructurada) return <p className="mt-2 whitespace-pre-wrap">{carrera.texto}</p>;
+
+  return (
+    <div className="mt-2 flex flex-col gap-3 break-words">
+      {filas.length > 0 && (
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
+          {filas.map(([nombre, valor]) => (
+            <div key={nombre} className="contents">
+              <dt className="font-medium">{nombre}</dt>
+              <dd>{valor}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {perfil !== "" && (
+        <section>
+          <h3 className="font-medium">Perfil profesional</h3>
+          <p className="mt-1 whitespace-pre-wrap">{perfil}</p>
+        </section>
+      )}
+
+      {discrepancias.length > 0 && (
+        <section className="bg-accent-soft text-accent-foreground flex flex-col gap-2 rounded-md p-3">
+          <h3 className="font-medium">Las fuentes no coinciden</h3>
+          <ul className="flex flex-col gap-2">
+            {discrepancias.map((d) => (
+              <li key={d.campo}>
+                {d.campo}: «{d.valor_adoptado}» según {d.fuente_adoptada}, y «{d.valor_alternativo}»
+                según {d.fuente_alternativa}.
+              </li>
+            ))}
+          </ul>
+          <p>
+            Mostramos el dato de la primera fuente. Podés confirmarlo con la Secretaría de la
+            Facultad.
+          </p>
+        </section>
+      )}
+
+      {noPublicado.length > 0 && (
+        <section>
+          <h3 className="font-medium">Lo que la Facultad todavía no publica</h3>
+          <ul className="mt-1 list-disc pl-5">
+            {noPublicado.map((dato) => (
+              <li key={dato}>{dato}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 
