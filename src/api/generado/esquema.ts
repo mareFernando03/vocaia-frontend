@@ -497,7 +497,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Descargar todo lo que VocaIA guarda de mí
+     * Descargar lo que VocaIA guarda de mí
      * @description Devuelve `vocaia-mis-datos-AAAA-MM-DD.json` con todo lo de la persona (ADR-014 §3).
      *
      *     **No anota nada en la bitácora.** Descargar no es usar el producto, y un
