@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventoConversacion, Historial, ResumenSesion, Turno } from "../api/conversacion";
 
@@ -31,6 +31,7 @@ const { obtenerInforme } = await import("../api/informe");
 const { default: Autenticado } = await import("./Autenticado");
 
 const CLAVE = "vocaia:conversacion:sesion";
+const PREGUNTADO = "vocaia:aviso-facultad:preguntado";
 const ANTERIOR = "22222222-2222-4222-8222-222222222222";
 
 function turno(numero: number, rol: string, contenido: string): Turno {
@@ -76,6 +77,9 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     vi.mocked(obtenerHistorial).mockReset();
     vi.mocked(enviarMensaje).mockReset();
     window.sessionStorage.clear();
+    // La pregunta por el aviso a la Facultad ya se hizo: estas pruebas son de
+    // la conversación. La pregunta tiene las suyas, al final.
+    window.sessionStorage.setItem(PREGUNTADO, "si");
   });
 
   it("se retoma una conversación de otro día y el hilo continúa", async () => {
@@ -284,5 +288,27 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     // Volver del informe deja en el historial, que es de donde se vino.
     await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
     expect(await screen.findByRole("heading", { name: /tus conversaciones/i })).toBeInTheDocument();
+  });
+});
+
+describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    vi.mocked(listarSesiones).mockReset();
+    vi.mocked(obtenerHistorial).mockReset();
+    window.sessionStorage.clear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ vigente: false, hay_contacto: true })),
+    );
+  });
+
+  it("aparece al entrar, y al seguir queda anotada para que un F5 no la repita", async () => {
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /seguir a la conversación/i }));
+
+    expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
+    expect(window.sessionStorage.getItem(PREGUNTADO)).toBe("si");
   });
 });

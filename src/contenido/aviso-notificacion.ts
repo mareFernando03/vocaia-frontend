@@ -73,4 +73,11 @@ export const NOTIFICACION = {
     "La cuenta con la que entraste ya no comparte un correo verificado, así que hoy el aviso no puede salir. Si la próxima vez que entrés lo vuelve a compartir, sigue funcionando.",
   otorgar: "Autorizar el aviso",
   revocar: "Dejar de autorizarlo",
+
+  // La pregunta antes de la conversación (S7-12, VOCAIA-204). No forman parte
+  // de la huella: no cambian lo que se acepta, dicen dónde se pregunta.
+  antesDeEmpezar: "Antes de empezar",
+  antesDeEmpezarIntro:
+    "Una pregunta antes de la conversación. La respuesta la podés cambiar después desde tu perfil.",
+  seguir: "Seguir a la conversación",
 } as const;
