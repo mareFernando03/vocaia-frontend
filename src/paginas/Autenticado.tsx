@@ -17,12 +17,14 @@
 
 import { useState } from "react";
 
+import { useAvisoPreguntado } from "../hooks/useAvisoPreguntado";
 import { olvidarSesion, recordarSesion } from "../hooks/useConversacion";
 import Carreras from "./Carreras";
 import Conversacion from "./Conversacion";
 import Historial from "./Historial";
 import Informe from "./Informe";
 import Perfil from "./Perfil";
+import PreguntaAviso from "./PreguntaAviso";
 
 interface Propiedades {
   alSalir: () => Promise<void>;
@@ -38,6 +40,10 @@ export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
   // que se vino: al cerrarlo, el desvío sigue ahí y se vuelve al historial o a
   // la conversación sin tener que recordar cuál era.
   const [informe, setInforme] = useState<string | null>(null);
+  // Antes de la primera conversación del ingreso, la pregunta por el aviso a
+  // la Facultad (S7-12). Sólo antes de la conversación: los desvíos se abren
+  // desde ella, así que nadie llega a ellos sin haber pasado.
+  const { preguntado, marcar } = useAvisoPreguntado();
 
   function cambiarDeSesion(elegir: () => void) {
     elegir();
@@ -66,6 +72,10 @@ export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
 
   if (desvio === "carreras") {
     return <Carreras alVolver={() => setDesvio(null)} />;
+  }
+
+  if (!preguntado) {
+    return <PreguntaAviso alSeguir={marcar} />;
   }
 
   return (
