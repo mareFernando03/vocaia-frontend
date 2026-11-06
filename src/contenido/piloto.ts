@@ -7,6 +7,8 @@
  */
 export const PILOTO = {
   inscripcion: "https://voca-ia-survey.lovable.app",
+  /** Con `?encuesta`, quien llega sin sesión va directo a entrar con Google, sin rehacer el filtro. */
+  encuesta: "https://voca-ia-survey.lovable.app/?encuesta",
   /** Lo que ve en el ingreso quien no está en la lista. */
   noHabilitado:
     "Esta prueba es por invitación. Si ya te anotaste, revisá que entraste con la misma cuenta de Google que usaste para anotarte; si te anotaste hoy, puede tardar hasta un día.",

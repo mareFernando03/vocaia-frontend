@@ -106,6 +106,16 @@ describe("Informe", () => {
     expect(screen.queryByText(/0[.,]8/)).not.toBeInTheDocument();
   });
 
+  it("el botón de la encuesta lleva a la página con ?encuesta, que pide entrar con Google", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(await screen.findByRole("link", { name: "Contanos cómo te fue" })).toHaveAttribute(
+      "href",
+      "https://voca-ia-survey.lovable.app/?encuesta",
+    );
+  });
+
   it("debajo del título de las carreras dice por qué salen esas", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
