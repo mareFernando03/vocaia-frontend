@@ -15,11 +15,19 @@ import { hayQuePreguntar } from "../hooks/useAvisoPreguntado";
  * que se otorga acá es lo mismo que se otorga allá.
  *
  * Si no hay nada que preguntar, sigue sola a la conversación, sin mostrarse.
- * Si la consulta falla, también: la pregunta no puede ser lo que impida
- * conversar, y en el perfil sigue estando.
+ * Si la consulta falla, también, pero sin darla por hecha: la pregunta no puede
+ * ser lo que impida conversar, y no se pierde, porque se repite al recargar o
+ * en el próximo ingreso. En el perfil sigue estando.
  */
-export default function PreguntaAviso({ alSeguir }: { alSeguir: () => void }) {
-  const [preguntar, setPreguntar] = useState<boolean | null>(null);
+export default function PreguntaAviso({
+  alSeguir,
+  alFallarLaConsulta,
+}: {
+  alSeguir: () => void;
+  /** Se sigue a la conversación sin dar la pregunta por hecha: se repite al recargar o al próximo ingreso. */
+  alFallarLaConsulta: () => void;
+}) {
+  const [preguntar, setPreguntar] = useState<boolean | "fallo" | null>(null);
   const tituloRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -27,7 +35,7 @@ export default function PreguntaAviso({ alSeguir }: { alSeguir: () => void }) {
     consultarNotificacion().then(
       (estado) => vigente && setPreguntar(hayQuePreguntar(estado)),
       // La sesión vencida la resuelve App volviendo al ingreso.
-      (fallo: unknown) => vigente && !(fallo instanceof SesionVencida) && setPreguntar(false),
+      (fallo: unknown) => vigente && !(fallo instanceof SesionVencida) && setPreguntar("fallo"),
     );
     return () => {
       vigente = false;
@@ -36,10 +44,11 @@ export default function PreguntaAviso({ alSeguir }: { alSeguir: () => void }) {
 
   useEffect(() => {
     if (preguntar === false) alSeguir();
+    if (preguntar === "fallo") alFallarLaConsulta();
     // Al aparecer, el foco va al título: si no, quien usa lector de pantalla no
     // se entera de que en lugar de la conversación hay una pregunta.
     if (preguntar === true) tituloRef.current?.focus();
-  }, [preguntar, alSeguir]);
+  }, [preguntar, alSeguir, alFallarLaConsulta]);
 
   if (preguntar !== true) {
     return <p className="text-muted-foreground text-sm">Preparando la conversación…</p>;

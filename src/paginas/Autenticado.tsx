@@ -44,6 +44,8 @@ export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
   // la Facultad (S7-12). Sólo antes de la conversación: los desvíos se abren
   // desde ella, así que nadie llega a ellos sin haber pasado.
   const { preguntado, marcar } = useAvisoPreguntado();
+  // Si la consulta falló se sigue sin marcar: la pregunta no se da por hecha.
+  const [sinConsulta, setSinConsulta] = useState(false);
 
   function cambiarDeSesion(elegir: () => void) {
     elegir();
@@ -74,8 +76,8 @@ export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
     return <Carreras alVolver={() => setDesvio(null)} />;
   }
 
-  if (!preguntado) {
-    return <PreguntaAviso alSeguir={marcar} />;
+  if (!preguntado && !sinConsulta) {
+    return <PreguntaAviso alSeguir={marcar} alFallarLaConsulta={() => setSinConsulta(true)} />;
   }
 
   return (
