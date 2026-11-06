@@ -57,7 +57,7 @@ describe("PreguntaAviso (S7-12)", () => {
   it("a quien nunca lo decidió le pregunta, y se puede seguir sin autorizar", async () => {
     responder({ "GET /api/identidad/notificacion": NUNCA });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} />);
+    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
     const titulo = await screen.findByRole("heading", { name: NOTIFICACION.antesDeEmpezar });
     // El foco va a la pregunta: si no, un lector de pantalla no se entera.
@@ -75,7 +75,7 @@ describe("PreguntaAviso (S7-12)", () => {
       "GET /api/identidad/notificacion": NUNCA,
       "POST /api/identidad/notificacion": OTORGADO,
     });
-    render(<PreguntaAviso alSeguir={() => {}} />);
+    render(<PreguntaAviso alSeguir={() => {}} alFallarLaConsulta={() => {}} />);
 
     await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
 
@@ -90,17 +90,19 @@ describe("PreguntaAviso (S7-12)", () => {
   ] as const)("si %s, sigue sola a la conversación", async (_, estado) => {
     responder({ "GET /api/identidad/notificacion": estado });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} />);
+    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
     await waitFor(() => expect(alSeguir).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("heading", { name: NOTIFICACION.antesDeEmpezar })).toBeNull();
   });
 
-  it("si no puede consultar, no le impide conversar", async () => {
+  it("si no puede consultar, sigue sin darla por hecha", async () => {
     responder({ "GET /api/identidad/notificacion": "sin red" });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} />);
+    const alFallar = vi.fn();
+    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={alFallar} />);
 
-    await waitFor(() => expect(alSeguir).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(alFallar).toHaveBeenCalledTimes(1));
+    expect(alSeguir).not.toHaveBeenCalled();
   });
 });
