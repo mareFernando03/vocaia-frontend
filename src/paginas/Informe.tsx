@@ -121,7 +121,7 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
               la reconoce por la misma cuenta de Google. Se ofrece acá porque es
               cuando la persona acaba de leer el informe. */}
           {informe !== null && (
-            <a href={PILOTO.inscripcion} target="_blank" rel="noopener" className={BOTON}>
+            <a href={PILOTO.encuesta} target="_blank" rel="noopener" className={BOTON}>
               {PILOTO.comoTeFue}
             </a>
           )}
