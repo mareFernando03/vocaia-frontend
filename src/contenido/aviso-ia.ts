@@ -43,6 +43,8 @@ export interface AvisoIA {
   /** Quién atiende en los canales de abajo. Se omite si no hay canales. */
   presentacionAyuda: string;
   canales: readonly CanalDeAyuda[];
+  /** El enlace a la política de privacidad, que dice lo mismo con más detalle. */
+  politica: { texto: string; href: string };
   /** Texto del botón que confirma la lectura. */
   aceptar: string;
   /** Texto del control que vuelve a abrir el aviso una vez aceptado. */
@@ -63,7 +65,12 @@ export const AVISO: AvisoIA = {
   // el proveedor retiene de cada uso (V-09), y los cuatro agregados de ADR-014
   // §5: la descarga, la baja, cuánto se guarda y qué no alcanza el borrado.
   // Los párrafos de v1 quedan idénticos.
-  version: "aviso-v3",
+  // v4 (S7-15, VOCAIA-207): corrige las dos frases que la auditoría de privacidad
+  // encontró no ciertas (A-6 y A-7). El correo no era «para avisarte algo
+  // importante»: ningún código le escribe a la persona. Y «no se le pasa a nadie
+  // más» callaba a los servicios donde funciona VocaIA. Suma el enlace a la
+  // política (A-9). Lo demás queda idéntico.
+  version: "aviso-v4",
 
   titulo: "Antes de empezar, algo importante",
 
@@ -92,8 +99,15 @@ export const AVISO: AvisoIA = {
     // conversación, que el proveedor guarda hasta 30 días. Para quien lee
     // importa lo segundo, así que el aviso no separa los dos usos.
     "Ese proveedor no usa lo que escribís para entrenar sus modelos, y lo puede guardar hasta 30 días para controlar abusos.",
-    "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo es para avisarte algo importante sobre tus datos.",
-    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Aparte del proveedor de IA y de lo que vos autorices, no se le pasa a nadie más.",
+    // A-7: los usos reales del nombre y el correo. La lista blanca lee el correo
+    // al ingresar; el aviso a la Secretaría lleva los dos; la descarga los
+    // incluye; y el análisis del piloto une por correo lo de la inscripción con
+    // la conversación (analisis-piloto.md §2).
+    "Tu nombre y tu correo de Google se guardan aparte de la conversación y no se mezclan con ella. El correo sirve para comprobar que te anotaste a la prueba y, al analizar los resultados, para unir lo que contestaste al anotarte con tu conversación. Los dos van en la descarga de tus datos, y en el aviso a la Facultad solo si lo autorizás.",
+    // A-6: los destinatarios. Render y Neon están en Virginia (ADR-005). La
+    // región de la página de inscripción no está verificada (F-3), así que no
+    // se dice.
+    "Todo esto lo usa el equipo que desarrolla VocaIA, en el Proyecto Final de la UTN Facultad Regional San Francisco, solo para este proyecto. Además del proveedor de IA, lo guardan por cuenta del equipo los servicios donde funciona VocaIA: el servidor y la base de datos, en Estados Unidos, y la página de inscripción a la prueba. Si autorizás el aviso a la Facultad, sale por un servicio de correo con servidores en la Unión Europea. A nadie más.",
     "Qué contar lo elegís vos.",
   ],
 
@@ -115,6 +129,8 @@ export const AVISO: AvisoIA = {
     { nombre: "Teléfono", detalle: "(03564) 421147, interno 116", href: "tel:+543564421147,116" },
     { nombre: "WhatsApp", detalle: "3564 236255", href: "https://wa.me/5493564236255" },
   ],
+
+  politica: { texto: "Leé la política de privacidad completa", href: "/privacidad.html" },
 
   aceptar: "Entendido, empecemos",
   reabrir: "Qué es VocaIA",
