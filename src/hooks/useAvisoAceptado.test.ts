@@ -47,7 +47,7 @@ describe("useAvisoAceptado", () => {
 
     const { result } = renderHook(() => useAvisoAceptado());
 
-    expect(AVISO.version).toBe("aviso-v3");
+    expect(AVISO.version).toBe("aviso-v4");
     expect(result.current.aceptado).toBe(false);
   });
 
@@ -57,7 +57,18 @@ describe("useAvisoAceptado", () => {
 
     const { result } = renderHook(() => useAvisoAceptado());
 
-    expect(AVISO.version).toBe("aviso-v3");
+    expect(AVISO.version).toBe("aviso-v4");
+    expect(result.current.aceptado).toBe(false);
+  });
+
+  it("haber aceptado aviso-v3 no da por aceptado aviso-v4 (VOCAIA-207)", () => {
+    // v3 decía que el correo era para avisarle algo a la persona y que no se le
+    // pasaba a nadie más: las dos cosas que corrige v4 (auditoría, A-6 y A-7).
+    window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", "aviso-v3");
+
+    const { result } = renderHook(() => useAvisoAceptado());
+
+    expect(AVISO.version).toBe("aviso-v4");
     expect(result.current.aceptado).toBe(false);
   });
 

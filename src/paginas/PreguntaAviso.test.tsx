@@ -81,8 +81,9 @@ describe("PreguntaAviso (S7-12)", () => {
     render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
     const titulo = await screen.findByRole("heading", { name: NOTIFICACION.antesDeEmpezar });
-    // El foco va a la pregunta: si no, un lector de pantalla no se entera.
-    expect(titulo).toHaveFocus();
+    // El foco va a la pregunta: si no, un lector de pantalla no se entera. Lo
+    // pone un efecto después de dibujarla, así que se espera.
+    await waitFor(() => expect(titulo).toHaveFocus());
     expect(await screen.findByRole("button", { name: NOTIFICACION.otorgar })).toBeInTheDocument();
     expect(alSeguir).not.toHaveBeenCalled();
 

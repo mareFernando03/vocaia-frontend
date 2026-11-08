@@ -143,6 +143,18 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
               <li key={dato}>{dato}</li>
             ))}
           </ul>
+          {/* En otra pestaña: con la puerta abierta, salir de la página
+              dejaría a la persona sin el aviso que estaba leyendo (A-9). */}
+          <p className="mt-2 text-sm">
+            <a
+              href={AVISO.politica.href}
+              target="_blank"
+              rel="noopener"
+              className="text-primary inline-flex min-h-11 items-center underline underline-offset-2"
+            >
+              {AVISO.politica.texto}
+            </a>
+          </p>
         </section>
 
         {/* Solo se dibuja si hay contactos reales cargados: una sección de

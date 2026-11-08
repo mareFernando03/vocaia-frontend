@@ -35,7 +35,18 @@ describe("AvisoIA · derivación a orientación humana", () => {
     render(<AvisoIA modo="puerta" onAceptar={() => {}} />);
 
     expect(screen.queryByRole("heading", { name: /dónde hablar/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    // El único enlace es el de la política, que no es un canal de ayuda.
+    expect(screen.getAllByRole("link").map((enlace) => enlace.getAttribute("href"))).toEqual([
+      "/privacidad.html",
+    ]);
+  });
+
+  it("enlaza la política de privacidad en otra pestaña, sin sacar a la persona del aviso (A-9)", () => {
+    render(<AvisoIA modo="puerta" onAceptar={() => {}} />);
+
+    const politica = screen.getByRole("link", { name: /política de privacidad/i });
+    expect(politica).toHaveAttribute("href", "/privacidad.html");
+    expect(politica).toHaveAttribute("target", "_blank");
   });
 
   it("con contactos cargados, los muestra sin tocar el componente", () => {
