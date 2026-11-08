@@ -313,7 +313,7 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
     expect(window.sessionStorage.getItem(PREGUNTADO)).toBe("si");
   });
 
-  it("si la consulta falla, sigue a la conversación sin anotarla: se vuelve a preguntar", async () => {
+  it("si la consulta falla, deja seguir a la conversación sin anotarla: se vuelve a preguntar", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
@@ -322,8 +322,13 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
     );
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
 
-    await waitFor(() => expect(screen.queryByText(/preparando la conversación/i)).toBeNull());
-    expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
+    expect(await screen.findByRole("alert")).toHaveTextContent(NOTIFICACION.consultaFallida);
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.seguir }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull(),
+    );
+    expect(screen.queryByText(/preparando la conversación/i)).toBeNull();
     expect(window.sessionStorage.getItem(PREGUNTADO)).toBeNull();
   });
 
