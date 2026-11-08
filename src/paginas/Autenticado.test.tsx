@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventoConversacion, Historial, ResumenSesion, Turno } from "../api/conversacion";
+import { NOTIFICACION } from "../contenido/aviso-notificacion";
 
 /**
  * El criterio de aceptación de S2-04 (HU-12): «se retoma una conversación de
@@ -310,5 +311,55 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
 
     expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
     expect(window.sessionStorage.getItem(PREGUNTADO)).toBe("si");
+  });
+
+  it("si la consulta falla, deja seguir a la conversación sin anotarla: se vuelve a preguntar", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(NOTIFICACION.consultaFallida);
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.seguir }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull(),
+    );
+    expect(screen.queryByText(/preparando la conversación/i)).toBeNull();
+    expect(window.sessionStorage.getItem(PREGUNTADO)).toBeNull();
+  });
+
+  it("con el aviso ya autorizado entra directo a la conversación, sin mostrar la pregunta", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          vigente: true,
+          hay_contacto: true,
+          version: NOTIFICACION.version,
+          otorgado_en: "2026-11-05T12:00:00Z",
+        }),
+      ),
+    );
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+
+    await waitFor(() => expect(screen.queryByText(/preparando la conversación/i)).toBeNull());
+    expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
+  });
+
+  it("un F5 con la marca puesta no repite la pregunta", async () => {
+    window.sessionStorage.setItem(PREGUNTADO, "si");
+    const espia = vi.fn(async (_url: string) =>
+      Response.json({ vigente: false, hay_contacto: true }),
+    );
+    vi.stubGlobal("fetch", espia);
+    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+
+    expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
+    expect(screen.queryByText(/preparando la conversación/i)).toBeNull();
+    expect(espia.mock.calls.some(([url]) => String(url).includes("/notificacion"))).toBe(false);
   });
 });

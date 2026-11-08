@@ -80,4 +80,9 @@ export const NOTIFICACION = {
   antesDeEmpezarIntro:
     "Una pregunta antes de la conversación. La respuesta la podés cambiar después desde tu perfil.",
   seguir: "Seguir a la conversación",
+  // Si la consulta falla: la pregunta no se da por hecha y se puede seguir igual.
+  consultaFallida: "No pudimos ver si ya respondiste esta pregunta.",
+  consultaFallidaSeguir:
+    "Podés reintentar o seguir a la conversación: te la volvemos a hacer en el próximo ingreso, y la respuesta también está en tu perfil.",
+  reintentar: "Reintentar",
 } as const;

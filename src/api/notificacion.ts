@@ -9,9 +9,16 @@ import type { components } from "./generado/esquema";
 
 export type Notificacion = components["schemas"]["NotificacionSalida"];
 
-/** Sin ningún acto registrado, el backend responde `vigente: false`. */
-export function consultarNotificacion(): Promise<Notificacion> {
-  return pedir<Notificacion>("/api/identidad/notificacion");
+/**
+ * Sin ningún acto registrado, el backend responde `vigente: false`.
+ *
+ * `signal` existe para la pregunta antes de chatear: sin un tope, un backend
+ * que no responde la deja en «Preparando la conversación…» para siempre.
+ */
+export function consultarNotificacion(
+  opciones: { signal?: AbortSignal } = {},
+): Promise<Notificacion> {
+  return pedir<Notificacion>("/api/identidad/notificacion", { signal: opciones.signal });
 }
 
 /** Registra el otorgamiento con la versión del texto que la persona leyó. */
