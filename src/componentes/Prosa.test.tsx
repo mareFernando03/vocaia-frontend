@@ -105,4 +105,31 @@ cortado a mano.`}
 
     expect(screen.getByText("hacer cosas con las manos").tagName).toBe("STRONG");
   });
+
+  it("no muestra las marcas de cita [1] ni [2], pero deja el resto del texto", () => {
+    const { container } = render(
+      <Prosa texto="Dura 3 años y es presencial [1]. La ingeniería dura 5 [2][1]. 2088 horas reloj [1]" />,
+    );
+
+    expect(container.textContent).toBe(
+      "Dura 3 años y es presencial. La ingeniería dura 5. 2088 horas reloj",
+    );
+  });
+
+  it("muestra una lista corta de carreras con apertura, negrita y pregunta final", () => {
+    const { container } = render(
+      <Prosa
+        texto={`Las dos son presenciales. Esto es lo que cambia:
+- **Técnico Universitario en Electrónica:** 3 años, título de pregrado.
+- **Ingeniería Electrónica:** 5 años, título de grado.
+
+¿Cuántas horas por día podrías cursar?`}
+      />,
+    );
+
+    expect(container.querySelectorAll("li")).toHaveLength(2);
+    expect(screen.getByText("Ingeniería Electrónica:").tagName).toBe("STRONG");
+    expect(container.textContent).not.toContain("**");
+    expect(screen.getByText("¿Cuántas horas por día podrías cursar?")).toBeInTheDocument();
+  });
 });
