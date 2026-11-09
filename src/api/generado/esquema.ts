@@ -662,6 +662,8 @@ export interface components {
       puntaje: number;
       /** Titulo */
       titulo: string;
+      /** @description El título intermedio de esta carrera, si lo tiene. No se guarda con el informe: se agrega al leerlo, del corpus, como `derivacion`. */
+      via_corta?: components["schemas"]["ViaCortaSalida"] | null;
     };
     /**
      * CarreraRelacionadaSalida
@@ -1707,6 +1709,32 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /**
+     * ViaCortaSalida
+     * @description El título intermedio de una carrera de grado: la forma de recibirse antes (VOCAIA-203).
+     *
+     *     Las carreras de pregrado no se sugieren como carreras independientes: son el
+     *     título intermedio de una de grado. Quien trabaja de mañana y tiene la plata
+     *     justa puede necesitar justamente esa salida, y así la ve sin que el ranking
+     *     la trate como una carrera aparte.
+     */
+    ViaCortaSalida: {
+      /**
+       * Carrera
+       * @description Slug de la carrera de pregrado en el corpus.
+       */
+      carrera: string;
+      /**
+       * Duracion Anios
+       * @description Cuánto dura; vacío si ninguna fuente lo publica.
+       */
+      duracion_anios?: number | null;
+      /**
+       * Titulo
+       * @description Cómo se llama el título intermedio.
+       */
+      titulo: string;
     };
   };
   responses: never;

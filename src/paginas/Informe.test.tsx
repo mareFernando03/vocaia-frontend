@@ -160,6 +160,33 @@ describe("Informe", () => {
     expect(screen.queryByText(/Teléfono:/)).toBeNull();
   });
 
+  it("si la carrera tiene título intermedio, lo dice como la forma de recibirse antes", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            carrera: "ingenieria-electronica",
+            titulo: "Ingeniería Electrónica",
+            via_corta: {
+              carrera: "tecnico-universitario-en-electronica",
+              titulo: "Técnico Universitario en Electrónica",
+              duracion_anios: 3,
+            },
+          }),
+          carrera({ carrera: "ingenieria-electromecanica", titulo: "Ingeniería Electromecánica" }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const frase = await screen.findAllByText(/es el título intermedio de esta carrera/);
+    // Una sola: la carrera sin título intermedio no dice nada.
+    expect(frase).toHaveLength(1);
+    expect(frase[0]).toHaveTextContent(
+      "Si necesitás recibirte antes: el Técnico Universitario en Electrónica (3 años) es el título intermedio de esta carrera.",
+    );
+  });
+
   it("si el contacto no está validado lo dice y no muestra ninguno", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({

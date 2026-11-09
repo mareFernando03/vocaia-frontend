@@ -378,6 +378,14 @@ function Carrera({ carrera }: { carrera: CarreraInforme }) {
     <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4 text-sm print:border-0 print:p-0">
       <h3 className="text-base font-semibold">{carrera.titulo}</h3>
       <p>{carrera.justificacion}</p>
+      {carrera.via_corta != null && (
+        <p>
+          Si necesitás recibirte antes: el <strong>{carrera.via_corta.titulo}</strong>
+          {carrera.via_corta.duracion_anios != null &&
+            ` (${carrera.via_corta.duracion_anios} años)`}{" "}
+          es el título intermedio de esta carrera.
+        </p>
+      )}
     </article>
   );
 }
