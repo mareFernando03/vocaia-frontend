@@ -1,10 +1,19 @@
 name: Asignar reviewer
 
-# pull_request_target y no pull_request: con pull_request el workflow Y el script
-# salen de la rama del PR, asi que su autor podria editarlos para exfiltrar el PAT.
-# pull_request_target los toma de la rama base y nunca ejecuta codigo del PR.
+# pull_request y no pull_request_target, solo en este repositorio. Es el unico
+# publico de los tres, y GitHub bloquea pull_request_target en los publicos: el
+# 09/11 lo apago a prueba (el assign de #56 no llego a arrancar) y desde el
+# 02/12/2026 lo bloquea siempre, salvo una politica de eventos que lo habilite.
+# En 5to y el backend, que son privados, sigue pull_request_target.
+#
+# Para el PAT el riesgo no cambia. Con pull_request el workflow y el script
+# salen de la rama del PR, pero solo quien puede subir una rama a este repo abre
+# un PR desde el, y esa persona ya podria leer el secret con un workflow propio
+# en cada push. A un PR desde un fork, pull_request no le pasa los secrets: es de
+# lo que protegia pull_request_target, y el job falla sin GH_TOKEN en vez de
+# exponerlo.
 on:
-  pull_request_target:
+  pull_request:
     types: [ready_for_review, opened, reopened]
 
 # `contents: read` y no `{}`: con permisos vacios el GITHUB_TOKEN no puede leer
@@ -29,7 +38,8 @@ jobs:
       # viejo hace checkout de un arbol sin este script y el job muere con
       # MODULE_NOT_FOUND. Paso en el PR de VOCAIA-49, y como el workflow solo
       # dispara en opened/reopened, nunca reintenta solo.
-      # Sigue siendo seguro: es la rama base, nunca codigo del PR.
+      # Con pull_request el workflow ya sale de la rama del PR; clonar la base
+      # sigue haciendo que el script sea el de main.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
