@@ -92,18 +92,50 @@ export const yaTieneReviewer = (pr, reviews = []) =>
 
 // ---------------------------------------------------------------------------
 
+// Cuanto esperar antes de reintentar, o null si el error no es por limite.
+// Al sacar de borrador tres PR en el mismo segundo, los tres workflows buscaban
+// a la vez y GitHub corto con el limite secundario (403): el reparto fallaba y
+// el PR quedaba en rojo sin revisor (09/11). GitHub pide esperar lo que diga
+// retry-after; si no lo dice y la cuota se agoto, hasta el reset; si no, un
+// minuto.
+export const esperaPorLimite = (status, headers, cuerpo, ahora = Date.now()) => {
+  const porLimite = status === 429 || (status === 403 && /rate limit/i.test(cuerpo));
+  if (!porLimite) return null;
+  const retryAfter = Number(headers.get('retry-after'));
+  if (retryAfter > 0) return retryAfter * 1000;
+  if (headers.get('x-ratelimit-remaining') === '0') {
+    const reset = Number(headers.get('x-ratelimit-reset')) * 1000;
+    if (reset > ahora) return reset - ahora + 1000;
+  }
+  return 60e3;
+};
+
+const REINTENTOS = 3;
+const ESPERA_MAXIMA = 5 * 60e3; // mas que esto, mejor fallar y relanzar a mano
+const dormir = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const TOKEN = process.env.GH_TOKEN;
 const api = async (path, init) => {
-  const r = await fetch(`https://api.github.com${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!r.ok) throw new Error(`${r.status} ${path}: ${await r.text()}`);
-  return r.status === 204 ? null : r.json();
+  for (let intento = 0; ; intento++) {
+    const r = await fetch(`https://api.github.com${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (r.ok) return r.status === 204 ? null : r.json();
+    const cuerpo = await r.text();
+    const espera = esperaPorLimite(r.status, r.headers, cuerpo);
+    if (espera === null || espera > ESPERA_MAXIMA || intento >= REINTENTOS) {
+      throw new Error(`${r.status} ${path}: ${cuerpo}`);
+    }
+    // Con algo de azar, para que los workflows que chocaron no vuelvan juntos.
+    const ms = espera + Math.floor(Math.random() * 10e3);
+    console.log(`Limite de GitHub en ${path}: reintento ${intento + 1} en ${Math.round(ms / 1000)} s.`);
+    await dormir(ms);
+  }
 };
 
 const count = (q) =>
@@ -195,6 +227,15 @@ async function main() {
 
 async function test() {
   const { strict: assert } = await import('node:assert');
+
+  const h = (o) => new Headers(o);
+  const secundario = 'You have exceeded a secondary rate limit.';
+  assert.equal(esperaPorLimite(403, h({}), secundario), 60e3, 'el del 09/11: sin retry-after, un minuto');
+  assert.equal(esperaPorLimite(403, h({ 'retry-after': '30' }), secundario), 30e3);
+  assert.equal(esperaPorLimite(429, h({}), ''), 60e3);
+  assert.equal(esperaPorLimite(403, h({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': '1000' }), 'API rate limit exceeded', 940e3), 61e3);
+  assert.equal(esperaPorLimite(403, h({}), 'Resource not accessible by personal access token'), null, 'un permiso que falta no se reintenta');
+  assert.equal(esperaPorLimite(404, h({}), 'Not Found'), null);
   const c = (login, pendingReview, doneReviews) => ({ login, pendingReview, doneReviews });
 
   // Casos reales del 15 y 16/09: con la regla vieja, los dos fueron a Luca.
