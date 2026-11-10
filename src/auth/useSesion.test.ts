@@ -42,6 +42,35 @@ afterEach(() => {
 });
 
 describe("useSesion · consentimiento", () => {
+  it.each([false, true])(
+    "salir olvida la conversación sin tener la charla montada, fallo remoto: %s",
+    async (falloRemoto) => {
+      guardarToken("token-de-prueba");
+      window.sessionStorage.setItem("vocaia:conversacion:sesion", "sesion-de-otra-persona");
+      consultarUsuario.mockResolvedValue(USUARIO);
+      if (falloRemoto) cerrarSesionEnBackend.mockRejectedValueOnce(new Error("sin red"));
+      else cerrarSesionEnBackend.mockResolvedValueOnce(undefined);
+      const { result } = renderHook(() => useSesion());
+      await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+      await act(async () => {
+        await result.current.salir().catch(() => undefined);
+      });
+      expect(obtenerToken()).toBeNull();
+      expect(window.sessionStorage.getItem("vocaia:conversacion:sesion")).toBeNull();
+      await act(async () => result.current.ingresar("otra-persona"));
+      expect(window.sessionStorage.getItem("vocaia:conversacion:sesion")).toBeNull();
+    },
+  );
+
+  it("perder la credencial desde otra pantalla también olvida la charla", async () => {
+    guardarToken("token-de-prueba");
+    consultarUsuario.mockResolvedValue(USUARIO);
+    const { result } = renderHook(() => useSesion());
+    await waitFor(() => expect(result.current.sesion.estado).toBe("autenticado"));
+    window.sessionStorage.setItem("vocaia:conversacion:sesion", "sesion-anterior");
+    act(() => borrarToken());
+    expect(window.sessionStorage.getItem("vocaia:conversacion:sesion")).toBeNull();
+  });
   it("ante un 403 registra el consentimiento aceptado y reintenta", async () => {
     guardarToken("token-de-prueba");
     window.sessionStorage.setItem("vocaia:aviso-ia:aceptado", AVISO.version);

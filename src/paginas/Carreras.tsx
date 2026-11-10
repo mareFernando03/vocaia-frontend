@@ -48,18 +48,23 @@ export default function Carreras() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const campo = useRef<HTMLInputElement>(null);
+  // Limpiar puede pedir el catálogo mientras sigue una búsqueda en vuelo.
+  // Sólo la petición más reciente puede cambiar lo que muestra la pantalla.
+  const pedido = useRef(0);
 
   const cargar = useCallback(async (texto: string) => {
+    const actual = ++pedido.current;
     setCargando(true);
     setError(null);
     try {
-      setCarreras(
-        texto
-          ? (await buscarCarreras(texto)).map((coincidencia) => coincidencia.carrera)
-          : await listarCarreras(),
-      );
+      const recibidas = texto
+        ? (await buscarCarreras(texto)).map((coincidencia) => coincidencia.carrera)
+        : await listarCarreras();
+      if (actual !== pedido.current) return;
+      setCarreras(recibidas);
       setBuscado(texto);
     } catch (fallo) {
+      if (actual !== pedido.current) return;
       // La sesión vencida la resuelve App volviendo al ingreso.
       if (!(fallo instanceof SesionVencida)) {
         setError(
@@ -67,7 +72,7 @@ export default function Carreras() {
         );
       }
     } finally {
-      setCargando(false);
+      if (actual === pedido.current) setCargando(false);
     }
   }, []);
 
@@ -91,7 +96,7 @@ export default function Carreras() {
   function limpiar() {
     setBorrador("");
     campo.current?.focus();
-    if (buscado !== "") void cargar("");
+    void cargar("");
   }
 
   return (

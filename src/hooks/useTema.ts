@@ -57,7 +57,7 @@ export function useTema(): { tema: Tema; alternar: () => void } {
       const nuevo: Tema = consulta.matches ? "oscuro" : "claro";
       // Con un tema elegido, el del sistema se anota pero no se ve: no hay
       // nada que transicionar.
-      if (elegido() !== null) {
+      if (preferido !== null) {
         setSistema(nuevo);
         return;
       }
@@ -68,7 +68,7 @@ export function useTema(): { tema: Tema; alternar: () => void } {
     };
     consulta.addEventListener("change", alCambiar);
     return () => consulta.removeEventListener("change", alCambiar);
-  }, []);
+  }, [preferido]);
 
   const alternar = useCallback(() => {
     const nuevo: Tema = tema === "oscuro" ? "claro" : "oscuro";

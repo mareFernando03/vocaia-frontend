@@ -58,7 +58,7 @@ export function Navegacion({ variante, activa, alElegir }: Propiedades) {
                   "font-medium transition-colors",
                   inferior
                     ? "flex h-16 w-full flex-col items-center justify-center gap-1 text-xs"
-                    : "flex h-10 items-center gap-2 rounded-full px-3 text-sm md:px-4",
+                    : "flex h-11 items-center gap-2 rounded-full px-3 text-sm md:px-4",
                   esActiva
                     ? cn("text-primary", !inferior && "bg-primary-soft")
                     : cn(

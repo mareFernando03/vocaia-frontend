@@ -21,6 +21,11 @@ export function useTecladoVirtual() {
     let alturaMaxima = visible.height;
 
     const medir = () => {
+      // El zoom táctil también reduce el viewport visible, sin abrir teclado.
+      if (visible.scale !== 1) {
+        delete raiz.dataset.teclado;
+        return;
+      }
       alturaMaxima = Math.max(alturaMaxima, visible.height);
       // Un teclado se lleva bastante más que la barra de direcciones del
       // navegador, que también cambia la altura al desplazarse.

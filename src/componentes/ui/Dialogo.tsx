@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { Dialog } from "radix-ui";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 
@@ -22,17 +22,20 @@ export function Dialogo({
   titulo,
   abierto,
   alCambiar,
+  disparador,
   children,
   className,
 }: {
   titulo: string;
   abierto: boolean;
   alCambiar: (abierto: boolean) => void;
+  disparador: ReactElement;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <Dialog.Root open={abierto} onOpenChange={alCambiar}>
+      <Dialog.Trigger asChild>{disparador}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-overlay animate-aparecer fixed inset-0 z-40" />
         <Dialog.Content

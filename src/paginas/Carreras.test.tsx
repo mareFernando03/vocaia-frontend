@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Carrera } from "../api/carreras";
+import type { Carrera, CoincidenciaCarrera } from "../api/carreras";
 
 /**
  * S3-05 · cada descripción de carrera se rastrea a su fuente sin salir de la
@@ -28,6 +28,38 @@ function carrera(extra: Partial<Carrera> = {}): Carrera {
 }
 
 describe("Carreras", () => {
+  it.each([false, true])(
+    "limpiar descarta una búsqueda pendiente aunque después falle: %s",
+    async (falla) => {
+      vi.mocked(listarCarreras).mockResolvedValue([carrera()]);
+      let resolver!: (valor: CoincidenciaCarrera[]) => void;
+      let rechazar!: (error: Error) => void;
+      vi.mocked(buscarCarreras).mockReturnValue(
+        new Promise((bien, mal) => {
+          resolver = bien;
+          rechazar = mal;
+        }),
+      );
+      const usuario = userEvent.setup();
+      render(<Carreras />);
+      await screen.findByText("Ingeniería en Sistemas de Información");
+      await usuario.type(screen.getByRole("searchbox"), "programar");
+      await usuario.click(screen.getByRole("button", { name: "Buscar" }));
+      await usuario.click(screen.getByRole("button", { name: "Borrar lo que escribiste" }));
+      await screen.findByText("Ingeniería en Sistemas de Información");
+      await act(async () => {
+        if (falla) rechazar(new Error("Búsqueda vieja fallida"));
+        else
+          resolver([
+            { carrera: carrera({ id: "otra", denominacion: "Resultado viejo" }), puntaje: 1 },
+          ]);
+      });
+      expect(screen.getByRole("searchbox")).toHaveValue("");
+      expect(screen.getByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
+      expect(screen.queryByText("Resultado viejo")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    },
+  );
   beforeEach(() => {
     vi.mocked(listarCarreras).mockReset();
     vi.mocked(buscarCarreras).mockReset();

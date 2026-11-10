@@ -239,7 +239,7 @@
    * recibe el foco por teclado puede quedar debajo de ella (WCAG 2.4.11).
    */
   html {
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 7rem;
   }
 
   /*

@@ -136,7 +136,7 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVerInforme }: P
                   <Boton
                     variante="secundario"
                     onClick={() => alVerInforme(sesion.sesion_id)}
-                    aria-label={`Ver el informe de la conversación del ${fecha}`}
+                    aria-label={`Ver informe de la conversación del ${fecha}`}
                     className="relative z-10 self-start"
                   >
                     <FileText aria-hidden="true" />

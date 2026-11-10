@@ -129,7 +129,7 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
   const esperando = informe === null && error === null && !agotada;
 
   return (
-    <article className="flex flex-col gap-8">
+    <article className="flex flex-col gap-8 print:break-inside-auto">
       <div className="flex flex-col gap-2">
         {/* Volver va arriba y a la izquierda: es donde se lo busca para salir
             de una pantalla que se abrió encima de otra. */}

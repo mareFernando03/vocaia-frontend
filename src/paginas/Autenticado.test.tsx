@@ -299,7 +299,9 @@ describe("HU-12 · historial de sesiones recuperable", () => {
 
     await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
     await usuario.click(await screen.findByRole("button", { name: "Historial" }));
-    await usuario.click(await screen.findByRole("button", { name: /ver el informe/i }));
+    const verInforme = await screen.findByRole("button", { name: /ver informe de/i });
+    expect(verInforme).toHaveTextContent("Ver informe");
+    await usuario.click(verInforme);
     expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();
 
     // Volver del informe deja en el historial, que es de donde se vino.

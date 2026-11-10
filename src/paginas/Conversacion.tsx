@@ -314,39 +314,52 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
           el chat. La salvedad de R-002 va en la línea misma y no en la ventana:
           una salvedad que hay que abrir para leer no es una salvedad. */}
       <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
-        <button
-          type="button"
-          onClick={() => setAbierta(true)}
-          className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
+        <Dialogo
+          titulo="Fuentes consultadas"
+          abierto={abierta}
+          alCambiar={setAbierta}
+          disparador={
+            <button
+              type="button"
+              className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
+            >
+              <BookOpenText aria-hidden="true" className="size-4" />
+              Fuentes de la Facultad ({fuentes.length})
+            </button>
+          }
         >
-          <BookOpenText aria-hidden="true" className="size-4" />
-          Fuentes de la Facultad ({fuentes.length})
-        </button>
+          <ContenidoFuentes fuentes={fuentes} />
+        </Dialogo>
         <span>
           · datos <strong className="text-foreground font-semibold">provisionales</strong>, todavía
           sin validar.
         </span>
       </p>
-      <Dialogo titulo="Fuentes consultadas" abierto={abierta} alCambiar={setAbierta}>
-        {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
+    </>
+  );
+}
+
+function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
+  return (
+    <>
+      {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
             lo que se escribió y el modelo puede haber ignorado todo. */}
-        <p className="text-muted-foreground flex items-center gap-1">
-          Lo que VocaIA leyó para la última respuesta.
-          <InfoTip tema="estas fuentes">
-            Es el material de la Facultad más cercano a lo que escribiste. La respuesta no
-            necesariamente lo usó todo.
-          </InfoTip>
-        </p>
-        {/* La salvedad ya está en la línea que abre esta ventana; repetirla
+      <p className="text-muted-foreground flex items-center gap-1">
+        Lo que VocaIA leyó para la última respuesta.
+        <InfoTip tema="estas fuentes">
+          Es el material de la Facultad más cercano a lo que escribiste. La respuesta no
+          necesariamente lo usó todo.
+        </InfoTip>
+      </p>
+      {/* La salvedad ya está en la línea que abre esta ventana; repetirla
             acá como insignia sólo sumaba ruido. */}
-        <ul className="mt-4 flex flex-col gap-2">
-          {fuentes.map((fuente) => (
-            <li key={fuente.id}>
-              <Referencia texto={fuente.fuente} />
-            </li>
-          ))}
-        </ul>
-      </Dialogo>
+      <ul className="mt-4 flex flex-col gap-2">
+        {fuentes.map((fuente) => (
+          <li key={fuente.id}>
+            <Referencia texto={fuente.fuente} />
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
@@ -397,10 +410,16 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
           mouse o llegar con el teclado. */}
       {traza !== undefined && (
         <>
-          <BotonIcono etiqueta="¿De dónde salió esto?" onClick={() => setAbierta(true)}>
-            <BookOpenText aria-hidden="true" />
-          </BotonIcono>
-          <Dialogo titulo="¿De dónde salió esto?" abierto={abierta} alCambiar={setAbierta}>
+          <Dialogo
+            titulo="¿De dónde salió esto?"
+            abierto={abierta}
+            alCambiar={setAbierta}
+            disparador={
+              <BotonIcono etiqueta="¿De dónde salió esto?">
+                <BookOpenText aria-hidden="true" />
+              </BotonIcono>
+            }
+          >
             <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
           </Dialogo>
         </>
