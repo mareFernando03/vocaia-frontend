@@ -1,9 +1,14 @@
 /**
- * Verifica que la paleta cumpla WCAG 2.1 AA.
+ * Verifica que la paleta cumpla WCAG 2.2 AA, en el tema claro y en el oscuro.
  *
  * Lee los tokens de `src/styles.css` y calcula el contraste de los pares que
  * de verdad se usan. Falla con código distinto de cero si alguno no llega, así
  * que puede correr en CI.
+ *
+ * El tema oscuro sale de lo que está entre `tema-oscuro:inicio` y
+ * `tema-oscuro:fin`; lo que no se redefine ahí hereda el valor del claro, igual
+ * que en el navegador. Los dos temas se miden con los mismos pares: un par que
+ * sólo cumple en uno de los dos falla para la mitad de las personas.
  *
  * Existe porque «respeta el contraste mínimo de accesibilidad» es criterio de
  * aceptación de HU-08, y un criterio que no se puede ejecutar es una promesa.
@@ -53,10 +58,32 @@ const PARES = [
   // su propio mensaje de error.
   ["Texto de error sobre tarjeta", "destructive", "surface", 4.5],
   ["Anillo de foco sobre tarjeta", "ring", "surface", 3.0],
+  // Los errores de cada pantalla van sobre el fondo, no sobre una tarjeta.
+  ["Texto de error sobre el fondo", "destructive", "background", 4.5],
+  ["Botón peligro-fantasma al pasar el mouse", "destructive", "destructive-soft", 4.5],
+  // El 911 y los enlaces de la salvedad reciben el foco sobre el ámbar suave.
+  ["Anillo de foco sobre el ámbar suave", "ring", "accent-soft", 3.0],
+  // La fecha del historial y la pestaña activa van sobre el azul claro.
+  ["Texto secundario sobre el azul claro", "muted-foreground", "primary-soft", 4.5],
+  ["Enlace sobre el azul claro", "primary", "primary-soft", 4.5],
+  // El aviso de apoyo cuando la charla se corta, y su botón para llamar al 911.
+  ["Texto sobre el aviso de apoyo", "foreground", "support-soft", 4.5],
+  ["Botón del aviso de apoyo", "support-foreground", "support", 4.5],
+  ["Ícono del aviso de apoyo", "support", "support-soft", 3.0],
+  ["Anillo de foco sobre el aviso de apoyo", "ring", "support-soft", 3.0],
+  // Toggletips, menús y ventanas flotan sobre `surface-raised`.
+  ["Texto sobre lo que flota", "foreground", "surface-raised", 4.5],
+  ["Texto secundario sobre lo que flota", "muted-foreground", "surface-raised", 4.5],
+  ["Enlaces sobre lo que flota", "primary", "surface-raised", 4.5],
+  ["Anillo de foco sobre lo que flota", "ring", "surface-raised", 3.0],
+  // El campo de la conversación y el buscador quedan sobre tarjeta en algunas
+  // pantallas: el borde tiene que distinguirse también ahí.
+  ["Borde de campos sobre tarjeta", "input", "surface", 3.0],
+  // La insignia «Verificado» de los habilitantes del informe.
+  ["Texto de éxito sobre tarjeta", "success", "surface", 4.5],
 ];
 
-function leerTokens() {
-  const css = readFileSync(join(RAIZ, "src", "styles.css"), "utf8");
+function leerColores(css) {
   const tokens = new Map();
   const patron = /--color-([a-z-]+):\s*oklch\(([^)]+)\)/g;
   for (const [, nombre, valores] of css.matchAll(patron)) {
@@ -64,6 +91,23 @@ function leerTokens() {
     tokens.set(nombre, [l, c ?? 0, h ?? 0]);
   }
   return tokens;
+}
+
+function leerTemas() {
+  const css = readFileSync(join(RAIZ, "src", "styles.css"), "utf8");
+  const inicio = css.indexOf("tema-oscuro:inicio");
+  const fin = css.indexOf("tema-oscuro:fin");
+  if (inicio === -1 || fin === -1) {
+    console.error("No encuentro las marcas del tema oscuro en styles.css.");
+    process.exit(1);
+  }
+  const bloqueTema = css.slice(css.indexOf("@theme"), css.indexOf("@media screen"));
+  const claro = leerColores(bloqueTema);
+  const oscuro = new Map([...claro, ...leerColores(css.slice(inicio, fin))]);
+  return [
+    ["claro", claro],
+    ["oscuro", oscuro],
+  ];
 }
 
 /** OKLCH → sRGB lineal. */
@@ -94,33 +138,35 @@ function contraste(c1, c2) {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
-const tokens = leerTokens();
 let fallas = 0;
 let faltantes = 0;
 
-console.log("Contraste de la paleta — WCAG 2.1 AA\n");
+for (const [tema, tokens] of leerTemas()) {
+  console.log(`Contraste de la paleta, tema ${tema} — WCAG 2.2 AA
+`);
 
-for (const [descripcion, frente, fondo, minimo] of PARES) {
-  const a = tokens.get(frente);
-  const b = tokens.get(fondo);
+  for (const [descripcion, frente, fondo, minimo] of PARES) {
+    const a = tokens.get(frente);
+    const b = tokens.get(fondo);
 
-  if (!a || !b) {
-    console.log(`  ?  ${descripcion.padEnd(36)} falta el token ${a ? fondo : frente}`);
-    faltantes++;
-    continue;
+    if (!a || !b) {
+      console.log(`  ?  ${descripcion.padEnd(40)} falta el token ${a ? fondo : frente}`);
+      faltantes++;
+      continue;
+    }
+
+    const ratio = contraste(a, b);
+    const pasa = ratio >= minimo;
+    if (!pasa) fallas++;
+
+    const marca = pasa ? "OK " : "MAL";
+    console.log(
+      `  ${marca} ${descripcion.padEnd(40)} ${ratio.toFixed(2).padStart(6)}:1  (mínimo ${minimo})`,
+    );
   }
 
-  const ratio = contraste(a, b);
-  const pasa = ratio >= minimo;
-  if (!pasa) fallas++;
-
-  const marca = pasa ? "OK " : "MAL";
-  console.log(
-    `  ${marca} ${descripcion.padEnd(36)} ${ratio.toFixed(2).padStart(6)}:1  (mínimo ${minimo})`,
-  );
+  console.log();
 }
-
-console.log();
 
 if (faltantes > 0) {
   console.error(`Faltan ${faltantes} token(s) declarados en la verificación.`);

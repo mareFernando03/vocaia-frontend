@@ -90,7 +90,14 @@ export default function Ingresar({
         Entrá con una cuenta que ya tenés. No vas a tener que inventar otra contraseña.
       </p>
 
-      <div ref={contenedorBoton} className="mt-8 flex justify-center" />
+      {/* Google sólo ofrece su botón oscuro con la G sobre un círculo blanco,
+          que no se parece al claro. En el tema oscuro se invierte el claro: es
+          el mismo botón, con el fondo oscuro y la G sin nada detrás. El giro de
+          tono devuelve los colores de la G a su lugar después de invertirlos. */}
+      <div
+        ref={contenedorBoton}
+        className="mt-8 flex justify-center [[data-tema=oscuro]_&]:hue-rotate-180 [[data-tema=oscuro]_&]:invert"
+      />
 
       {aviso && (
         <p role="status" className="mt-6 text-sm">

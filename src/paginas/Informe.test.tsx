@@ -424,7 +424,7 @@ describe("Informe", () => {
 });
 
 describe("Informe · orden de lectura", () => {
-  it("va de las carreras a lo que frena, a lo que contó, a lo plegado y a con quién hablar", async () => {
+  it("va de las carreras, con su ficha adentro, a lo que frena, a lo que contó y a con quién hablar", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({
         recomendaciones: [
@@ -458,9 +458,23 @@ describe("Informe · orden de lectura", () => {
       "Carreras que te sugerimos",
       "Si hay algo que te frena",
       "Lo que contaste",
-      "Para leer con más calma",
       "Con quién hablar",
     ]);
+  });
+
+  it("cada carrera lleva adentro su ficha y cómo avisar si un dato está desactualizado", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const titulo = await screen.findByRole("heading", {
+      name: "Ingeniería en Sistemas de Información",
+    });
+    const tarjeta = titulo.closest("article")!;
+    expect(within(tarjeta).getByText("Datos de la carrera")).toBeInTheDocument();
+    expect(within(tarjeta).getByRole("link", { name: "Avisanos" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:"),
+    );
   });
 
   it("la ficha de la Facultad y sus fuentes quedan plegadas, y se abren al tocar el resumen", async () => {
@@ -468,7 +482,7 @@ describe("Informe · orden de lectura", () => {
     const usuario = userEvent.setup();
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    const resumen = await screen.findByText(/^Datos de la carrera: Ingeniería/);
+    const resumen = await screen.findByText("Datos de la carrera");
     const ficha = resumen.closest("details")!;
     expect(ficha).not.toHaveAttribute("open");
 
@@ -499,7 +513,7 @@ describe("Informe · orden de lectura", () => {
   it("al imprimir abre los plegados y después cierra los que abrió", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe());
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
-    const ficha = (await screen.findByText(/^Datos de la carrera: Ingeniería/)).closest("details")!;
+    const ficha = (await screen.findByText("Datos de la carrera")).closest("details")!;
 
     window.dispatchEvent(new Event("beforeprint"));
     expect(ficha).toHaveAttribute("open");

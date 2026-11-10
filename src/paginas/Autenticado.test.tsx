@@ -73,7 +73,19 @@ function flujo(...eventos: EventoConversacion[]) {
 const salir = () => Promise.resolve();
 
 describe("HU-12 · historial de sesiones recuperable", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
+    // Lo que no tiene doble acá (el aviso a la Facultad, que consulta el
+    // perfil) sale por `fetch`. Sin cortarlo, la prueba depende de qué corre en
+    // la máquina: con el backend levantado, la consulta contesta 401 y ese 401
+    // cierra la sesión en medio de la prueba.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
     vi.mocked(listarSesiones).mockReset();
     vi.mocked(obtenerHistorial).mockReset();
     vi.mocked(enviarMensaje).mockReset();
@@ -102,7 +114,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     // hace que recargar en medio de una charla devuelva a la charla (HU-07).
     expect(screen.getByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
 
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
     await usuario.click(await screen.findByRole("button", { name: /entre sistemas y diseño/ }));
 
     // El hilo de aquel día vuelve entero…
@@ -132,7 +144,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
     await usuario.click(screen.getByRole("button", { name: /empezar una conversación nueva/i }));
 
     expect(screen.getByText(/contame por dónde andás/i)).toBeInTheDocument();
@@ -151,13 +163,16 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     );
 
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
     await screen.findByRole("button", { name: /entre sistemas y diseño/ });
 
-    // El orden de tabulación sigue al del documento: primero volver, después
+    // Al entrar, el foco va al título: sin eso, quien usa teclado sigue parado
+    // en la pestaña y no se entera de que la pantalla cambió. De ahí, el orden
+    // de tabulación sigue al del documento: primero empezar una nueva, después
     // las conversaciones. Si alguien mueve el botón en el marcado, esto lo caza.
+    expect(screen.getByRole("heading", { name: "Tus conversaciones" })).toHaveFocus();
     await usuario.tab();
-    expect(screen.getByRole("button", { name: /^volver$/i })).toHaveFocus();
+    expect(screen.getByRole("button", { name: /empezar una conversación nueva/i })).toHaveFocus();
     await usuario.tab();
     const item = screen.getByRole("button", { name: /entre sistemas y diseño/ });
     expect(item).toHaveFocus();
@@ -176,7 +191,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     ]);
 
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     // Un solo botón por conversación, con todo adentro: quien usa lector de
     // pantalla oye «28 de agosto de 2026, 1 intercambio, Estoy entre…» de una vez,
@@ -192,7 +207,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     vi.mocked(listarSesiones).mockResolvedValue([]);
 
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     expect(await screen.findByText(/todavía no hablaste con vocaia/i)).toBeInTheDocument();
   });
@@ -205,7 +220,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     ]);
 
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
-    await usuario.click(screen.getByRole("button", { name: /tus conversaciones/i }));
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo conectar/i);
 
@@ -217,10 +232,10 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("se entra al perfil desde la conversación y se vuelve a la misma charla", async () => {
-    // HU-13 comparte navegación con HU-12: los dos son desvíos, no pestañas.
-    // Lo que se puede romper en silencio es la vuelta — que el perfil deje a la
-    // persona en una conversación en blanco en vez de en la que venía.
+  it("se entra al perfil desde la pestaña y se vuelve a la misma charla", async () => {
+    // HU-13 comparte navegación con HU-12. Lo que se puede romper en silencio
+    // es la vuelta — que el perfil deje a la persona en una conversación en
+    // blanco en vez de en la que venía.
     const usuario = userEvent.setup();
     window.sessionStorage.setItem(CLAVE, ANTERIOR);
     vi.mocked(obtenerHistorial).mockResolvedValue(
@@ -235,12 +250,13 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
-    await usuario.click(screen.getByRole("button", { name: /tu perfil/i }));
+    await usuario.click(screen.getByRole("button", { name: "Perfil" }));
     expect(
       await screen.findByRole("heading", { name: /lo que fui entendiendo/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Perfil" })).toHaveAttribute("aria-current", "page");
 
-    await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
+    await usuario.click(screen.getByRole("button", { name: "Charla" }));
 
     // Vuelve a la charla que venía y no a una en blanco: al desmontarse para
     // mostrar el perfil, la conversación se vuelve a montar y relee la sesión
@@ -282,8 +298,10 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     expect(obtenerInforme).toHaveBeenLastCalledWith(ANTERIOR);
 
     await usuario.click(screen.getByRole("button", { name: /^volver$/i }));
-    await usuario.click(await screen.findByRole("button", { name: /tus conversaciones/i }));
-    await usuario.click(await screen.findByRole("button", { name: /ver el informe/i }));
+    await usuario.click(await screen.findByRole("button", { name: "Historial" }));
+    const verInforme = await screen.findByRole("button", { name: /ver informe de/i });
+    expect(verInforme).toHaveTextContent("Ver informe");
+    await usuario.click(verInforme);
     expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();
 
     // Volver del informe deja en el historial, que es de donde se vino.

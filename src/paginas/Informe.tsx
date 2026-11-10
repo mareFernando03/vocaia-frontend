@@ -3,11 +3,11 @@
  *
  * Es lo que la persona se lleva: por eso se descarga, y por eso el orden es el
  * de lo que le importa a quien lo lee sin haber estado en la conversación:
- * las carreras con una línea de por qué, lo que la puede frenar (becas y
- * habilitantes), lo que contó como respaldo, lo largo plegado (la ficha de la
- * Facultad con sus fuentes, las notas) y con quién hablar, siempre a la vista.
- * Que el dato es provisional o el perfil parcial va arriba, sin desplegar.
- * Al pie, cuándo se calculó el perfil, para que el PDF quede fechado.
+ * las carreras, cada una con su porqué y su ficha de la Facultad plegada; lo
+ * que la puede frenar (becas y habilitantes); lo que contó como respaldo, y con
+ * quién hablar, siempre a la vista. Que el dato es provisional o el perfil
+ * parcial va arriba, sin desplegar. Al pie, cuándo se calculó el perfil, para
+ * que el PDF quede fechado.
  *
  * Lo que contó va en una sección propia y no dentro de cada carrera porque el
  * contrato todavía no dice qué citas sostienen cuál: la evidencia llega para el
@@ -24,6 +24,16 @@
  * pero en pantalla se leería como un porcentaje de acierto.
  */
 
+import {
+  ArrowLeft,
+  ChevronDown,
+  Download,
+  Info,
+  Mail,
+  MessageCircle,
+  MessageSquareHeart,
+  Phone,
+} from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { describir, ErrorDeApi } from "../api/cliente";
@@ -36,18 +46,24 @@ import {
   type Habilitantes,
   type Informe as DatosInforme,
 } from "../api/informe";
+import { AvisoDesactualizado } from "../componentes/AvisoDesactualizado";
 import { Referencia } from "../componentes/Referencia";
-import { comoTeCae } from "../contenido/como-te-cae";
+import { Aviso } from "../componentes/ui/Aviso";
+import { Boton } from "../componentes/ui/Boton";
+import { Cargando } from "../componentes/ui/Cargando";
+import { clasesBoton } from "../componentes/ui/clases-boton";
+import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
+import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
+import { MedidorGusto } from "../componentes/ui/MedidorGusto";
+import { Tarjeta } from "../componentes/ui/Tarjeta";
 import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
+import { fechaLarga } from "../lib/fechas";
 
 interface Propiedades {
   sesionId: string;
   alVolver: () => void;
 }
-
-const BOTON =
-  "border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm";
 
 // Un minuto y medio de espera como tope. Pasado el minuto, si el trabajo del
 // cierre se cayó, el backend lo rehace al leer. Al llegar al tope se deja de
@@ -59,6 +75,9 @@ interface Espera {
   segundos: number;
   intento: number;
 }
+
+/** Las tarjetas del informe: en papel, sin sombra y sin cortarse entre páginas. */
+const TARJETA = "flex flex-col gap-3 text-sm break-inside-avoid print:shadow-none";
 
 export default function Informe({ sesionId, alVolver }: Propiedades) {
   const [informe, setInforme] = useState<DatosInforme | null>(null);
@@ -107,63 +126,75 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
     return () => window.clearTimeout(temporizador);
   }, [espera, cargar]);
 
+  const esperando = informe === null && error === null && !agotada;
+
   return (
-    <article className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold">Tu informe</h1>
-        <div className="flex flex-wrap gap-3 print:hidden">
+    <article className="flex flex-col gap-8 print:break-inside-auto">
+      <div className="flex flex-col gap-2">
+        {/* Volver va arriba y a la izquierda: es donde se lo busca para salir
+            de una pantalla que se abrió encima de otra. */}
+        <Boton variante="fantasma" onClick={alVolver} className="-ms-3 self-start print:hidden">
+          <ArrowLeft aria-hidden="true" />
+          Volver
+        </Boton>
+        <EncabezadoPagina
+          titulo="Tu informe"
+          acciones={
+            informe !== null && (
+              <>
+                <Boton variante="primario" onClick={() => window.print()}>
+                  <Download aria-hidden="true" />
+                  Descargar en PDF
+                </Boton>
+                {/* La encuesta final del piloto vive en la página de
+                    inscripción, que la reconoce por la misma cuenta de Google.
+                    Se ofrece acá porque es cuando la persona acaba de leer el
+                    informe. */}
+                <a
+                  href={PILOTO.encuesta}
+                  target="_blank"
+                  rel="noopener"
+                  className={clasesBoton("secundario")}
+                >
+                  <MessageSquareHeart aria-hidden="true" />
+                  {PILOTO.comoTeFue}
+                </a>
+              </>
+            )
+          }
+        >
           {informe !== null && (
-            <button type="button" onClick={() => window.print()} className={BOTON}>
-              Descargar en PDF
-            </button>
+            <p className="text-muted-foreground text-sm">
+              Armado el {fechaLarga(informe.generado_en)}.
+            </p>
           )}
-          {/* La encuesta final del piloto vive en la página de inscripción, que
-              la reconoce por la misma cuenta de Google. Se ofrece acá porque es
-              cuando la persona acaba de leer el informe. */}
-          {informe !== null && (
-            <a href={PILOTO.encuesta} target="_blank" rel="noopener" className={BOTON}>
-              {PILOTO.comoTeFue}
-            </a>
-          )}
-          <button type="button" onClick={alVolver} className={BOTON}>
-            Volver
-          </button>
-        </div>
+        </EncabezadoPagina>
       </div>
 
       {/* Siempre presente, para que el cambio de «buscando» a «se está
           armando» se anuncie. */}
       <p role="status" className="text-muted-foreground text-sm empty:hidden">
-        {informe === null &&
-          error === null &&
-          (agotada
-            ? "Tu informe todavía se está preparando. Podés volver en unos minutos y abrirlo desde «Tus conversaciones»."
-            : espera === null
-              ? "Buscando tu informe…"
-              : "Tu informe se está armando con lo último que contaste. Tarda unos segundos…")}
+        {esperando && (
+          <Cargando
+            texto={
+              espera === null
+                ? "Buscando tu informe…"
+                : "Tu informe se está armando con lo último que contaste. Tarda unos segundos…"
+            }
+          />
+        )}
+        {agotada &&
+          "Tu informe todavía se está preparando. Podés volver en unos minutos y abrirlo desde «Tus conversaciones»."}
       </p>
 
       {agotada && (
-        <button
-          type="button"
-          onClick={() => void cargar()}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center self-start rounded-md border px-3 text-sm print:hidden"
-        >
+        <Boton onClick={() => void cargar()} className="self-start print:hidden">
           Volver a intentar
-        </button>
+        </Boton>
       )}
 
       {error !== null && (
-        <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void cargar()}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-          >
-            Reintentar
-          </button>
-        </p>
+        <ErrorConReintento alReintentar={() => void cargar()}>{error}</ErrorConReintento>
       )}
 
       {informe !== null && <Contenido informe={informe} />}
@@ -188,109 +219,115 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   const conApoyos = informe.recomendaciones.filter(
     (carrera) => carrera.habilitantes != null && hayApoyos(carrera.habilitantes),
   );
-  const conFicha = informe.recomendaciones.filter((carrera) => carrera.fuentes.length > 0);
   const hayCarreras = informe.recomendaciones.length > 0;
-  const hayPlegado = conFicha.length > 0;
 
   useAbrirPlegadosAlImprimir();
 
+  // Los accesos a cada parte, sólo de las que hay: un enlace a una sección que
+  // no está no lleva a ningún lado.
+  const partes: { id: string; nombre: string }[] = [];
+  if (hayCarreras) partes.push({ id: "carreras", nombre: "Carreras" });
+  if (conApoyos.length > 0) partes.push({ id: "lo-que-te-frena", nombre: "Lo que te frena" });
+  if (informe.evidencia.length > 0)
+    partes.push({ id: "lo-que-contaste", nombre: "Lo que contaste" });
+  if (derivacion != null) partes.push({ id: "con-quien-hablar", nombre: "Con quién hablar" });
+
   return (
-    <div className="flex flex-col gap-6 break-words">
+    <div className="flex flex-col gap-10 break-words">
       {/* La franja de divulgación de `App` no sale en el PDF, y el PDF es
           justamente lo que circula sin la pantalla al lado. Lo que cambia cuánto
           creerle al informe va arriba y a la vista, no plegado. */}
-      <div className="flex flex-col gap-1 text-sm">
-        <p className="text-muted-foreground">
-          Armado el {FECHA_LARGA.format(new Date(informe.generado_en))}.
-        </p>
+      <Aviso tono="info" icono={<Info />} className="print:border print:bg-transparent">
         <p>
           Lo armó una <strong>inteligencia artificial</strong> a partir de tu conversación. No
           reemplaza a un orientador vocacional, y puede equivocarse: antes de decidir, verificá con
           la Facultad lo que dice sobre cada carrera.
         </p>
         {provisional && (
-          <p className="text-muted-foreground">
+          <p>
             La información de la Facultad es <strong>provisional</strong>: sale de fuentes públicas
             y la Facultad todavía no la validó.
           </p>
         )}
         {!informe.publicable && (
-          <p className="text-muted-foreground">
+          <p>
             Tu perfil es <strong>parcial</strong>:{" "}
             {hayCarreras
               ? "tomá las carreras de abajo como orientativas."
               : "todavía no alcanza para sugerirte carreras."}
           </p>
         )}
-      </div>
+      </Aviso>
+
+      {partes.length > 1 && (
+        <nav aria-label="Partes del informe" className="-mt-4 print:hidden">
+          <ul className="flex flex-wrap gap-2">
+            {partes.map((parte) => (
+              <li key={parte.id}>
+                <a href={`#${parte.id}`} className={clasesBoton("secundario", "rounded-full")}>
+                  {parte.nombre}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {/* Sin carreras no es un error: las notas dicen por qué, y es lo que se
           muestra en lugar de las carreras, no un aviso encima de nada. */}
       {!hayCarreras && informe.notas.length > 0 && <Notas notas={informe.notas} />}
 
       {hayCarreras && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Carreras que te sugerimos</h2>
-          <p className="text-muted-foreground text-sm">
+        <Seccion id="carreras" titulo="Carreras que te sugerimos">
+          <p className="text-muted-foreground -mt-2 text-sm">
             Las elegimos por los intereses que mostraste en todas tus charlas.
           </p>
           {informe.recomendaciones.map((carrera) => (
             <Carrera key={carrera.carrera} carrera={carrera} />
           ))}
-        </section>
+          {/* A la vista, no plegado: son salvedades sobre las carreras. */}
+          {informe.notas.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-semibold">Antes de decidir, tené en cuenta</h3>
+              <Notas notas={informe.notas} />
+            </div>
+          )}
+        </Seccion>
       )}
 
       {conApoyos.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Si hay algo que te frena</h2>
+        <Seccion id="lo-que-te-frena" titulo="Si hay algo que te frena">
           {conApoyos.map((carrera) => (
-            <div key={carrera.carrera} className="flex flex-col gap-3 text-sm">
+            <Tarjeta key={carrera.carrera} className={TARJETA}>
               <h3 className="text-base font-semibold">{carrera.titulo}</h3>
               <SiAlgoTeFrena habilitantes={carrera.habilitantes!} />
-            </div>
+            </Tarjeta>
           ))}
-        </section>
+        </Seccion>
       )}
 
       {/* Una vez y no en cada carrera: es la misma nota para todas. */}
       {notaHabilitantes != null && (
-        <p className="text-muted-foreground text-sm">{notaHabilitantes}</p>
-      )}
-
-      {/* A la vista, no plegado: son salvedades sobre las carreras de arriba. */}
-      {hayCarreras && informe.notas.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Antes de decidir, tené en cuenta</h2>
-          <Notas notas={informe.notas} />
-        </section>
+        <p className="text-muted-foreground -mt-6 text-sm">{notaHabilitantes}</p>
       )}
 
       {informe.evidencia.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Lo que contaste</h2>
-          <p className="text-muted-foreground text-sm">
+        <Seccion id="lo-que-contaste" titulo="Lo que contaste">
+          <p className="text-muted-foreground -mt-2 text-sm">
             Tus palabras, tal como las escribiste, agrupadas por el interés que muestran. Es de
             donde sale todo lo anterior.
           </p>
-          {informe.evidencia.map((dimension) => (
-            <Dimension
-              key={dimension.dimension}
-              dimension={dimension}
-              sesionDelInforme={informe.sesion_id}
-              inicios={inicios}
-            />
-          ))}
-        </section>
-      )}
-
-      {/* Lo largo, plegado: sirve para verificar, no para decidir. */}
-      {hayPlegado && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Para leer con más calma</h2>
-          {conFicha.map((carrera) => (
-            <FichaPlegada key={carrera.carrera} carrera={carrera} />
-          ))}
-        </section>
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            {informe.evidencia.map((dimension) => (
+              <Dimension
+                key={dimension.dimension}
+                dimension={dimension}
+                sesionDelInforme={informe.sesion_id}
+                inicios={inicios}
+              />
+            ))}
+          </div>
+        </Seccion>
       )}
 
       {/* Una vez y al final, no debajo de cada carrera: es el mismo contacto de
@@ -302,20 +339,31 @@ function Contenido({ informe }: { informe: DatosInforme }) {
           dice nada (prueba del piloto). */}
       {informe.perfil_actualizado_en !== null && (
         <p className="text-muted-foreground border-border border-t pt-3 text-xs">
-          Perfil calculado el {FECHA_LARGA.format(new Date(informe.perfil_actualizado_en))}.
+          Perfil calculado el {fechaLarga(informe.perfil_actualizado_en)}.
         </p>
       )}
     </div>
   );
 }
 
+function Seccion({ id, titulo, children }: { id: string; titulo: string; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-titulo`} className="flex flex-col gap-4">
+      <h2 id={`${id}-titulo`} className="text-xl font-semibold tracking-tight">
+        {titulo}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 function Notas({ notas }: { notas: string[] }) {
   return (
-    <div className="bg-accent-soft text-accent-foreground flex flex-col gap-1 rounded-md p-3 text-sm">
+    <Aviso tono="precaucion" className="print:border print:bg-transparent">
       {notas.map((nota) => (
         <p key={nota}>{nota}</p>
       ))}
-    </div>
+    </Aviso>
   );
 }
 
@@ -340,53 +388,61 @@ function useAbrirPlegadosAlImprimir() {
   }, []);
 }
 
-function Plegado({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <details className="border-border rounded-md border text-sm">
-      <summary className="min-h-11 cursor-pointer px-3 py-3 font-medium">{titulo}</summary>
-      <div className="px-3 pb-3">{children}</div>
-    </details>
-  );
-}
-
 function hayApoyos(habilitantes: Habilitantes): boolean {
   return habilitantes.por_restriccion.length > 0 || habilitantes.alternativas.length > 0;
 }
 
-/** Lo que dice la Facultad de una carrera, con sus fuentes. */
-function FichaPlegada({ carrera }: { carrera: CarreraInforme }) {
-  return (
-    <Plegado titulo={`Datos de la carrera: ${carrera.titulo}`}>
-      <ul className="flex flex-col gap-3">
-        {carrera.fuentes.map((fuente) => (
-          <li key={fuente.id} className="break-inside-avoid">
-            <blockquote className="border-accent-strong border-l-4 pl-3 whitespace-pre-wrap">
-              {paraLaPersona(fuente.texto)}
-            </blockquote>
-            <p className="mt-1">
-              Fuente: <Referencia texto={fuente.fuente} />
-            </p>
-          </li>
-        ))}
-      </ul>
-    </Plegado>
-  );
-}
-
+/**
+ * Cada carrera con todo lo suyo: por qué, cómo recibirse antes, lo que dice la
+ * Facultad (plegado: sirve para verificar, no para decidir) y cómo avisar si un
+ * dato está mal. La ficha iba antes en una sección aparte al final, lejos de la
+ * carrera de la que hablaba.
+ */
 function Carrera({ carrera }: { carrera: CarreraInforme }) {
   return (
-    <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4 text-sm print:border-0 print:p-0">
-      <h3 className="text-base font-semibold">{carrera.titulo}</h3>
-      <p>{carrera.justificacion}</p>
+    <Tarjeta como="article" className={TARJETA}>
+      <h3 className="text-lg leading-snug font-semibold">{carrera.titulo}</h3>
+      <p className="leading-relaxed">{carrera.justificacion}</p>
       {carrera.via_corta != null && (
-        <p>
+        <p className="leading-relaxed">
           Si necesitás recibirte antes: el <strong>{carrera.via_corta.titulo}</strong>
           {carrera.via_corta.duracion_anios != null &&
             ` (${carrera.via_corta.duracion_anios} años)`}{" "}
           es el título intermedio de esta carrera.
         </p>
       )}
-    </article>
+      {carrera.fuentes.length > 0 && (
+        <details className="group border-border border-t pt-1">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
+            Datos de la carrera
+            <ChevronDown
+              aria-hidden="true"
+              className="text-muted-foreground size-5 transition-transform group-open:rotate-180 print:hidden"
+            />
+          </summary>
+          <FichaDeLaFacultad carrera={carrera} />
+        </details>
+      )}
+      <AvisoDesactualizado carrera={carrera.titulo} />
+    </Tarjeta>
+  );
+}
+
+/** Lo que dice la Facultad de una carrera, con sus fuentes. */
+function FichaDeLaFacultad({ carrera }: { carrera: CarreraInforme }) {
+  return (
+    <ul className="flex flex-col gap-3 pb-2">
+      {carrera.fuentes.map((fuente) => (
+        <li key={fuente.id} className="break-inside-avoid">
+          <blockquote className="border-accent-strong border-l-4 pl-3 leading-relaxed whitespace-pre-wrap">
+            {paraLaPersona(fuente.texto)}
+          </blockquote>
+          <p className="text-muted-foreground mt-1">
+            Fuente: <Referencia texto={fuente.fuente} />
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -405,40 +461,54 @@ function paraLaPersona(texto: string): string {
  * Con quién de la Facultad seguir hablando de la carrera (HU-19). Es el mismo
  * contacto de área para todas, y sólo llega si la Facultad lo validó: sin
  * validar se dice eso, y no se inventa uno.
+ *
+ * Cada medio es un botón que ya hace lo suyo (abre el correo, llama, abre
+ * WhatsApp), con el dato escrito en el botón: en el PDF el botón no se toca, y
+ * el dato tiene que poder leerse y copiarse.
  */
 function ConQuienHablar({ derivacion }: { derivacion: Derivacion }) {
   const { contacto } = derivacion;
   return (
-    <div className="break-inside-avoid">
-      <h2 className="text-lg font-semibold">Con quién hablar</h2>
-      {derivacion.disponible && contacto != null ? (
-        <>
-          <p className="mt-1">
-            Si querés hablar con alguien de la Facultad sobre estas carreras: {contacto.area}.
-          </p>
-          <ul className="mt-1 flex flex-col gap-1">
-            <li>
-              Correo: <a href={`mailto:${contacto.correo}`}>{contacto.correo}</a>
-            </li>
-            {contacto.telefono != null && (
+    <Seccion id="con-quien-hablar" titulo="Con quién hablar">
+      <Tarjeta className={TARJETA}>
+        {derivacion.disponible && contacto != null ? (
+          <>
+            <p className="leading-relaxed">
+              Si querés hablar con alguien de la Facultad sobre estas carreras: {contacto.area}.
+            </p>
+            <ul className="flex flex-wrap gap-2">
               <li>
-                Teléfono: <a href={`tel:${contacto.telefono}`}>{contacto.telefono}</a>
-              </li>
-            )}
-            {contacto.whatsapp != null && (
-              <li>
-                WhatsApp:{" "}
-                <a href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, "")}`}>
-                  {contacto.whatsapp}
+                <a href={`mailto:${contacto.correo}`} className={clasesBoton("secundario")}>
+                  <Mail aria-hidden="true" />
+                  {contacto.correo}
                 </a>
               </li>
-            )}
-          </ul>
-        </>
-      ) : (
-        <p className="mt-1">Todavía no tenemos un contacto de la Facultad confirmado.</p>
-      )}
-    </div>
+              {contacto.telefono != null && (
+                <li>
+                  <a href={`tel:${contacto.telefono}`} className={clasesBoton("secundario")}>
+                    <Phone aria-hidden="true" />
+                    {contacto.telefono}
+                  </a>
+                </li>
+              )}
+              {contacto.whatsapp != null && (
+                <li>
+                  <a
+                    href={`https://wa.me/${contacto.whatsapp.replace(/\D/g, "")}`}
+                    className={clasesBoton("secundario")}
+                  >
+                    <MessageCircle aria-hidden="true" />
+                    {contacto.whatsapp}
+                  </a>
+                </li>
+              )}
+            </ul>
+          </>
+        ) : (
+          <p>Todavía no tenemos un contacto de la Facultad confirmado.</p>
+        )}
+      </Tarjeta>
+    </Seccion>
   );
 }
 
@@ -454,7 +524,7 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
   const { por_restriccion, alternativas } = habilitantes;
   // El título y el «sin nada que mostrar» los resuelve la sección de arriba.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {por_restriccion.map((grupo) => (
         <div key={grupo.restriccion} className="flex flex-col gap-2">
           <h4 className="font-medium">
@@ -470,7 +540,7 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
             </p>
           )}
           {grupo.verificados.length + grupo.no_verificados.length > 0 && (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-3">
               {grupo.verificados.map((habilitante) => (
                 <Apoyo key={habilitante.id} habilitante={habilitante} verificado />
               ))}
@@ -492,7 +562,7 @@ function SiAlgoTeFrena({ habilitantes }: { habilitantes: Habilitantes }) {
             {alternativas.map((alternativa) => (
               <li key={alternativa.carrera} className="break-inside-avoid">
                 <p className="font-medium">{alternativa.titulo}</p>
-                <p>{alternativa.justificacion}</p>
+                <p className="leading-relaxed">{alternativa.justificacion}</p>
               </li>
             ))}
           </ul>
@@ -531,7 +601,7 @@ function Apoyo({ habilitante, verificado }: { habilitante: Habilitante; verifica
                 fuente.denominacion
               )}
               {fuente.fecha_documento != null &&
-                `, documento del ${FECHA_LARGA.format(new Date(`${fuente.fecha_documento}T00:00`))}`}
+                `, documento del ${fechaLarga(`${fuente.fecha_documento}T00:00`)}`}
               {fuente.estado_validacion === "provisional" &&
                 ". Dato provisional: la fuente todavía no fue validada"}
             </li>
@@ -561,42 +631,44 @@ function Dimension({
   inicios: Map<string, string | null>;
 }) {
   return (
-    <div className="border-border flex break-inside-avoid flex-col gap-2 border-b pb-3 text-sm">
-      <h3 className="flex flex-wrap items-baseline justify-between gap-2 font-medium">
-        <span>{dimension.nombre}</span>
-        <span className="text-muted-foreground text-sm font-normal">
-          {comoTeCae(dimension.intensidad)}
-        </span>
-      </h3>
+    <Tarjeta className={TARJETA}>
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-base font-semibold">{dimension.nombre}</h3>
+        <MedidorGusto intensidad={dimension.intensidad} />
+      </div>
       {dimension.objecion != null && (
-        <p className="bg-accent-soft text-accent-foreground rounded-md p-2">
-          Marcaste que esto no te representa.
-          {dimension.objecion !== "" && <> Anotaste: «{dimension.objecion}»</>}
-        </p>
+        <Aviso tono="precaucion" className="p-2 sm:p-3">
+          <p>
+            Marcaste que esto no te representa.
+            {dimension.objecion !== "" && <> Anotaste: «{dimension.objecion}»</>}
+          </p>
+        </Aviso>
       )}
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-2">
         {dimension.citas.map((cita) => (
           <li key={cita.evidencia_id}>
-            <blockquote className="italic">«{cita.texto}»</blockquote>
+            <blockquote className="border-border border-l-2 pl-3 leading-relaxed italic">
+              «{cita.texto}»
+            </blockquote>
             {/* Solo el rechazo explícito (−2) se rotula: sin decirlo, «odio
                 arreglar cosas» se leería como afinidad. Con −1 es una
                 aclaración («no fue por arte») y rotularla como rechazo la
                 falsea. Arreglo parcial: el de fondo es del backend. */}
             {cita.valencia === -2 && (
-              <p className="text-muted-foreground text-xs">Lo dijiste como algo que no te gusta.</p>
+              <p className="text-muted-foreground mt-0.5 ps-3 text-xs">
+                Lo dijiste como algo que no te gusta.
+              </p>
             )}
             {/* El perfil junta todas las conversaciones; sin esto, el informe de
                 una charla mostraba citas de otra como si fueran de esta. */}
             {cita.sesion_id !== sesionDelInforme && (
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground mt-0.5 ps-3 text-xs">
                 {enOtraConversacion(inicios.get(cita.sesion_id))}
               </p>
             )}
           </li>
         ))}
       </ul>
-    </div>
+    </Tarjeta>
   );
 }
-
-const FECHA_LARGA = new Intl.DateTimeFormat("es-AR", { dateStyle: "long" });

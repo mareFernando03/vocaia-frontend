@@ -11,6 +11,7 @@ import { useState } from "react";
 import { describir } from "../api/cliente";
 import { descargarMisDatos } from "../api/perfil";
 import { DESCARGA } from "../contenido/descarga";
+import { clasesBoton } from "./ui/clases-boton";
 
 /** Ofrece el texto como un archivo para guardar, sin abrir otra pestaña. */
 function guardar(nombre: string, contenido: string) {
@@ -47,7 +48,7 @@ export function DescargaDeDatos({ alGuardar = guardar }: { alGuardar?: typeof gu
   return (
     <section
       aria-labelledby="descarga-titulo"
-      className="border-border bg-surface flex flex-col gap-3 rounded-md border p-4 text-sm"
+      className="border-border bg-surface shadow-tarjeta flex flex-col gap-3 rounded-2xl border p-4 text-sm sm:p-5"
     >
       <h2 id="descarga-titulo" className="text-base font-semibold">
         {DESCARGA.titulo}
@@ -59,7 +60,7 @@ export function DescargaDeDatos({ alGuardar = guardar }: { alGuardar?: typeof gu
           type="button"
           onClick={() => void descargar()}
           disabled={descargando}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4 disabled:opacity-50"
+          className={clasesBoton("secundario")}
         >
           {descargando ? DESCARGA.descargando : DESCARGA.boton}
         </button>

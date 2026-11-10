@@ -19,6 +19,7 @@
  * desaparecer justamente eso.
  */
 
+import { ChevronDown, LogOut, MessageSquareOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
@@ -33,12 +34,19 @@ import {
 import { BajaDeLaCuenta } from "../componentes/BajaDeLaCuenta";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { DescargaDeDatos } from "../componentes/DescargaDeDatos";
-import { comoTeCae } from "../contenido/como-te-cae";
+import { Aviso } from "../componentes/ui/Aviso";
+import { Boton } from "../componentes/ui/Boton";
+import { Cargando } from "../componentes/ui/Cargando";
+import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
+import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
+import { MedidorGusto } from "../componentes/ui/MedidorGusto";
+import { Tarjeta } from "../componentes/ui/Tarjeta";
 import { descripcionParaLaPersona } from "../contenido/dimensiones";
 import { enLaConversacion, useInicios } from "../hooks/useConversaciones";
+import { fechaCorta } from "../lib/fechas";
 
 interface Propiedades {
-  alVolver: () => void;
+  alSalir: () => Promise<void>;
   alDarDeBaja: () => Promise<void>;
 }
 
@@ -47,18 +55,35 @@ interface Propiedades {
  * y va al lado del perfil y no adentro: si el perfil no carga, igual tiene que
  * poder consultarlo y revocarlo.
  */
-export default function Perfil({ alVolver, alDarDeBaja }: Propiedades) {
+export default function Perfil({ alSalir, alDarDeBaja }: Propiedades) {
   return (
-    <div className="flex flex-col gap-8">
-      <ContenidoPerfil alVolver={alVolver} />
-      <ConsentimientoNotificacion />
-      <DescargaDeDatos />
-      <BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />
+    <div className="flex flex-col gap-10">
+      <ContenidoPerfil />
+      {/* Lo de la cuenta va junto y al final: se usa poco, pero cuando se lo
+          busca tiene que estar en un solo lugar. Cerrar sesión está acá y no
+          arriba en cada pantalla, que es donde lo buscan en las aplicaciones
+          que ya conocen. */}
+      <section aria-labelledby="tu-cuenta" className="flex flex-col gap-4">
+        <h2 id="tu-cuenta" className="text-xl font-semibold tracking-tight">
+          Tu cuenta
+        </h2>
+        <ConsentimientoNotificacion />
+        <DescargaDeDatos />
+        <BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />
+        <Boton
+          variante="peligro-fantasma"
+          onClick={() => void alSalir()}
+          className="-ms-3 self-start"
+        >
+          <LogOut aria-hidden="true" />
+          Cerrar sesión
+        </Boton>
+      </section>
     </div>
   );
 }
 
-function ContenidoPerfil({ alVolver }: { alVolver: () => void }) {
+function ContenidoPerfil() {
   const [perfil, setPerfil] = useState<PerfilApi | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,25 +127,14 @@ function ContenidoPerfil({ alVolver }: { alVolver: () => void }) {
 
   if (cargando) {
     return (
-      <p aria-live="polite" className="text-muted-foreground text-sm">
-        Armando tu perfil…
+      <p aria-live="polite">
+        <Cargando texto="Armando tu perfil…" />
       </p>
     );
   }
 
   if (error !== null) {
-    return (
-      <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
-        <span>{error}</span>
-        <button
-          type="button"
-          onClick={() => void cargar()}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-        >
-          Reintentar
-        </button>
-      </p>
-    );
+    return <ErrorConReintento alReintentar={() => void cargar()}>{error}</ErrorConReintento>;
   }
 
   if (perfil === null) return null;
@@ -136,25 +150,15 @@ function ContenidoPerfil({ alVolver }: { alVolver: () => void }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="text-xl font-semibold">Lo que fui entendiendo de vos</h1>
-          <button
-            type="button"
-            onClick={alVolver}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Volver
-          </button>
-        </div>
+      <EncabezadoPagina titulo="Lo que fui entendiendo de vos">
         <Encabezado perfil={perfil} conRasgos={contados.length} />
-      </div>
+      </EncabezadoPagina>
 
       {ordenados.length > 0 && (
         <ul className="flex flex-col gap-4">
           {ordenados.map((rasgo) => (
             <li key={rasgo.dimension}>
-              <Tarjeta
+              <TarjetaRasgo
                 rasgo={rasgo}
                 alObjetar={registrarObjecion}
                 conFecha={variosDias(ordenados)}
@@ -166,27 +170,27 @@ function ContenidoPerfil({ alVolver }: { alVolver: () => void }) {
       )}
 
       {sinHablar.length > 0 && (
-        <section className="border-border bg-surface rounded-md border p-4 text-sm">
+        <Tarjeta como="section" className="flex flex-col gap-2 text-sm">
           {/* Las dimensiones sin evidencia no son un cero y no se pueden
               dibujar como una barra vacía: es que la persona no habló de eso.
               Mostrarlas como «bajo» sería afirmar algo que nadie dijo. */}
-          <h2 className="font-medium">De esto todavía no hablamos</h2>
-          <p className="text-muted-foreground mt-1">
+          <h2 className="text-base font-semibold">De esto todavía no hablamos</h2>
+          <p className="text-muted-foreground">
             No es que te haya salido bajo: es que no salió en la charla. Si te interesa que
             aparezca, contámelo la próxima vez.
           </p>
-          <ul className="mt-2 flex flex-wrap gap-2">
+          <ul className="mt-1 flex flex-wrap gap-2">
             {sinHablar.map((rasgo) => (
               <li
                 key={rasgo.dimension}
-                className="border-border rounded-full border px-3 py-1"
+                className="bg-primary-soft rounded-full px-3 py-1.5 font-medium"
                 title={descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}
               >
                 {rasgo.nombre || rasgo.dimension}
               </li>
             ))}
           </ul>
-        </section>
+        </Tarjeta>
       )}
 
       {/* La versión del instrumento no se muestra: a la persona no le dice nada
@@ -217,10 +221,12 @@ function Encabezado({ perfil, conRasgos }: { perfil: PerfilApi; conRasgos: numbe
           una advertencia. Por debajo del umbral el perfil se muestra igual
           —tiene que hacerlo—, lo que no se hace es recomendar sobre él. */}
       {!perfil.publicable && (
-        <p className="bg-accent-soft text-accent-foreground rounded-md p-3">
-          Es un primer bosquejo: alcanza para seguir conversando, <strong>no</strong> para
-          recomendarte carreras. Cuanto más me cuentes, más se afina.
-        </p>
+        <Aviso tono="precaucion">
+          <p>
+            Es un primer bosquejo: alcanza para seguir conversando, <strong>no</strong> para
+            recomendarte carreras. Cuanto más me cuentes, más se afina.
+          </p>
+        </Aviso>
       )}
     </div>
   );
@@ -235,20 +241,20 @@ interface PropiedadesTarjeta {
   inicios?: Map<string, string | null>;
 }
 
-function Tarjeta({ rasgo, alObjetar, conFecha = false, inicios }: PropiedadesTarjeta) {
+function TarjetaRasgo({ rasgo, alObjetar, conFecha = false, inicios }: PropiedadesTarjeta) {
   return (
-    <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-medium">{rasgo.nombre || rasgo.dimension}</h2>
+    <Tarjeta como="article" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+        <h2 className="text-lg leading-snug font-semibold">{rasgo.nombre || rasgo.dimension}</h2>
         {/* Una restricción no es un gusto: «no sé si me pueden pagar el viaje»
             dicho con signo negativo no es algo que a la persona le desagrade. */}
-        {rasgo.mide_interes && (
-          <span className="text-muted-foreground text-sm">{comoTeCae(rasgo.intensidad)}</span>
-        )}
+        {rasgo.mide_interes && <MedidorGusto intensidad={rasgo.intensidad} />}
       </div>
 
       {descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion) !== "" && (
-        <p className="text-sm">{descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}</p>
+        <p className="leading-relaxed">
+          {descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}
+        </p>
       )}
 
       <p className="text-muted-foreground text-sm">
@@ -260,7 +266,7 @@ function Tarjeta({ rasgo, alObjetar, conFecha = false, inicios }: PropiedadesTar
       )}
 
       <Objecion rasgo={rasgo} alObjetar={alObjetar} />
-    </article>
+    </Tarjeta>
   );
 }
 
@@ -293,13 +299,10 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
   if (!abierto) {
     return (
       <div className="border-border border-t pt-2">
-        <button
-          type="button"
-          onClick={() => setAbierto(true)}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3 text-sm"
-        >
+        <Boton variante="fantasma" onClick={() => setAbierto(true)} className="-ms-3">
+          <MessageSquareOff aria-hidden="true" />
           Esto no me representa
-        </button>
+        </Boton>
       </div>
     );
   }
@@ -338,7 +341,7 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
         disabled={registrando}
         onChange={(evento) => setMotivo(evento.target.value)}
         placeholder="Por ejemplo: lo hago por obligación, no porque me guste."
-        className="border-input bg-surface min-h-11 resize-none rounded-md border p-3"
+        className="border-input bg-surface placeholder:text-muted-foreground min-h-11 resize-none rounded-xl border p-3 text-base"
       />
       {fallo !== null && (
         <p role="alert" className="text-destructive">
@@ -346,20 +349,12 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
         </p>
       )}
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={registrando}
-          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-md px-4 font-medium disabled:opacity-50"
-        >
+        <Boton type="submit" variante="primario" disabled={registrando}>
           Registrar
-        </button>
-        <button
-          type="button"
-          onClick={() => setAbierto(false)}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-        >
+        </Boton>
+        <Boton variante="fantasma" onClick={() => setAbierto(false)}>
           Cancelar
-        </button>
+        </Boton>
       </div>
     </form>
   );
@@ -395,9 +390,18 @@ function EnQueMeBaso({
   }, [abierto, rasgo.evidencias]);
 
   return (
-    <details className="text-sm" onToggle={(evento) => setAbierto(evento.currentTarget.open)}>
-      <summary className="cursor-pointer font-medium">En qué me baso</summary>
-      <ul className="mt-2 flex flex-col gap-3">
+    <details
+      className="group border-border border-t pt-1"
+      onToggle={(evento) => setAbierto(evento.currentTarget.open)}
+    >
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
+        En qué me baso
+        <ChevronDown
+          aria-hidden="true"
+          className="text-muted-foreground size-5 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <ul className="flex flex-col gap-3 pb-2">
         {rasgo.evidencias.map((evidencia) => (
           <Cita
             key={evidencia.id}
@@ -471,7 +475,7 @@ function Cita({
       {pregunta !== undefined && (
         <p className="text-muted-foreground text-xs">Contestabas a: «{pregunta}»</p>
       )}
-      <blockquote className="italic">«{evidencia.fragmento}»</blockquote>
+      <blockquote className="leading-relaxed italic">«{evidencia.fragmento}»</blockquote>
       <p className="text-muted-foreground mt-1 text-xs empty:hidden">
         {conversacion && `${conversacion} `}
         {conFecha && `Lo dijiste el ${fecha(evidencia.emitida_en)}.`}
@@ -507,8 +511,4 @@ function cuantas(unidades: number): string {
     : `Sale de ${unidades} cosas que me contaste.`;
 }
 
-const FECHA = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long" });
-
-function fecha(iso: string): string {
-  return FECHA.format(new Date(iso));
-}
+const fecha = fechaCorta;

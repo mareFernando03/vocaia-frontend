@@ -48,10 +48,6 @@ function flujo(...eventos: EventoConversacion[]) {
   })();
 }
 
-const salir = () => Promise.resolve();
-const verHistorial = () => {};
-const verPerfil = () => {};
-
 describe("Conversacion · continuidad de la sesión (HU-07)", () => {
   beforeEach(() => {
     vi.mocked(obtenerHistorial).mockReset();
@@ -60,15 +56,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
   });
 
   it("una sesión nueva no le pregunta al backend por algo que no existe", () => {
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
 
     expect(obtenerHistorial).not.toHaveBeenCalled();
     expect(screen.getByText(/contame por dónde andás/i)).toBeInTheDocument();
@@ -92,15 +80,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    const primera = render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    const primera = render(<Conversacion alVerInforme={() => {}} />);
     await usuario.type(
       screen.getByLabelText(/escribí tu mensaje/i),
       "Estoy terminando el secundario",
@@ -114,15 +94,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     // El F5: se cae todo el árbol y se vuelve a montar con el mismo almacenamiento.
     primera.unmount();
     vi.mocked(obtenerHistorial).mockClear();
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
 
     await waitFor(() => expect(screen.getByText("Contame más.")).toBeInTheDocument());
     expect(screen.getByText("Estoy terminando el secundario")).toBeInTheDocument();
@@ -134,15 +106,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     window.sessionStorage.setItem(CLAVE, "11111111-1111-4111-8111-111111111111");
     vi.mocked(obtenerHistorial).mockResolvedValue(null);
 
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
 
     await waitFor(() => expect(screen.getByText(/contame por dónde andás/i)).toBeInTheDocument());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -175,15 +139,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cuánto dura sistemas?");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -212,15 +168,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       ),
     );
 
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -237,15 +185,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       Promise.resolve(historial(id, [turno(1, "usuario", "Hola")])),
     );
 
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -272,15 +212,7 @@ describe("Conversacion · el markdown del agente (VOCAIA-132)", () => {
       ),
     );
 
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
 
     await waitFor(() =>
       expect(screen.getByText("Soy un sistema de inteligencia artificial").tagName).toBe("STRONG"),
@@ -297,15 +229,7 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
   });
 
   function montar() {
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
   }
 
   it("la respuesta que cierra lleva el foco al informe y lo anuncia", async () => {
@@ -394,15 +318,7 @@ describe("Conversacion · terminar antes del final (H24)", () => {
       estado: "cerrada",
     });
     const alVerInforme = vi.fn();
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={alVerInforme}
-      />,
-    );
+    render(<Conversacion alVerInforme={alVerInforme} />);
 
     await usuario.click(await screen.findByRole("button", { name: /terminar acá/i }));
 
@@ -419,15 +335,7 @@ describe("Conversacion · el saludo antes del primer mensaje", () => {
     });
     window.sessionStorage.clear();
     vi.mocked(obtenerHistorial).mockReset();
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
 
     expect(await screen.findByText("Hola, soy VocaIA.")).toBeInTheDocument();
     expect(screen.queryByText(/contame por dónde andás/i)).not.toBeInTheDocument();
@@ -454,15 +362,7 @@ describe("Conversacion · revisión del #38", () => {
       })(),
     );
     vi.mocked(obtenerHistorial).mockResolvedValue(null);
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={() => {}}
-      />,
-    );
+    render(<Conversacion alVerInforme={() => {}} />);
     await screen.findByText("Hola, soy VocaIA.");
 
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Hola");
@@ -487,15 +387,7 @@ describe("Conversacion · revisión del #38", () => {
       .mockRejectedValueOnce(new Error("se cortó"))
       .mockResolvedValueOnce({ ...historial(sesionId, []), estado: "cerrada" });
     const alVerInforme = vi.fn();
-    render(
-      <Conversacion
-        alSalir={salir}
-        alVerHistorial={verHistorial}
-        alVerPerfil={verPerfil}
-        alVerCarreras={() => {}}
-        alVerInforme={alVerInforme}
-      />,
-    );
+    render(<Conversacion alVerInforme={alVerInforme} />);
 
     await usuario.click(await screen.findByRole("button", { name: /terminar acá/i }));
     await usuario.click(await screen.findByRole("button", { name: "Reintentar" }));

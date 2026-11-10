@@ -145,7 +145,12 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
 
   useEffect(() => {
     void verificar();
-    return alCambiarSesion(() => void verificar());
+    return alCambiarSesion((token) => {
+      // Desde Perfil la charla está desmontada: la limpieza de identidad no
+      // puede depender de que useConversacion siga escuchando los cambios.
+      if (token === null) olvidarSesion();
+      void verificar();
+    });
   }, [verificar]);
 
   // Registra de nuevo el consentimiento si el aviso cambió (VOCAIA-102).

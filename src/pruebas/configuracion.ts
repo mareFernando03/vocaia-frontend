@@ -23,3 +23,16 @@ afterEach(() => {
   // deja aceptadas a todas las que siguen y la puerta deja de probarse.
   window.sessionStorage.clear();
 });
+
+// Tampoco implementa `window.scrollTo`, que la navegación usa para volver arriba
+// al cambiar de pantalla: sin esto cada prueba que cambia de pestaña ensucia la
+// salida con un «Not implemented».
+window.scrollTo = () => {};
+
+// Ni `ResizeObserver`, que Radix usa para ubicar un toggletip junto a su botón.
+// En jsdom no hay nada que medir, así que alcanza con que exista.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

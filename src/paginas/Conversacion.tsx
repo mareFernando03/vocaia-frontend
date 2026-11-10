@@ -5,32 +5,38 @@
  * contando, no en la interfaz. Todo el color sale de los tokens del sistema de
  * diseño; no hay un solo literal, que es lo que verifica
  * `npm run verificar-contraste`.
+ *
+ * El campo para escribir queda fijo abajo mientras la charla corre por detrás,
+ * como en cualquier aplicación de mensajes (sistema de diseño §7). Es la página
+ * la que se desplaza y no una caja interna: así el teclado del teléfono empuja
+ * el campo hacia arriba sin que nada quede atrapado detrás.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { ArrowUp, BookOpenText, FileText, HeartHandshake, Phone } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { obtenerEncuadre, type Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
 import { Referencia } from "../componentes/Referencia";
 import { Trazabilidad } from "../componentes/Trazabilidad";
+import { Aviso } from "../componentes/ui/Aviso";
+import { Boton } from "../componentes/ui/Boton";
+import { BotonIcono } from "../componentes/ui/BotonIcono";
+import { Cargando } from "../componentes/ui/Cargando";
+import { Dialogo } from "../componentes/ui/Dialogo";
+import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
+import { InfoTip } from "../componentes/ui/InfoTip";
 import { useConversacion } from "../hooks/useConversacion";
+import { cn } from "../lib/cn";
 
 interface Propiedades {
-  alSalir: () => Promise<void>;
-  alVerHistorial: () => void;
-  alVerPerfil: () => void;
-  alVerCarreras: () => void;
   alVerInforme: (sesionId: string) => void;
 }
 
-export default function Conversacion({
-  alSalir,
-  alVerHistorial,
-  alVerPerfil,
-  alVerCarreras,
-  alVerInforme,
-}: Propiedades) {
+/** Hasta dónde crece el campo antes de pasar a tener su propio scroll. */
+const ALTO_MAXIMO_CAMPO = 160;
+
+export default function Conversacion({ alVerInforme }: Propiedades) {
   const {
     sesionId,
     turnos,
@@ -63,9 +69,22 @@ export default function Conversacion({
     (estado === "cerrada" ? botonInforme : campo).current?.focus();
   }, [enviando, estado]);
 
+  // Un `behavior: "smooth"` escrito en el código no lo frena la regla de CSS de
+  // menos movimiento: hay que preguntarle al sistema acá también.
   useEffect(() => {
-    finDeLista.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    const quieto = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    finDeLista.current?.scrollIntoView({ block: "end", behavior: quieto ? "auto" : "smooth" });
   }, [turnos, enCurso]);
+
+  // El campo crece con lo que se escribe, hasta un tope. Un campo de dos líneas
+  // fijas obliga a escribir a ciegas un mensaje largo, y uno que crece sin
+  // tope tapa la conversación.
+  useLayoutEffect(() => {
+    const actual = campo.current;
+    if (actual === null) return;
+    actual.style.height = "auto";
+    actual.style.height = `${Math.min(actual.scrollHeight, ALTO_MAXIMO_CAMPO)}px`;
+  }, [borrador]);
 
   async function terminarYVer() {
     if (await terminar()) alVerInforme(sesionId);
@@ -73,6 +92,7 @@ export default function Conversacion({
 
   async function mandar() {
     const texto = borrador;
+    if (texto.trim() === "") return;
     setBorrador("");
     await enviar(texto);
   }
@@ -99,96 +119,50 @@ export default function Conversacion({
     );
   }, [sinTurnos, cargando, sinEncuadre]);
 
+  // Una sesión reabierta sigue teniendo el informe de su cierre anterior;
+  // recién cerrada, el acceso es el aviso de abajo.
+  const ofreceInforme = tieneInforme && estado !== "cerrada" && !derivada;
+  // Para quien quiere cortar antes del final: el perfil y el informe se arman
+  // al cierre, y sin esto se iba con nada (H24). No cierra para siempre: seguir
+  // escribiendo abre la parte siguiente.
+  const ofreceTerminar = intercambios > 0 && estado === "abierta" && !enviando;
+
   return (
-    <div className="flex h-full flex-col gap-4">
-      {/* `flex-wrap` en las dos filas: a 360 px el titulo mas los dos
-          botones no entran en una linea, y sin envolver la pagina scrollea
-          en horizontal. La franja de divulgacion de `App` ya envuelve por lo
-          mismo. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold">Tu conversación</h1>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Se cuentan intercambios y no turnos: en la base cada intervención
-              es un turno, así que "turno 7" sería el cuarto que escribió la
-              persona y nadie lo leería así. No se muestra un objetivo —"7 de
-              18"— porque el presupuesto de la sesión vive en el instrumento
-              del backend y el contrato no lo publica: inventarlo acá sería
-              mostrar un número que nadie calculó. */}
-          {intercambios > 0 && (
-            <span className="text-muted-foreground text-sm tabular-nums">
-              {intercambios} {intercambios === 1 ? "intercambio" : "intercambios"}
-            </span>
-          )}
-          {/* La puerta al historial (HU-12). Va acá y no como pantalla de
-              entrada: quien está conversando tiene que poder buscar una charla
-              anterior, pero recargar en medio de esta tiene que devolver a
-              esta. */}
-          <button
-            type="button"
-            onClick={alVerHistorial}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Tus conversaciones
-          </button>
-          {/* El perfil es el otro desvío (HU-13). Va al lado del historial y
-              no como pestaña: los dos se leen desde la conversación y se
-              vuelve a ella, que es lo que HU-07 pide al recargar. */}
-          <button
-            type="button"
-            onClick={alVerPerfil}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Tu perfil
-          </button>
-          {/* Una sesión reabierta sigue teniendo el informe de su cierre
-              anterior; recién cerrada, el acceso es el aviso de abajo. */}
-          {tieneInforme && estado !== "cerrada" && !derivada && (
-            <button
-              type="button"
-              onClick={() => alVerInforme(sesionId)}
-              className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-            >
-              Tu informe
-            </button>
-          )}
-          {/* Otro desvío del mismo tipo: se consulta el corpus de carreras
-              directo y se vuelve a la charla (HU-15). */}
-          <button
-            type="button"
-            onClick={alVerCarreras}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Carreras
-          </button>
-          <button
-            type="button"
-            onClick={() => void alSalir()}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-          >
-            Cerrar sesión
-          </button>
-        </div>
+    <div className="flex flex-1 flex-col gap-4">
+      {/* El título no se ve: la pantalla ya dice lo que es. Está para que quien
+          usa lector de pantalla sepa dónde quedó parado. */}
+      <div className="flex min-h-11 flex-wrap items-center justify-end gap-2">
+        <h1 className="sr-only">Tu conversación</h1>
+        {ofreceInforme && (
+          <Boton variante="secundario" onClick={() => alVerInforme(sesionId)}>
+            <FileText aria-hidden="true" />
+            Tu informe
+          </Boton>
+        )}
+        {ofreceTerminar && (
+          <Boton variante="fantasma" onClick={() => void terminarYVer()}>
+            Terminar acá y ver mi informe
+          </Boton>
+        )}
       </div>
 
       {/* `aria-live` va acá y no en cada burbuja: lo que tiene que anunciarse
           es la respuesta a medida que se escribe. `polite` y no `assertive`
           para no interrumpir a quien todavía está leyendo lo anterior. */}
-      <ol
-        aria-live="polite"
-        aria-busy={enviando}
-        className="flex flex-1 flex-col gap-4 overflow-y-auto"
-      >
+      <ol aria-live="polite" aria-busy={enviando} className="flex flex-1 flex-col gap-3">
         {cargando && (
-          <li className="text-muted-foreground text-sm">Recuperando la conversación…</li>
+          <li>
+            <Cargando texto="Recuperando la conversación…" />
+          </li>
         )}
 
         {!cargando && sinTurnos && encuadre !== null && <Burbuja rol="agente" texto={encuadre} />}
 
         {!cargando && vacia && encuadre === null && (
-          <li className="text-muted-foreground text-sm">
-            Contame por dónde andás: qué estás cursando o terminando, y qué te trajo hasta acá. No
-            hace falta que tengas una respuesta armada.
-          </li>
+          <Burbuja
+            rol="agente"
+            texto="Contame por dónde andás: qué estás cursando o terminando, y qué te trajo hasta acá. No hace falta que tengas una respuesta armada."
+          />
         )}
 
         {turnos.map((turno) => (
@@ -207,125 +181,127 @@ export default function Conversacion({
           </>
         )}
 
-        <li aria-hidden="true" ref={finDeLista} />
+        {/* El margen hace que, al bajar hasta acá, el último mensaje quede por
+            encima del campo fijo y no detrás. */}
+        <li aria-hidden="true" ref={finDeLista} className="scroll-mb-48" />
       </ol>
 
-      {fuentes.length > 0 && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
-
-      {/* La región viva existe siempre y lo que cambia es su contenido: una
-          que aparece ya llena no se anuncia en todos los lectores. Sin el
-          anuncio, quien no ve la pantalla no se entera de que terminó.
-
-          No dice «listo»: el informe se arma después de la última respuesta
-          y puede tardar unos segundos; la pantalla del informe lo espera.
-
-          El campo de abajo no se deshabilita: seguir escribiendo reabre la
-          sesión del otro lado sin perder lo que ya contó, y el informe del
-          cierre se sigue pudiendo leer desde la cabecera. */}
-      <div role="status">
-        {/* Sin «Ver tu informe»: la charla se cortó por lo que contó, no porque
-            se completara, y ofrecerle un resultado ahí es no haberla escuchado.
-            Las líneas dependen de la señal y ya están en la respuesta; el 911
-            vale para todas. */}
-        {derivada && !enviando && (
-          <div className="bg-accent-soft text-accent-foreground flex flex-col gap-1 rounded-md p-3 text-sm">
-            <p>
-              Dejamos la charla sobre carreras acá. Lo que importa ahora es que hables con alguien:
-              los teléfonos están en la última respuesta, y si estás en peligro ahora mismo, llamá
-              al{" "}
-              {/* El preflight de Tailwind le saca color y subrayado a un enlace:
-                  sin clases no se veía como tal, y es el único dato de seguridad
-                  que garantiza la pantalla. */}
-              <a
-                href="tel:911"
-                className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
-              >
-                911
-              </a>
-              .
-            </p>
-            <p>Si más adelante querés retomar, podés volver a escribir acá.</p>
-          </div>
+      {/* La parte de abajo queda pegada al borde mientras la charla se
+          desplaza: lo que se acaba de decir, si terminó, y el campo. Encima de
+          la barra de pestañas en el teléfono, que se esconde al escribir. */}
+      <div
+        className={cn(
+          "bg-background/95 sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 flex flex-col gap-3 px-4 pt-2 pb-3 backdrop-blur sm:bottom-0 sm:-mx-6 sm:px-6 sm:pb-4",
+          // Con el teclado abierto la barra de abajo desaparece y el campo baja
+          // a ocupar su lugar. Es la misma marca que esconde la barra en
+          // `Navegacion` (`useTecladoVirtual`).
+          "[[data-teclado]_&]:bottom-0",
         )}
-        {estado === "cerrada" && !enviando && (
-          <div className="bg-primary-soft flex flex-wrap items-center justify-between gap-3 rounded-md p-3 text-sm">
-            <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
-            <button
-              ref={botonInforme}
-              type="button"
-              onClick={() => alVerInforme(sesionId)}
-              className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium"
-            >
-              Ver tu informe
-            </button>
-          </div>
-        )}
-      </div>
-
-      {error !== null && (
-        <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-          >
-            Reintentar
-          </button>
-        </p>
-      )}
-
-      <form
-        className="flex items-end gap-2"
-        onSubmit={(evento) => {
-          evento.preventDefault();
-          void mandar();
-        }}
       >
-        <label htmlFor="mensaje" className="sr-only">
-          Escribí tu mensaje
-        </label>
-        <textarea
-          id="mensaje"
-          ref={campo}
-          rows={2}
-          value={borrador}
-          disabled={enviando}
-          onChange={(evento) => setBorrador(evento.target.value)}
-          onKeyDown={(evento) => {
-            // Enter manda, Shift+Enter hace un salto de línea. Es lo que la
-            // gente ya espera de un campo de conversación.
-            if (evento.key === "Enter" && !evento.shiftKey) {
-              evento.preventDefault();
-              void mandar();
-            }
-          }}
-          placeholder="Escribí acá…"
-          className="border-input bg-surface min-h-11 flex-1 resize-none rounded-md border p-3 text-sm"
-        />
-        <button
-          type="submit"
-          disabled={enviando || borrador.trim() === ""}
-          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-medium disabled:opacity-50"
-        >
-          Enviar
-        </button>
-      </form>
+        {fuentes.length > 0 && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
 
-      {/* Para quien quiere cortar antes del final: el perfil y el informe se
-          arman al cierre, y sin esto se iba con nada (H24). No cierra para
-          siempre: seguir escribiendo abre la parte siguiente. */}
-      {intercambios > 0 && estado === "abierta" && !enviando && (
-        <button
-          type="button"
-          onClick={() => {
-            void terminarYVer();
+        {/* La región viva existe siempre y lo que cambia es su contenido: una
+            que aparece ya llena no se anuncia en todos los lectores. Sin el
+            anuncio, quien no ve la pantalla no se entera de que terminó.
+
+            No dice «listo»: el informe se arma después de la última respuesta
+            y puede tardar unos segundos; la pantalla del informe lo espera.
+
+            El campo de abajo no se deshabilita: seguir escribiendo reabre la
+            sesión del otro lado sin perder lo que ya contó, y el informe del
+            cierre se sigue pudiendo leer desde la cabecera. */}
+        <div role="status">
+          {/* Sin «Ver tu informe»: la charla se cortó por lo que contó, no
+              porque se completara, y ofrecerle un resultado ahí es no haberla
+              escuchado. Las líneas dependen de la señal y ya están en la
+              respuesta; el 911 vale para todas. */}
+          {derivada && !enviando && (
+            <Aviso tono="apoyo" icono={<HeartHandshake />}>
+              <p>
+                Dejamos la charla sobre carreras acá. Lo que importa ahora es que hables con
+                alguien: los teléfonos están en la última respuesta, y si estás en peligro ahora
+                mismo, llamá al{" "}
+                {/* El preflight de Tailwind le saca color y subrayado a un
+                    enlace: sin clases no se veía como tal, y es el único dato de
+                    seguridad que garantiza la pantalla. */}
+                <a
+                  href="tel:911"
+                  className="bg-support text-support-foreground mx-0.5 inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 align-middle font-semibold"
+                >
+                  <Phone aria-hidden="true" className="size-4" />
+                  911
+                </a>
+                .
+              </p>
+              <p>Si más adelante querés retomar, podés volver a escribir acá.</p>
+            </Aviso>
+          )}
+          {estado === "cerrada" && !enviando && (
+            <Aviso tono="info" className="items-center">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
+                <Boton
+                  ref={botonInforme}
+                  variante="primario"
+                  onClick={() => alVerInforme(sesionId)}
+                >
+                  <FileText aria-hidden="true" />
+                  Ver tu informe
+                </Boton>
+              </div>
+            </Aviso>
+          )}
+        </div>
+
+        {error !== null && (
+          <ErrorConReintento
+            alReintentar={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
+          >
+            {error}
+          </ErrorConReintento>
+        )}
+
+        <form
+          className="border-input bg-surface shadow-tarjeta focus-within:border-ring focus-within:outline-ring flex items-end gap-2 rounded-2xl border p-1.5 ps-4 transition-colors focus-within:outline-1"
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            void mandar();
           }}
-          className="text-primary inline-flex min-h-11 items-center self-start text-sm underline underline-offset-2"
         >
-          Terminar acá y ver mi informe
-        </button>
-      )}
+          <label htmlFor="mensaje" className="sr-only">
+            Escribí tu mensaje
+          </label>
+          {/* El anillo de foco lo dibuja el recuadro entero (`focus-within`):
+              el campo no tiene borde propio, y un anillo pegado al texto se ve
+              cortado. */}
+          <textarea
+            id="mensaje"
+            ref={campo}
+            rows={1}
+            value={borrador}
+            disabled={enviando}
+            onChange={(evento) => setBorrador(evento.target.value)}
+            onKeyDown={(evento) => {
+              // Enter manda, Shift+Enter hace un salto de línea. Es lo que la
+              // gente ya espera de un campo de conversación.
+              if (evento.key === "Enter" && !evento.shiftKey) {
+                evento.preventDefault();
+                void mandar();
+              }
+            }}
+            placeholder="Escribí acá…"
+            className="placeholder:text-muted-foreground min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base leading-relaxed outline-none focus-visible:outline-none disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={enviando || borrador.trim() === ""}
+            className="bg-primary text-primary-foreground hover:bg-primary-light inline-flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ArrowUp aria-hidden="true" className="size-5" strokeWidth={2.5} />
+            <span className="sr-only">Enviar</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -337,86 +313,54 @@ function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
       {/* Una línea y no un recuadro: en la prueba del piloto el recuadro cargaba
           el chat. La salvedad de R-002 va en la línea misma y no en la ventana:
           una salvedad que hay que abrir para leer no es una salvedad. */}
-      <p className="text-muted-foreground text-sm">
-        <button
-          type="button"
-          onClick={() => setAbierta(true)}
-          className="text-primary inline-flex min-h-11 items-center underline underline-offset-2"
+      <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
+        <Dialogo
+          titulo="Fuentes consultadas"
+          abierto={abierta}
+          alCambiar={setAbierta}
+          disparador={
+            <button
+              type="button"
+              className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
+            >
+              <BookOpenText aria-hidden="true" className="size-4" />
+              Fuentes de la Facultad ({fuentes.length})
+            </button>
+          }
         >
-          Fuentes de la Facultad ({fuentes.length})
-        </button>{" "}
-        · datos <strong>provisionales</strong>, todavía sin validar.
+          <ContenidoFuentes fuentes={fuentes} />
+        </Dialogo>
+        <span>
+          · datos <strong className="text-foreground font-semibold">provisionales</strong>, todavía
+          sin validar.
+        </span>
       </p>
-      <Ventana titulo="Fuentes consultadas" abierta={abierta} alCerrar={() => setAbierta(false)}>
-        {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
-            lo que se escribió y el modelo puede haber ignorado todo. */}
-        <p className="text-muted-foreground">
-          Material de la Facultad que VocaIA consultó para armar la última respuesta. No
-          necesariamente lo citó. Son datos provisionales, todavía sin validar.
-        </p>
-        <ul className="mt-2 flex flex-col gap-1">
-          {fuentes.map((fuente) => (
-            <li key={fuente.id}>
-              <Referencia texto={fuente.fuente} />
-            </li>
-          ))}
-        </ul>
-      </Ventana>
     </>
   );
 }
 
-/**
- * Una ventana sobre la conversación, con el `<dialog>` del navegador: trae el
- * foco atrapado, Escape para cerrar y el fondo inerte sin código propio.
- */
-function Ventana({
-  titulo,
-  abierta,
-  alCerrar,
-  children,
-}: {
-  titulo: string;
-  abierta: boolean;
-  alCerrar: () => void;
-  children: ReactNode;
-}) {
-  const dialogo = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const actual = dialogo.current;
-    if (actual === null) return;
-    // ponytail: jsdom no implementa showModal; ahí alcanza con el atributo.
-    if (abierta && !actual.open) {
-      if (typeof actual.showModal === "function") actual.showModal();
-      else actual.setAttribute("open", "");
-    }
-    if (!abierta && actual.open) {
-      if (typeof actual.close === "function") actual.close();
-      else actual.removeAttribute("open");
-    }
-  }, [abierta]);
-  // En un portal: la burbuja vive dentro de la región `aria-live` de la
-  // conversación, y la ventana adentro se anunciaba como parte de la respuesta.
-  return createPortal(
-    <dialog
-      ref={dialogo}
-      aria-label={titulo}
-      onClose={alCerrar}
-      className="bg-surface text-foreground border-border backdrop:bg-foreground/40 m-auto max-h-[80vh] w-[min(36rem,calc(100%-2rem))] overflow-y-auto rounded-xl border p-4 text-sm"
-    >
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="font-semibold">{titulo}</h2>
-        <button
-          type="button"
-          onClick={alCerrar}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-        >
-          Cerrar
-        </button>
-      </div>
-      {abierta && children}
-    </dialog>,
-    document.body,
+function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
+  return (
+    <>
+      {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
+            lo que se escribió y el modelo puede haber ignorado todo. */}
+      <p className="text-muted-foreground flex items-center gap-1">
+        Lo que VocaIA leyó para la última respuesta.
+        <InfoTip tema="estas fuentes">
+          Es el material de la Facultad más cercano a lo que escribiste. La respuesta no
+          necesariamente lo usó todo.
+        </InfoTip>
+      </p>
+      {/* La salvedad ya está en la línea que abre esta ventana; repetirla
+            acá como insignia sólo sumaba ruido. */}
+      <ul className="mt-4 flex flex-col gap-2">
+        {fuentes.map((fuente) => (
+          <li key={fuente.id}>
+            <Referencia texto={fuente.fuente} />
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -434,52 +378,52 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
   // pedido por respuesta para algo que casi nadie despliega.
   const [abierta, setAbierta] = useState(false);
   return (
-    <li className={esPersona ? "flex justify-end" : "flex justify-start"}>
+    <li
+      className={cn(
+        "animate-aparecer flex items-end gap-1",
+        esPersona ? "justify-end" : "justify-start",
+      )}
+    >
       <div
-        className={
+        className={cn(
+          "max-w-[88%] px-4 py-2.5 text-[0.9375rem] leading-relaxed sm:max-w-[80%] sm:text-base",
           esPersona
-            ? "bg-primary text-primary-foreground max-w-[85%] rounded-xl px-4 py-3 text-sm"
-            : "bg-surface border-border max-w-[85%] rounded-xl border px-4 py-3 text-sm"
-        }
+            ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md"
+            : "bg-surface border-border shadow-tarjeta rounded-2xl rounded-bl-md border",
+        )}
       >
         {/* El rol se nombra para quien no ve la alineación ni el color: sin
             esto, un lector de pantalla lee dos textos seguidos sin saber quién
             dijo cada cosa. */}
         <span className="sr-only">{esPersona ? "Vos:" : "VocaIA:"}</span>
         {escribiendo ? (
-          <span className="text-muted-foreground">Escribiendo…</span>
+          <Cargando texto="Escribiendo…" />
         ) : esPersona ? (
           <p className="whitespace-pre-wrap">{texto}</p>
         ) : (
           <Prosa texto={texto} />
         )}
-        {/* Un ícono y no una línea de texto bajo cada respuesta: repetida en
-            todas, cargaba el chat (prueba del piloto). El nombre accesible es
-            la pregunta entera, y `title` se la muestra a quien pasa el mouse. */}
-        {traza !== undefined && (
-          <div className="mt-1 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setAbierta(true)}
-              aria-label="¿De dónde salió esto?"
-              title="¿De dónde salió esto?"
-              className="text-muted-foreground hover:text-primary inline-flex size-11 items-center justify-center rounded-full"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 11v6M12 7.5v.5" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </button>
-            <Ventana
-              titulo="¿De dónde salió esto?"
-              abierta={abierta}
-              alCerrar={() => setAbierta(false)}
-            >
-              <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
-            </Ventana>
-          </div>
-        )}
       </div>
+      {/* Un ícono al costado y no una línea de texto bajo cada respuesta:
+          repetida en todas, cargaba el chat (prueba del piloto). El nombre
+          accesible es la pregunta entera, y aparece como etiqueta al pasar el
+          mouse o llegar con el teclado. */}
+      {traza !== undefined && (
+        <>
+          <Dialogo
+            titulo="¿De dónde salió esto?"
+            abierto={abierta}
+            alCambiar={setAbierta}
+            disparador={
+              <BotonIcono etiqueta="¿De dónde salió esto?">
+                <BookOpenText aria-hidden="true" />
+              </BotonIcono>
+            }
+          >
+            <Trazabilidad sesionId={traza.sesionId} turno={traza.turno} />
+          </Dialogo>
+        </>
+      )}
     </li>
   );
 }
