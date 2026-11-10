@@ -2,8 +2,31 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VocaIA — Frontend</title>
+    <!-- `viewport-fit=cover` deja que la página use toda la pantalla en los
+         teléfonos con muesca; el relleno lo ponen los `safe-area-inset` del
+         compositor y de la barra de abajo, no el navegador. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>VocaIA</title>
+    <meta
+      name="description"
+      content="Conversá con VocaIA para pensar qué carrera estudiar en la UTN San Francisco."
+    />
+    <meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161d" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <!-- El tema se fija antes de dibujar: si esperara a React, quien usa el
+         oscuro vería un destello blanco en cada carga. Es el mismo cálculo que
+         `src/hooks/useTema.ts`. -->
+    <script>
+      try {
+        var t = localStorage.getItem("vocaia:tema");
+        if (t !== "claro" && t !== "oscuro")
+          t = matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+        document.documentElement.dataset.tema = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

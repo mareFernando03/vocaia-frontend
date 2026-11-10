@@ -16,25 +16,46 @@
  * contraste sin que cambie de tono, que es exactamente lo que hubo que hacer
  * con `--success` y con `--input`.
  *
- * La paleta viene del prototipo previo. Las dos correcciones de contraste
- * están anotadas donde corresponde. Fundamento completo y wireframes en
+ * Hay dos temas: el claro, en `@theme`, y el oscuro, que pisa las mismas
+ * variables más abajo cuando el sistema de la persona lo pide. Va con `@theme`
+ * y no con `@theme inline` a propósito: con `inline` Tailwind copia el valor en
+ * cada clase y el tema oscuro no tendría nada que pisar.
+ *
+ * La paleta viene del prototipo previo. Las correcciones de contraste están
+ * anotadas donde corresponde. Fundamento completo y wireframes en
  * `5to/proyecto-final/ejecucion/sistema-de-diseno.md`.
  *
- * Verificación: `npm run verificar-contraste`.
+ * Verificación de los dos temas: `npm run verificar-contraste`.
  */
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Inter se sirve desde el propio sitio (`@fontsource-variable/inter`, en
+   * `main.tsx`) y no desde Google Fonts: pedirla a Google le pasaría la
+   * dirección IP de cada persona que entra, sin que nadie lo haya decidido. */
+  --font-sans:
+    "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Una sombra apenas visible para separar tarjetas del fondo. En el tema
+   * oscuro la separación la hace el borde: una sombra sobre negro no se ve. */
+  --shadow-tarjeta:
+    0 1px 2px 0 oklch(0.278 0.03 256.8 / 0.06), 0 1px 3px 0 oklch(0.278 0.03 256.8 / 0.08);
+  --shadow-flotante:
+    0 8px 24px -4px oklch(0.278 0.03 256.8 / 0.18), 0 2px 6px -2px oklch(0.278 0.03 256.8 / 0.12);
 
   /* --- Superficies --- */
   --color-background: oklch(0.985 0.001 106.4); /* off-white cálido */
   --color-surface: oklch(1 0 0);
+  /* Lo que flota sobre todo lo demás: toggletips, menús, ventanas. */
+  --color-surface-raised: oklch(1 0 0);
   --color-border: oklch(0.928 0.006 264.5); /* separadores decorativos */
+  /* El velo detrás de una ventana abierta. */
+  --color-overlay: oklch(0.278 0.03 256.8 / 0.45);
 
   /* Borde de campos y controles. Más oscuro que `--border` a propósito: es
    * información necesaria para identificar un control, así que WCAG 1.4.11 le
@@ -44,7 +65,9 @@
 
   /* --- Texto --- */
   --color-foreground: oklch(0.278 0.03 256.8);
-  --color-muted-foreground: oklch(0.551 0.023 264.4); /* 4.63:1, justo */
+  /* Oscurecido desde 0.551: sobre el azul claro daba 4.44:1 y no llegaba. Se
+   * usa ahí en el historial y en la burbuja del agente. */
+  --color-muted-foreground: oklch(0.53 0.023 264.4);
 
   /* --- Marca --- */
   --color-primary: oklch(0.379 0.138 265.5); /* azul académico */
@@ -57,9 +80,19 @@
   --color-accent-soft: oklch(0.962 0.058 95.6);
   --color-accent-strong: oklch(0.555 0.146 49);
 
+  /* --- Apoyo --- */
+  /* El aviso de cuando la charla se corta por una señal de riesgo. No es el
+   * ámbar de las salvedades: no es una advertencia sobre un dato sino una mano
+   * tendida, y tiene que distinguirse de todo lo demás de la pantalla. */
+  --color-support: oklch(0.47 0.085 195);
+  --color-support-foreground: oklch(1 0 0);
+  --color-support-soft: oklch(0.965 0.025 195);
+
   /* --- Estado --- */
-  --color-destructive: oklch(0.577 0.215 27.3);
+  --color-destructive: oklch(0.54 0.205 27.3);
   --color-destructive-foreground: oklch(1 0 0);
+  /* El fondo de un botón `peligro-fantasma` al pasar el mouse. */
+  --color-destructive-soft: oklch(0.965 0.02 25);
 
   /* Oscurecido desde 0.596 del prototipo: ahí el texto blanco encima daba
    * 3.77:1 y no llegaba al mínimo de 4.5:1. */
@@ -72,11 +105,104 @@
   --color-ring: oklch(0.507 0.168 267.3); /* foco */
 }
 
+/*
+ * Tema oscuro, cuando `<html data-tema="oscuro">`.
+ *
+ * El atributo lo pone `useTema`: sigue al sistema de la persona hasta que ella
+ * elige uno con el botón de la barra superior. Un script en `index.html` lo
+ * pone antes de dibujar nada, para que quien usa el tema oscuro no vea un
+ * destello blanco al cargar.
+ *
+ * Sólo en pantalla: el informe se descarga imprimiéndolo, y un PDF con fondo
+ * negro no se puede imprimir ni leer en papel.
+ *
+ * En oscuro el primario pasa a ser un azul claro con texto oscuro encima. El
+ * mismo token es fondo de botón y color de enlace, y un azul oscuro sobre fondo
+ * oscuro no se lee como enlace.
+ *
+ * `verificar-contraste.mjs` lee los valores entre las dos marcas de abajo. Si
+ * un token no se redefine acá, el tema oscuro hereda el claro.
+ */
+@media screen {
+  :root[data-tema="oscuro"] {
+    /* tema-oscuro:inicio */
+    --color-background: oklch(0.185 0.012 264);
+    --color-surface: oklch(0.225 0.014 264);
+    --color-surface-raised: oklch(0.265 0.016 264);
+    --color-border: oklch(0.33 0.016 264);
+    --color-overlay: oklch(0.1 0.01 264 / 0.7);
+    --color-input: oklch(0.56 0.016 264);
+
+    --color-foreground: oklch(0.945 0.006 264);
+    --color-muted-foreground: oklch(0.74 0.016 264);
+
+    --color-primary: oklch(0.75 0.115 265);
+    --color-primary-foreground: oklch(0.2 0.04 265);
+    --color-primary-light: oklch(0.82 0.09 265);
+    --color-primary-soft: oklch(0.285 0.045 265);
+
+    /* El texto de las salvedades va sobre el ámbar suave, que en oscuro es un
+     * marrón: el texto tiene que ser claro, y el ámbar pleno —que hoy no usa
+     * nadie— se oscurece para que el mismo token le sirva. */
+    --color-accent: oklch(0.45 0.1 60);
+    --color-accent-foreground: oklch(0.95 0.02 85);
+    --color-accent-soft: oklch(0.3 0.055 75);
+    --color-accent-strong: oklch(0.78 0.14 65);
+
+    --color-support: oklch(0.8 0.085 195);
+    --color-support-foreground: oklch(0.2 0.03 195);
+    --color-support-soft: oklch(0.29 0.045 195);
+
+    --color-destructive: oklch(0.72 0.16 25);
+    --color-destructive-foreground: oklch(0.2 0.04 25);
+    --color-destructive-soft: oklch(0.3 0.06 25);
+    --color-success: oklch(0.76 0.13 163);
+    --color-success-foreground: oklch(0.2 0.04 163);
+    --color-warning: oklch(0.78 0.14 65);
+    --color-warning-foreground: oklch(0.2 0.03 65);
+
+    --color-ring: oklch(0.78 0.12 265);
+    /* tema-oscuro:fin */
+
+    --shadow-tarjeta: 0 0 0 0 transparent;
+    --shadow-flotante: 0 12px 32px -6px oklch(0 0 0 / 0.6);
+
+    color-scheme: dark;
+  }
+}
+
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Que un toque largo en el teléfono no pinte de azul medio botón. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * La mano sobre todo lo que se puede accionar, y la prohibición sobre lo que
+   * está deshabilitado. Tailwind 4 deja la flecha en los botones; acá se fija
+   * una vez para todos, en vez de confiar en que cada uno lo recuerde.
+   */
+  button:not(:disabled),
+  [role="button"],
+  summary,
+  label[for],
+  select,
+  a[href] {
+    cursor: pointer;
+  }
+
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
   }
 
   /*
@@ -92,9 +218,30 @@
   }
 
   /*
-   * Respeta a quien pidió menos movimiento en su sistema operativo. No es
-   * cosmético: para algunas personas la animación provoca mareo o migraña.
+   * En un campo de texto el anillo separado del borde se ve como un segundo
+   * borde. Ahí el anillo se monta sobre el borde mismo: queda uno solo, más
+   * grueso y del color del foco, que se sigue viendo con claridad.
    */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline-offset: -1px;
+  }
+
+  /* La cruz propia del navegador en los buscadores: cada uno la dibuja
+   * distinto, y la búsqueda de carreras tiene su propio botón para limpiar. */
+  input[type="search"]::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  /*
+   * La barra superior queda fija: sin margen al hacer foco, un elemento que
+   * recibe el foco por teclado puede quedar debajo de ella (WCAG 2.4.11).
+   */
+  html {
+    scroll-padding-top: 5rem;
+  }
+
   /*
    * El informe se descarga imprimiéndolo a PDF (S4-04). En papel un enlace no
    * se puede seguir: la dirección se escribe después del nombre, o la fuente
@@ -120,8 +267,56 @@
     h5 {
       break-after: avoid;
     }
+
+    /* En papel una tarjeta partida al medio se lee como dos. */
+    article {
+      break-inside: avoid;
+    }
   }
 
+  /*
+   * El cambio de tema (`src/lib/transicion-tema.ts`). Con View Transitions la
+   * página vieja se funde sobre la nueva; el ícono del botón queda afuera de
+   * la foto, con su propio nombre, para que se lo vea girar en vivo en lugar
+   * de fundirse con el resto.
+   */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 300ms;
+    animation-timing-function: ease-out;
+  }
+
+  .icono-tema {
+    view-transition-name: icono-tema;
+  }
+
+  ::view-transition-old(icono-tema) {
+    display: none;
+  }
+
+  ::view-transition-new(icono-tema) {
+    animation: none;
+  }
+
+  /*
+   * Sin View Transitions, los colores pasan de un tema al otro con una
+   * transición común. La marca dura lo que el cambio y se quita: dejada
+   * puesta, cualquier hover tardaría lo mismo.
+   */
+  :root[data-cambiando-tema] *,
+  :root[data-cambiando-tema] *::before,
+  :root[data-cambiando-tema] *::after {
+    transition-property:
+      color, background-color, border-color, outline-color, fill, stroke, box-shadow, rotate, scale,
+      opacity !important;
+    transition-duration: 300ms !important;
+    transition-timing-function: ease-out !important;
+  }
+
+  /*
+   * Respeta a quien pidió menos movimiento en su sistema operativo. No es
+   * cosmético: para algunas personas la animación provoca mareo o migraña.
+   */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -132,4 +327,47 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/*
+ * Los tres puntos de «Escribiendo…». Acompañan al texto, no lo reemplazan: el
+ * sistema de diseño pide que la espera se diga, no que sólo se vea.
+ */
+@keyframes puntos {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@theme {
+  --animate-puntos: puntos 1.2s ease-in-out infinite;
+  --animate-aparecer: aparecer 160ms ease-out;
+  --animate-subir: subir 200ms ease-out;
 }
