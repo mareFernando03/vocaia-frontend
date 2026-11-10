@@ -161,9 +161,11 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
   // Primero lo citado: es lo que la respuesta afirma que dice la Facultad. Lo
   // consultado y no citado queda abajo, rotulado, porque también es parte de la
   // traza —el sistema lo tuvo delante—, pero no respalda ninguna frase.
-  const ordenados = [...respaldos].sort(
-    (a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden,
-  );
+  // Una línea por fuente, y si un fragmento de ella se citó, la que queda es
+  // ésa: el orden pone lo citado primero (los horarios van uno por año).
+  const ordenados = [...respaldos]
+    .sort((a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden)
+    .filter((r, i, todos) => todos.findIndex((otro) => otro.fuente === r.fuente) === i);
   const provisional = respaldos.some((r) => r.estado_validacion === "provisional");
 
   return (
