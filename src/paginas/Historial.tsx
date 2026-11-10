@@ -13,26 +13,25 @@
  * quedar desincronizada de la primera.
  */
 
+import { ChevronRight, FileText, MessagesSquare, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { describir } from "../api/cliente";
 import { listarSesiones, type ResumenSesion } from "../api/conversacion";
+import { Boton } from "../componentes/ui/Boton";
+import { Cargando } from "../componentes/ui/Cargando";
+import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
+import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
+import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { fechaLarga } from "../lib/fechas";
 
 interface Propiedades {
   alRetomar: (sesionId: string) => void;
   alEmpezarNueva: () => void;
-  alVolver: () => void;
   alVerInforme: (sesionId: string) => void;
 }
 
-const FECHA = new Intl.DateTimeFormat("es-AR", { dateStyle: "long" });
-
-export default function Historial({
-  alRetomar,
-  alEmpezarNueva,
-  alVolver,
-  alVerInforme,
-}: Propiedades) {
+export default function Historial({ alRetomar, alEmpezarNueva, alVerInforme }: Propiedades) {
   const [sesiones, setSesiones] = useState<ResumenSesion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,107 +51,103 @@ export default function Historial({
   useEffect(() => void cargar(), [cargar]);
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold">Tus conversaciones</h1>
-        <button
-          type="button"
-          onClick={alVolver}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-        >
-          Volver
-        </button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <EncabezadoPagina
+        titulo="Tus conversaciones"
+        acciones={
+          <Boton variante="primario" onClick={alEmpezarNueva}>
+            <Plus aria-hidden="true" />
+            Empezar una conversación nueva
+          </Boton>
+        }
+      />
 
-      {cargando && <p className="text-muted-foreground text-sm">Buscando tus conversaciones…</p>}
+      {cargando && <Cargando texto="Buscando tus conversaciones…" />}
 
       {error !== null && (
-        <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void cargar()}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-          >
-            Reintentar
-          </button>
-        </p>
+        <ErrorConReintento alReintentar={() => void cargar()}>{error}</ErrorConReintento>
       )}
 
       {!cargando && error === null && sesiones.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          Todavía no hablaste con VocaIA. Cuando lo hagas, la conversación va a quedar acá para que
-          puedas retomarla otro día.
-        </p>
+        <div className="text-muted-foreground flex flex-col items-center gap-3 py-12 text-center">
+          <MessagesSquare aria-hidden="true" className="size-10" strokeWidth={1.5} />
+          <p>Todavía no hablaste con VocaIA.</p>
+        </div>
       )}
 
       {sesiones.length > 0 && (
-        <ul className="flex flex-1 flex-col gap-3 overflow-y-auto">
-          {sesiones.map((sesion) => (
-            <li key={sesion.sesion_id}>
-              {/* El item entero es el botón y no un enlace con un botón adentro:
-                  no hay ruteo, y un blanco de un solo objetivo se acierta con el
-                  dedo y se anuncia una sola vez con el lector de pantalla. */}
-              <button
-                type="button"
-                onClick={() => alRetomar(sesion.sesion_id)}
-                // El hover va al fondo y no a `primary-soft` como el resto de
-                // los botones neutros: la fecha y el conteo son texto
-                // secundario, y sobre `primary-soft` ese par da 4,44:1, abajo
-                // del 4,5 que pide WCAG AA. Sobre el fondo da 4,63:1, que es
-                // uno de los pares que `verificar-contraste` ya mide.
-                className="border-border bg-surface hover:bg-background flex w-full flex-col items-start gap-1 rounded-md border p-3 text-left"
+        <ul className="flex flex-col gap-3">
+          {sesiones.map((sesion) => {
+            const fecha = fechaLarga(sesion.actualizada_en);
+            const intercambios = intercambiosDe(sesion.cantidad_turnos);
+            return (
+              <Tarjeta
+                key={sesion.sesion_id}
+                como="li"
+                className="hover:border-input relative gap-2 transition-colors"
               >
-                {/* Una sola cadena y no tres elementos con separadores
-                    ocultos: el nombre accesible del boton concatena los hijos
-                    sin espacios, asi que «2026» y «2 mensajes» se pegaban y el
-                    lector de pantalla leia «20262 mensajes». Intercambios, como
-                    en la charla: el backend cuenta los turnos de las dos partes,
-                    y cada intercambio son dos (el saludo suelto no suma). */}
-                <span className="text-muted-foreground text-sm">
-                  {`${FECHA.format(new Date(sesion.actualizada_en))} · ${intercambiosDe(sesion.cantidad_turnos)} ${
-                    intercambiosDe(sesion.cantidad_turnos) === 1 ? "intercambio" : "intercambios"
-                  }`}
-                </span>{" "}
-                {/* El espacio de arriba no se dibuja —flex descarta los nodos
-                    de solo espacio— pero sí entra en el nombre accesible, que
-                    si no leería «2 mensajesEstoy entre…». */}
-                {/* `line-clamp-2` y no un recorte en JavaScript: cuántas
-                    palabras entran depende del ancho de la pantalla, que el
-                    código no conoce y el navegador sí. */}
-                <span className="line-clamp-2 text-sm">
-                  {sesion.vista_previa ?? "Conversación sin mensajes tuyos todavía"}
-                </span>
-              </button>
-              {/* Al lado y no adentro del botón de retomar: un botón dentro
-                  de otro no es HTML válido y el lector de pantalla leería los
-                  dos nombres pegados.
-
-                  Recién cerrada todavía no tiene informe guardado, pero se
-                  está armando y la pantalla del informe lo espera. La fecha va
-                  en el nombre porque quien recorre los botones sueltos con el
-                  lector de pantalla no ve a qué conversación pertenece cada uno. */}
-              {(sesion.tiene_informe || sesion.estado === "cerrada") && (
+                {/* La tarjeta entera retoma la conversación, pero el elemento
+                    que lo hace es el botón: su área se estira sobre toda la
+                    tarjeta con un pseudo-elemento (Inclusive Components,
+                    «Cards»). Envolver la tarjeta en el botón haría que el lector
+                    de pantalla leyera todo junto, y dejaría el botón del
+                    informe adentro de otro botón, que no es HTML válido. */}
                 <button
                   type="button"
-                  onClick={() => alVerInforme(sesion.sesion_id)}
-                  className="text-primary mt-1 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-2"
+                  onClick={() => alRetomar(sesion.sesion_id)}
+                  className="flex w-full items-start gap-3 rounded-md text-left after:absolute after:inset-0 after:rounded-2xl after:content-['']"
                 >
-                  {`Ver el informe de la conversación del ${FECHA.format(new Date(sesion.actualizada_en))}`}
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    {/* Una sola cadena y no tres elementos con separadores
+                        ocultos: el nombre accesible del boton concatena los
+                        hijos sin espacios, asi que «2026» y «2 mensajes» se
+                        pegaban y el lector de pantalla leia «20262 mensajes».
+                        Intercambios, como en la charla: el backend cuenta los
+                        turnos de las dos partes, y cada intercambio son dos (el
+                        saludo suelto no suma). */}
+                    <span className="text-muted-foreground text-sm">
+                      {`${fecha} · ${intercambios} ${intercambios === 1 ? "intercambio" : "intercambios"}`}
+                    </span>{" "}
+                    {/* El espacio de arriba no se dibuja —flex descarta los
+                        nodos de solo espacio— pero sí entra en el nombre
+                        accesible, que si no leería «2 mensajesEstoy entre…». */}
+                    {/* `line-clamp-2` y no un recorte en JavaScript: cuántas
+                        palabras entran depende del ancho de la pantalla, que el
+                        código no conoce y el navegador sí. */}
+                    <span className="line-clamp-2">
+                      {sesion.vista_previa ?? "Conversación sin mensajes tuyos todavía"}
+                    </span>
+                  </span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="text-muted-foreground mt-6 size-5 shrink-0"
+                  />
                 </button>
-              )}
-            </li>
-          ))}
+                {/* Al lado y no adentro del botón de retomar: un botón dentro
+                    de otro no es HTML válido y el lector de pantalla leería los
+                    dos nombres pegados. Va por encima del área estirada.
+
+                    Recién cerrada todavía no tiene informe guardado, pero se
+                    está armando y la pantalla del informe lo espera. El texto
+                    visible es corto; el nombre accesible lleva la fecha porque
+                    quien recorre los botones sueltos con el lector de pantalla
+                    no ve a qué conversación pertenece cada uno. */}
+                {(sesion.tiene_informe || sesion.estado === "cerrada") && (
+                  <Boton
+                    variante="secundario"
+                    onClick={() => alVerInforme(sesion.sesion_id)}
+                    aria-label={`Ver el informe de la conversación del ${fecha}`}
+                    className="relative z-10 self-start"
+                  >
+                    <FileText aria-hidden="true" />
+                    Ver informe
+                  </Boton>
+                )}
+              </Tarjeta>
+            );
+          })}
         </ul>
       )}
-
-      <button
-        type="button"
-        onClick={alEmpezarNueva}
-        className="bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center self-start rounded-md px-4 text-sm font-medium"
-      >
-        Empezar una conversación nueva
-      </button>
     </div>
   );
 }

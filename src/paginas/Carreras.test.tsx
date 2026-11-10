@@ -33,13 +33,12 @@ describe("Carreras", () => {
     vi.mocked(buscarCarreras).mockReset();
   });
 
-  it("muestra cada carrera con su rótulo provisional y la fuente que respalda la descripción", async () => {
+  it("muestra cada carrera con la fuente que respalda la descripción", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera()]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
 
     expect(await screen.findByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
-    expect(screen.getByText("provisional")).toBeInTheDocument();
 
     await usuario.click(screen.getByText("Datos de la carrera"));
     expect(screen.getByText(/dura cinco años/)).toBeInTheDocument();
@@ -62,7 +61,7 @@ describe("Carreras", () => {
       }),
     ]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
     await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText("Título que otorga").nextSibling).toHaveTextContent(
@@ -101,7 +100,7 @@ describe("Carreras", () => {
       }),
     ]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
     await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText(/duración en años: «5» según la ordenanza/)).toHaveTextContent(
@@ -113,7 +112,7 @@ describe("Carreras", () => {
   it("con un solo dato suelto sigue mostrando el texto de la carrera", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera({ no_publicado: ["turnos de cursado"] })]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
     await usuario.click(await screen.findByText("Datos de la carrera"));
 
     expect(screen.getByText(/dura cinco años/)).toBeInTheDocument();
@@ -122,7 +121,7 @@ describe("Carreras", () => {
 
   it("una carrera sin fuente no muestra descripción y lo dice", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera({ fuente: " " })]);
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
 
     expect(await screen.findByText(/no tenemos una fuente institucional/i)).toBeInTheDocument();
     expect(screen.queryByText(/dura cinco años/)).not.toBeInTheDocument();
@@ -137,7 +136,7 @@ describe("Carreras", () => {
       },
     ]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
     await screen.findByText("Ingeniería en Sistemas de Información");
 
     await usuario.type(screen.getByRole("searchbox"), "programar");
@@ -153,11 +152,39 @@ describe("Carreras", () => {
     expect(await screen.findByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
   });
 
+  it("la cruz del buscador lo vacía, deja el foco en el campo y vuelve al catálogo", async () => {
+    vi.mocked(listarCarreras).mockResolvedValue([carrera()]);
+    vi.mocked(buscarCarreras).mockResolvedValue([
+      {
+        carrera: carrera({ id: "tup", denominacion: "Tecnicatura en Programación" }),
+        puntaje: 0.5,
+      },
+    ]);
+    const usuario = userEvent.setup();
+    render(<Carreras />);
+    await screen.findByText("Ingeniería en Sistemas de Información");
+
+    // Sin nada escrito no hay nada que borrar.
+    expect(
+      screen.queryByRole("button", { name: "Borrar lo que escribiste" }),
+    ).not.toBeInTheDocument();
+
+    const campo = screen.getByRole("searchbox");
+    await usuario.type(campo, "programar");
+    await usuario.click(screen.getByRole("button", { name: "Buscar" }));
+    await screen.findByText("Tecnicatura en Programación");
+
+    await usuario.click(screen.getByRole("button", { name: "Borrar lo que escribiste" }));
+    expect(campo).toHaveValue("");
+    expect(campo).toHaveFocus();
+    expect(await screen.findByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
+  });
+
   it("una búsqueda sin resultados lo dice en vez de mostrar una lista vacía", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera()]);
     vi.mocked(buscarCarreras).mockResolvedValue([]);
     const usuario = userEvent.setup();
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
     await screen.findByText("Ingeniería en Sistemas de Información");
 
     await usuario.type(screen.getByRole("searchbox"), "astronomía");
@@ -171,7 +198,7 @@ describe("Carreras", () => {
     // si sus carreras están retenidas sin validar: la pantalla no puede elegir
     // una de las dos causas y no tiene que elegirla.
     vi.mocked(listarCarreras).mockResolvedValue([]);
-    render(<Carreras alVolver={() => {}} />);
+    render(<Carreras />);
 
     const aviso = await screen.findByText(/por ahora no hay carreras para mostrar/i);
     expect(aviso).toHaveTextContent(/esperando la validación de la Facultad/i);

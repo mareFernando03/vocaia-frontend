@@ -10,23 +10,29 @@
  * modalidad, norma, perfil), lo que la Facultad no publica y las discrepancias
  * entre fuentes; el texto de corrido queda solo para la carrera sin campos.
  *
- * El rótulo de validación no se pliega. Mientras el corpus sea provisional, la
- * diferencia entre «lo dice una ordenanza pública» y «lo validó la Facultad»
- * tiene que verse sin desplegar nada.
+ * El estado de validación del corpus no se muestra en esta pantalla (decisión de
+ * LV del 10/11, VOCAIA-202): el rótulo en cada ficha, y después la línea única
+ * arriba, se leían como ruido. Cada ficha sigue mostrando la fuente que
+ * respalda su descripción.
  *
  * La búsqueda no muestra el puntaje: sirve para ordenar y no es un porcentaje
  * de acierto, así que un número en pantalla se leería como uno.
  */
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { ChevronDown, GraduationCap, Search, TriangleAlert, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { buscarCarreras, listarCarreras, type Carrera } from "../api/carreras";
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { AvisoDesactualizado } from "../componentes/AvisoDesactualizado";
 import { Referencia } from "../componentes/Referencia";
-
-interface Propiedades {
-  alVolver: () => void;
-}
+import { Aviso } from "../componentes/ui/Aviso";
+import { Boton } from "../componentes/ui/Boton";
+import { BotonIcono } from "../componentes/ui/BotonIcono";
+import { Cargando } from "../componentes/ui/Cargando";
+import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
+import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
+import { Tarjeta } from "../componentes/ui/Tarjeta";
 
 const NIVELES: Record<string, string> = {
   grado: "Carrera de grado",
@@ -34,13 +40,14 @@ const NIVELES: Record<string, string> = {
   pregrado: "Título de pregrado",
 };
 
-export default function Carreras({ alVolver }: Propiedades) {
+export default function Carreras() {
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [borrador, setBorrador] = useState("");
   // Lo último que se buscó. Vacío es el catálogo completo.
   const [buscado, setBuscado] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const campo = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(async (texto: string) => {
     setCargando(true);
@@ -78,80 +85,100 @@ export default function Carreras({ alVolver }: Propiedades) {
     void cargar("");
   }
 
+  // Limpiar deja el foco en el campo, listo para escribir otra cosa. Si lo
+  // borrado ya se había buscado, vuelve el catálogo completo: un campo vacío
+  // con resultados de una búsqueda vieja no se entiende.
+  function limpiar() {
+    setBorrador("");
+    campo.current?.focus();
+    if (buscado !== "") void cargar("");
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold">Carreras de la Facultad</h1>
-        <button
-          type="button"
-          onClick={alVolver}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm"
-        >
-          Volver
-        </button>
-      </div>
+      <EncabezadoPagina titulo="Carreras de la Facultad" />
 
-      <form onSubmit={buscar} className="flex flex-wrap items-end gap-3">
-        <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+      <form onSubmit={buscar} className="flex max-w-2xl flex-col gap-2" role="search">
+        <label htmlFor="buscar-carrera" className="text-sm font-medium">
           Contá qué te gustaría estudiar
-          <input
-            type="search"
-            value={borrador}
-            onChange={(evento) => setBorrador(evento.target.value)}
-            maxLength={500}
-            placeholder="Por ejemplo: algo con computadoras"
-            className="border-input min-h-11 rounded-md border px-3"
-          />
         </label>
-        <button
-          type="submit"
-          disabled={cargando || borrador.trim() === ""}
-          className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-md px-4 text-sm font-medium disabled:opacity-50"
-        >
-          Buscar
-        </button>
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden="true"
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2"
+            />
+            {/* Sin autocompletado: el navegador ofrecía búsquedas viejas en
+                una lista propia que tapaba el resto y no seguía el tema. */}
+            <input
+              ref={campo}
+              id="buscar-carrera"
+              type="search"
+              autoComplete="off"
+              value={borrador}
+              onChange={(evento) => setBorrador(evento.target.value)}
+              maxLength={500}
+              placeholder="Algo con computadoras"
+              className="border-input bg-surface placeholder:text-muted-foreground shadow-tarjeta min-h-12 w-full rounded-xl border ps-11 pe-12 text-base"
+            />
+            {borrador !== "" && (
+              <BotonIcono
+                etiqueta="Borrar lo que escribiste"
+                onClick={limpiar}
+                className="absolute top-1/2 right-0.5 -translate-y-1/2"
+              >
+                <X aria-hidden="true" />
+              </BotonIcono>
+            )}
+          </div>
+          <Boton
+            type="submit"
+            variante="primario"
+            disabled={cargando || borrador.trim() === ""}
+            className="min-h-12"
+          >
+            Buscar
+          </Boton>
+        </div>
       </form>
 
       {buscado !== "" && !cargando && error === null && carreras.length > 0 && (
-        <p className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
+        <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-sm">
           <span>
-            Ordenadas de la más a la menos parecida a «{buscado}». No es una recomendación.
+            Las más parecidas a «{buscado}» primero.{" "}
+            <strong className="text-foreground font-medium">No es una recomendación.</strong>
           </span>
-          <button type="button" onClick={verTodas} className="text-primary underline">
+          <Boton variante="enlace" onClick={verTodas}>
             Ver todas
-          </button>
+          </Boton>
         </p>
       )}
 
       {cargando && (
-        <p aria-live="polite" className="text-muted-foreground text-sm">
-          Buscando carreras…
+        <p aria-live="polite">
+          <Cargando texto="Buscando carreras…" />
         </p>
       )}
 
       {error !== null && (
-        <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void cargar(buscado)}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-          >
-            Reintentar
-          </button>
-        </p>
+        <ErrorConReintento alReintentar={() => void cargar(buscado)}>{error}</ErrorConReintento>
       )}
 
       {!cargando && error === null && carreras.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          {buscado
-            ? `No encontramos carreras con respaldo institucional para «${buscado}».`
-            : "Por ahora no hay carreras para mostrar. Puede ser que el corpus institucional todavía no esté cargado, o que lo que hay esté esperando la validación de la Facultad."}
-        </p>
+        <div className="text-muted-foreground flex flex-col items-center gap-3 py-10 text-center">
+          <GraduationCap aria-hidden="true" className="size-10" strokeWidth={1.5} />
+          <p>
+            {buscado
+              ? `No encontramos carreras con respaldo institucional para «${buscado}».`
+              : "Por ahora no hay carreras para mostrar: puede que todavía no estén cargadas, o que estén esperando la validación de la Facultad."}
+          </p>
+        </div>
       )}
 
       {!cargando && error === null && carreras.length > 0 && (
-        <ul className="flex flex-col gap-4">
+        // Dos columnas cuando hay ancho. `items-start`: al abrir los datos de
+        // una ficha, la de al lado no se estira para acompañarla.
+        <ul className="grid items-start gap-4 lg:grid-cols-2">
           {carreras.map((carrera) => (
             <li key={carrera.id}>
               <Ficha carrera={carrera} />
@@ -166,17 +193,22 @@ export default function Carreras({ alVolver }: Propiedades) {
 function Ficha({ carrera }: { carrera: Carrera }) {
   const conFuente = carrera.fuente.trim() !== "";
   return (
-    <article className="border-border bg-surface flex flex-col gap-2 rounded-md border p-4 text-sm">
-      <h2 className="text-base font-semibold">{carrera.denominacion}</h2>
-      <p className="text-muted-foreground">{NIVELES[carrera.nivel] ?? carrera.nivel}</p>
-      <Validacion estado={carrera.estado_validacion} />
+    <Tarjeta como="article" className="text-sm">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg leading-snug font-semibold">{carrera.denominacion}</h2>
+        <p className="text-muted-foreground">{NIVELES[carrera.nivel] ?? carrera.nivel}</p>
+      </div>
       {conFuente ? (
-        <details>
-          <summary className="min-h-11 cursor-pointer py-2 font-medium">
+        <details className="group border-border border-t pt-1">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
             Datos de la carrera
+            <ChevronDown
+              aria-hidden="true"
+              className="text-muted-foreground size-5 transition-transform group-open:rotate-180"
+            />
           </summary>
           <Datos carrera={carrera} />
-          <p className="mt-2">
+          <p className="text-muted-foreground mt-4">
             Fuente: <Referencia texto={carrera.fuente} />
           </p>
         </details>
@@ -186,7 +218,8 @@ function Ficha({ carrera }: { carrera: Carrera }) {
           descripción.
         </p>
       )}
-    </article>
+      <AvisoDesactualizado carrera={carrera.denominacion} />
+    </Tarjeta>
   );
 }
 
@@ -238,15 +271,15 @@ function Datos({ carrera }: { carrera: Carrera }) {
   const sinCuerpo = filas.length === 0 && perfil === "";
 
   return (
-    <div className="mt-2 flex flex-col gap-3 break-words">
+    <div className="mt-2 flex flex-col gap-4 leading-relaxed break-words">
       {sinCuerpo && <p className="whitespace-pre-wrap">{carrera.texto}</p>}
 
       {filas.length > 0 && (
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-[minmax(9rem,max-content)_1fr] sm:gap-y-3">
           {filas.map(([nombre, valor]) => (
             <div key={nombre} className="contents">
-              <dt className="font-medium">{nombre}</dt>
-              <dd>{valor}</dd>
+              <dt className="text-muted-foreground mt-2 first:mt-0 sm:mt-0">{nombre}</dt>
+              <dd className="font-medium">{valor}</dd>
             </div>
           ))}
         </dl>
@@ -254,14 +287,14 @@ function Datos({ carrera }: { carrera: Carrera }) {
 
       {perfil !== "" && (
         <section>
-          <h3 className="font-medium">Perfil profesional</h3>
+          <h3 className="font-semibold">Perfil profesional</h3>
           <p className="mt-1 whitespace-pre-wrap">{perfil}</p>
         </section>
       )}
 
       {discrepancias.length > 0 && (
-        <section className="bg-accent-soft text-accent-foreground flex flex-col gap-2 rounded-md p-3">
-          <h3 className="font-medium">Las fuentes no coinciden</h3>
+        <Aviso tono="precaucion" icono={<TriangleAlert />}>
+          <h3 className="font-semibold">Las fuentes no coinciden</h3>
           <ul className="flex flex-col gap-2">
             {discrepancias.map((d) => (
               <li key={d.campo}>
@@ -271,13 +304,13 @@ function Datos({ carrera }: { carrera: Carrera }) {
             ))}
           </ul>
           <p>Podés confirmarlo con la Secretaría de la Facultad.</p>
-        </section>
+        </Aviso>
       )}
 
       {noPublicado.length > 0 && (
         <section>
-          <h3 className="font-medium">Lo que no encontramos en las fuentes que consultamos</h3>
-          <ul className="mt-1 list-disc pl-5">
+          <h3 className="font-semibold">Lo que no encontramos en las fuentes que consultamos</h3>
+          <ul className="mt-1 list-disc ps-5">
             {noPublicado.map((dato) => (
               <li key={dato}>{dato}</li>
             ))}
@@ -285,19 +318,5 @@ function Datos({ carrera }: { carrera: Carrera }) {
         </section>
       )}
     </div>
-  );
-}
-
-function Validacion({ estado }: { estado: string }) {
-  // Hoy el corpus entero es `provisional`; cuando el backend publique
-  // los otros estados, cada uno lleva su frase en vez del valor crudo.
-  if (estado !== "provisional") {
-    return <p className="text-muted-foreground">Estado de validación: {estado}</p>;
-  }
-  return (
-    <p className="text-muted-foreground">
-      Dato <strong>provisional</strong>: sale de una fuente pública y la Facultad todavía no lo
-      validó.
-    </p>
   );
 }

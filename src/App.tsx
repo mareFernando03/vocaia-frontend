@@ -1,9 +1,16 @@
+import { Info } from "lucide-react";
 import { useState } from "react";
 
 import { useSesion } from "./auth/useSesion";
 import { AvisoIA } from "./componentes/AvisoIA";
+import { Logotipo } from "./componentes/Logotipo";
+import { SelectorTema } from "./componentes/SelectorTema";
+import { Boton } from "./componentes/ui/Boton";
+import { Cargando } from "./componentes/ui/Cargando";
 import { AVISO } from "./contenido/aviso-ia";
 import { useAvisoAceptado } from "./hooks/useAvisoAceptado";
+import { useTecladoVirtual } from "./hooks/useTecladoVirtual";
+import { RanuraNavegacion } from "./lib/ranura-navegacion";
 import Autenticado from "./paginas/Autenticado";
 import Ingresar from "./paginas/Ingresar";
 
@@ -22,6 +29,11 @@ export default function App() {
     darDeBaja,
   } = useSesion(aceptado ? version : null);
   const [releyendo, setReleyendo] = useState(false);
+  // El lugar de la barra donde `Autenticado` pone las pestañas. Es estado y no
+  // una referencia: el elemento recién existe después del primer dibujo, y las
+  // pestañas tienen que volver a dibujarse cuando aparece.
+  const [ranura, setRanura] = useState<HTMLElement | null>(null);
+  useTecladoVirtual();
   const hayDialogoAbierto = !aceptado || releyendo;
 
   return (
@@ -46,35 +58,41 @@ export default function App() {
           Saltar al contenido
         </a>
 
-        {/* La divulgación es persistente, no solo inicial: la franja queda a la
-            vista durante toda la sesión y el botón permite releer el aviso
-            completo en cualquier momento (HU-02).
+        {/* Fija arriba, y siempre igual en todas las pantallas: el aviso de que
+            es una IA, la forma de releerlo y el tema están en el mismo lugar
+            haga lo que haga la persona (WCAG 3.2.6, ayuda consistente). En
+            pantallas anchas, las pestañas van acá también.
 
-            La franja va afuera del ingreso a propósito: la puerta de HU-02 se
-            atraviesa antes de identificarse, así que quien todavía no entró
-            también lee de qué se trata el sistema. */}
-        {/* No se imprime: el informe lleva su propia salvedad, que en papel
-            es la que tiene que quedar junto al contenido. */}
-        <header className="border-border bg-surface border-b print:hidden">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 p-4">
-            <p className="text-sm">
-              Estás hablando con una{" "}
-              <strong className="font-semibold">inteligencia artificial</strong>. No reemplaza a un
-              orientador vocacional.
-            </p>
-            {/* Solo después de aceptar: si se dibuja antes, se lo puede
-                accionar por teclado con la puerta abierta y la relectura salta
-                sola apenas se acepta. */}
-            {aceptado && (
-              <button
-                type="button"
-                onClick={() => setReleyendo(true)}
-                className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium"
-              >
-                {AVISO.reabrir}
-              </button>
-            )}
+            La divulgación es persistente, no solo inicial: la franja queda a la
+            vista durante toda la sesión y el botón permite releer el aviso
+            completo en cualquier momento (HU-02). Va afuera del ingreso a
+            propósito: la puerta de HU-02 se atraviesa antes de identificarse,
+            así que quien todavía no entró también lee de qué se trata.
+
+            No se imprime: el informe lleva su propia salvedad, que en papel es
+            la que tiene que quedar junto al contenido. */}
+        <header className="border-border bg-surface/90 sticky top-0 z-30 border-b backdrop-blur print:hidden">
+          <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:h-16 sm:px-6">
+            <Logotipo />
+            <div ref={setRanura} className="hidden min-w-0 flex-1 justify-center sm:flex" />
+            <div className="ms-auto flex shrink-0 items-center gap-1">
+              <SelectorTema />
+              {/* Solo después de aceptar: si se dibuja antes, se lo puede
+                  accionar por teclado con la puerta abierta y la relectura
+                  salta sola apenas se acepta. */}
+              {aceptado && (
+                <Boton variante="fantasma" onClick={() => setReleyendo(true)} className="px-3">
+                  <Info aria-hidden="true" />
+                  <span className="sr-only lg:not-sr-only">{AVISO.reabrir}</span>
+                </Boton>
+              )}
+            </div>
           </div>
+          <p className="border-border bg-primary-soft text-muted-foreground border-t px-4 py-1.5 text-center text-xs leading-snug sm:text-sm">
+            Estás hablando con una{" "}
+            <strong className="text-foreground font-semibold">inteligencia artificial</strong>. No
+            reemplaza a un orientador vocacional.
+          </p>
         </header>
 
         {/* `tabIndex={-1}` para que el enlace de salto pueda dejarle el foco:
@@ -85,16 +103,18 @@ export default function App() {
         <main
           id="contenido"
           tabIndex={-1}
-          className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-4 outline-none sm:p-6"
+          className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-6 outline-none sm:px-6 sm:pt-8"
         >
-          <Contenido
-            sesion={sesion}
-            errorDeIngreso={errorDeIngreso}
-            avisoDeIngreso={avisoDeIngreso}
-            alIngresar={ingresar}
-            alSalir={salir}
-            alDarDeBaja={darDeBaja}
-          />
+          <RanuraNavegacion value={ranura}>
+            <Contenido
+              sesion={sesion}
+              errorDeIngreso={errorDeIngreso}
+              avisoDeIngreso={avisoDeIngreso}
+              alIngresar={ingresar}
+              alSalir={salir}
+              alDarDeBaja={darDeBaja}
+            />
+          </RanuraNavegacion>
         </main>
       </div>
 
@@ -129,11 +149,15 @@ function Contenido({
   alDarDeBaja,
 }: PropiedadesContenido) {
   if (sesion.estado === "verificando") {
-    return <p className="text-muted-foreground text-sm">Verificando la sesión…</p>;
+    return <Cargando texto="Verificando la sesión…" className="m-auto" />;
   }
 
   if (sesion.estado === "anonimo") {
-    return <Ingresar alIngresar={alIngresar} error={errorDeIngreso} aviso={avisoDeIngreso} />;
+    return (
+      <div className="mx-auto w-full max-w-3xl">
+        <Ingresar alIngresar={alIngresar} error={errorDeIngreso} aviso={avisoDeIngreso} />
+      </div>
+    );
   }
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,

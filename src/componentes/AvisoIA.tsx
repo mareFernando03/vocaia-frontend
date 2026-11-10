@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react";
 
 import { AVISO } from "../contenido/aviso-ia";
+import { clasesBoton } from "./ui/clases-boton";
 
 /**
  * Aviso de divulgación de que se conversa con una IA (HU-02, RF-11).
@@ -25,9 +26,6 @@ export type PropiedadesAvisoIA =
   | { modo: "consulta"; onCerrar: () => void; onAceptar?: never };
 
 const FOCALIZABLES = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-const CLASES_BOTON =
-  "inline-flex min-h-11 items-center justify-center rounded-md px-5 py-2.5 font-medium";
 
 /** Un enlace web sale de VocaIA; uno de correo o de teléfono abre otra aplicación. */
 function externo(href: string): boolean {
@@ -111,7 +109,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
 
   return (
     <div
-      className="bg-foreground/70 fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="bg-overlay animate-aparecer fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
       onMouseDown={alPresionarElFondo}
       onClick={alClickearElFondo}
     >
@@ -122,7 +120,7 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
         aria-labelledby="aviso-ia-titulo"
         tabIndex={-1}
         onKeyDown={alTabular}
-        className="bg-surface max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-lg p-6 shadow-xl outline-none"
+        className="bg-surface border-border shadow-flotante max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border p-6 outline-none sm:p-7"
       >
         <h2 id="aviso-ia-titulo" className="text-xl font-semibold">
           {AVISO.titulo}
@@ -194,19 +192,11 @@ export function AvisoIA({ modo, onAceptar, onCerrar }: PropiedadesAvisoIA) {
 
         <div className="mt-6 flex justify-end">
           {esPuerta ? (
-            <button
-              type="button"
-              onClick={onAceptar}
-              className={`${CLASES_BOTON} bg-primary text-primary-foreground hover:bg-primary-light`}
-            >
+            <button type="button" onClick={onAceptar} className={clasesBoton("primario", "px-5")}>
               {AVISO.aceptar}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={onCerrar}
-              className={`${CLASES_BOTON} border-input hover:bg-primary-soft border`}
-            >
+            <button type="button" onClick={onCerrar} className={clasesBoton("secundario", "px-5")}>
               Cerrar
             </button>
           )}

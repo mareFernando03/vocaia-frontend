@@ -27,6 +27,7 @@ import {
   type Traza,
 } from "../api/trazabilidad";
 import { Referencia } from "./Referencia";
+import { clasesBoton } from "./ui/clases-boton";
 
 interface Propiedades {
   sesionId: string;
@@ -52,11 +53,7 @@ export function Trazabilidad({ sesionId, turno }: Propiedades) {
     return (
       <p role="alert" className="text-destructive flex items-center gap-3 text-sm">
         <span>{error}</span>
-        <button
-          type="button"
-          onClick={() => void cargar()}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-3"
-        >
+        <button type="button" onClick={() => void cargar()} className={clasesBoton("secundario")}>
           Reintentar
         </button>
       </p>

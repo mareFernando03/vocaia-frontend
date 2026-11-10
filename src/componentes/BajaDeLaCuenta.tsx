@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { describir } from "../api/cliente";
 import { BAJA } from "../contenido/baja";
+import { clasesBoton } from "./ui/clases-boton";
 
 interface Propiedades {
   alDarDeBaja: () => Promise<void>;
@@ -50,7 +51,7 @@ export function BajaDeLaCuenta({ alDarDeBaja }: Propiedades) {
   return (
     <section
       aria-labelledby="baja-titulo"
-      className="border-border bg-surface flex flex-col gap-3 rounded-md border p-4 text-sm"
+      className="border-border bg-surface shadow-tarjeta flex flex-col gap-3 rounded-2xl border p-4 text-sm sm:p-5"
     >
       <h2 id="baja-titulo" className="text-base font-semibold">
         {BAJA.titulo}
@@ -64,7 +65,7 @@ export function BajaDeLaCuenta({ alDarDeBaja }: Propiedades) {
             ref={botonRef}
             type="button"
             onClick={() => setPaso("confirmando")}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4"
+            className={clasesBoton("peligro-fantasma", "-ms-3")}
           >
             {BAJA.boton}
           </button>
@@ -79,7 +80,7 @@ export function BajaDeLaCuenta({ alDarDeBaja }: Propiedades) {
               type="button"
               onClick={() => void confirmar()}
               disabled={paso === "borrando"}
-              className="bg-destructive text-destructive-foreground inline-flex min-h-11 items-center rounded-md px-4 font-medium disabled:opacity-50"
+              className={clasesBoton("peligro")}
             >
               {paso === "borrando" ? BAJA.borrando : BAJA.confirmar}
             </button>
@@ -91,7 +92,7 @@ export function BajaDeLaCuenta({ alDarDeBaja }: Propiedades) {
                 setPaso("inicio");
               }}
               disabled={paso === "borrando"}
-              className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4 disabled:opacity-50"
+              className={clasesBoton("secundario")}
             >
               {BAJA.cancelar}
             </button>

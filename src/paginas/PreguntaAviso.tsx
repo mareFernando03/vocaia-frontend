@@ -5,6 +5,7 @@ import { consultarNotificacion } from "../api/notificacion";
 import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { NOTIFICACION } from "../contenido/aviso-notificacion";
 import { hayQuePreguntar } from "../hooks/useAvisoPreguntado";
+import { clasesBoton } from "../componentes/ui/clases-boton";
 
 /**
  * Cuánto se espera la consulta antes de darla por fallida. Alcanza para el
@@ -97,15 +98,11 @@ export default function PreguntaAviso({
           <button
             type="button"
             onClick={() => setIntento((n) => n + 1)}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4 font-medium"
+            className={clasesBoton("secundario")}
           >
             {NOTIFICACION.reintentar}
           </button>
-          <button
-            type="button"
-            onClick={alFallarLaConsulta}
-            className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4 font-medium"
-          >
+          <button type="button" onClick={alFallarLaConsulta} className={clasesBoton("secundario")}>
             {NOTIFICACION.seguir}
           </button>
         </div>
@@ -127,11 +124,7 @@ export default function PreguntaAviso({
       </div>
       <ConsentimientoNotificacion />
       <div>
-        <button
-          type="button"
-          onClick={alSeguir}
-          className="border-input hover:bg-primary-soft inline-flex min-h-11 items-center rounded-md border px-4 font-medium"
-        >
+        <button type="button" onClick={alSeguir} className={clasesBoton("secundario")}>
           {NOTIFICACION.seguir}
         </button>
       </div>

@@ -8,6 +8,7 @@ import {
   type Notificacion,
 } from "../api/notificacion";
 import { NOTIFICACION } from "../contenido/aviso-notificacion";
+import { clasesBoton } from "./ui/clases-boton";
 
 /**
  * Otorgar, consultar y revocar el aviso a la Facultad (HU-03b, HU-21).
@@ -90,13 +91,21 @@ export function ConsentimientoNotificacion() {
   const deOtroTexto = estado !== null && estado.vigente && !autorizado && estado.hay_contacto;
   const accion =
     estado === null
-      ? error !== null && { texto: "Reintentar", pedido: consultarNotificacion, clases: SECUNDARIO }
+      ? error !== null && {
+          texto: "Reintentar",
+          pedido: consultarNotificacion,
+          variante: "secundario" as const,
+        }
       : autorizado
-        ? { texto: NOTIFICACION.revocar, pedido: revocarNotificacion, clases: SECUNDARIO }
+        ? {
+            texto: NOTIFICACION.revocar,
+            pedido: revocarNotificacion,
+            variante: "secundario" as const,
+          }
         : estado.hay_contacto && {
             texto: NOTIFICACION.otorgar,
             pedido: () => otorgarNotificacion(NOTIFICACION.version),
-            clases: PRIMARIO,
+            variante: "primario" as const,
           };
 
   // Revocar sin correo, o un 409, deja la sección sin botón: el foco que
@@ -113,7 +122,7 @@ export function ConsentimientoNotificacion() {
   return (
     <section
       aria-labelledby="notificacion-titulo"
-      className="border-border bg-surface flex flex-col gap-3 rounded-md border p-4 text-sm"
+      className="border-border bg-surface shadow-tarjeta flex flex-col gap-3 rounded-2xl border p-4 text-sm sm:p-5"
     >
       <h2 id="notificacion-titulo" className="text-base font-semibold">
         {NOTIFICACION.titulo}
@@ -170,7 +179,7 @@ export function ConsentimientoNotificacion() {
               setAnunciar(true);
               void ejecutar(accion.pedido);
             }}
-            className={`${accion.clases} inline-flex min-h-11 items-center rounded-md px-4 aria-disabled:opacity-50`}
+            className={clasesBoton(accion.variante)}
           >
             {accion.texto}
           </button>
@@ -179,9 +188,6 @@ export function ConsentimientoNotificacion() {
     </section>
   );
 }
-
-const PRIMARIO = "bg-primary text-primary-foreground hover:bg-primary-light font-medium";
-const SECUNDARIO = "border-input hover:bg-primary-soft border";
 
 const FECHA = new Intl.DateTimeFormat("es-AR", {
   day: "numeric",
