@@ -33,6 +33,13 @@ const ITEM_DE_LISTA = /^\s*[-*•]\s+(.+)$/;
 
 const NEGRITA = /\*\*(.+?)\*\*/g;
 
+/**
+ * Las marcas de cita «[1]», «[2]»: el backend las lee del texto guardado para armar la
+ * trazabilidad («¿De dónde salió esto?»), y para quien lee son ruido. Se sacan al mostrar
+ * y no del texto, así lo guardado no cambia y la trazabilidad sigue funcionando.
+ */
+const MARCA_DE_CITA = /\s*\[\d{1,2}\](?:\s*\[\d{1,2}\])*/g;
+
 type Bloque = { tipo: "parrafo"; texto: string } | { tipo: "lista"; items: string[] };
 
 function enfatizar(parrafo: string): ReactNode[] {
@@ -99,7 +106,7 @@ function bloques(texto: string): Bloque[] {
 export function Prosa({ texto }: { texto: string }) {
   return (
     <>
-      {bloques(texto).map((bloque, indice) =>
+      {bloques(texto.replace(MARCA_DE_CITA, "")).map((bloque, indice) =>
         bloque.tipo === "lista" ? (
           <ul key={indice} className="mt-3 list-disc space-y-1 ps-5">
             {bloque.items.map((item, posicion) => (
