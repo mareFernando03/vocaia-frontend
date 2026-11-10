@@ -162,5 +162,11 @@ function Contenido({
 
   // Acá termina el armazón y empieza la historia: el ingreso ya se resolvió,
   // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
-  return <Autenticado alSalir={alSalir} alDarDeBaja={alDarDeBaja} />;
+  return (
+    <Autenticado
+      alSalir={alSalir}
+      alDarDeBaja={alDarDeBaja}
+      correoDeIngreso={sesion.correoDeIngreso}
+    />
+  );
 }

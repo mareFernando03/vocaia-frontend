@@ -31,7 +31,31 @@ import { olvidarSesion } from "../hooks/useConversacion";
 import { alCambiarSesion, borrarToken, guardarToken, obtenerToken } from "./sesion";
 
 export type EstadoSesion =
-  { estado: "verificando" } | { estado: "anonimo" } | { estado: "autenticado"; usuario: Usuario };
+  | { estado: "verificando" }
+  | { estado: "anonimo" }
+  | { estado: "autenticado"; usuario: Usuario; correoDeIngreso?: string };
+
+/** Lee un dato para mostrar, sólo después de que el backend validó este token. */
+function sesionConfirmada(usuario: Usuario, token: string): EstadoSesion {
+  const sesion = { estado: "autenticado", usuario } as const;
+  if (usuario.proveedor !== "google") return sesion;
+
+  const partes = token.split(".");
+  if (partes.length !== 3) return sesion;
+  try {
+    const base64 = partes[1].replace(/-/g, "+").replace(/_/g, "/");
+    const bytes = Uint8Array.from(atob(base64), (letra) => letra.charCodeAt(0));
+    const datos: { email?: unknown; email_verified?: unknown } | null = JSON.parse(
+      new TextDecoder().decode(bytes),
+    );
+    const correo = typeof datos?.email === "string" ? datos.email.trim() : "";
+    // No copiamos el correo al almacenamiento: sólo vive en la sesión de React.
+    if (datos?.email_verified === true && correo) return { ...sesion, correoDeIngreso: correo };
+  } catch {
+    // La sesión puede ser válida aunque la credencial no tenga un correo legible.
+  }
+  return sesion;
+}
 
 /**
  * Lo que se le dice a alguien cuya credencial el backend rechazó.
@@ -79,10 +103,18 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const verificar = useCallback(async () => {
-    if (!obtenerToken()) {
+    const token = obtenerToken();
+    if (!token) {
       setSesion({ estado: "anonimo" });
       return;
     }
+    const confirmar = (usuario: Usuario) => {
+      // Una respuesta anterior no puede mostrar su correo después de salir
+      // o mientras se está comprobando el ingreso de otra cuenta.
+      if (obtenerToken() !== token) return;
+      setSesion(sesionConfirmada(usuario, token));
+      setError(null);
+    };
     // `catch (fallo)` y no `catch (error)`: acá adentro `error` sería el estado
     // del hook, y taparlo en el bloque que decide qué mensaje mostrar es el
     // lugar exacto donde no conviene tener dos cosas con el mismo nombre.
@@ -93,10 +125,11 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
       setError(PILOTO.noHabilitado);
     };
     try {
-      setSesion({ estado: "autenticado", usuario: await consultarUsuario() });
-      setError(null);
+      confirmar(await consultarUsuario());
       return;
     } catch (fallo) {
+      const vigente = obtenerToken();
+      if (vigente !== null && vigente !== token) return;
       huboRespuesta = fallo instanceof ErrorDeApi;
       // Fuera de la lista blanca del piloto registrar el consentimiento no
       // arregla nada: lo que falta es anotarse. Se suelta el token para que
@@ -115,12 +148,15 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
       // ya no se muestra. Con la puerta abierta se espera a que la atraviese.
       const aceptada = versionAceptada();
       const version =
-        fallo instanceof ErrorDeApi && fallo.estado === 403 && aceptada === AVISO.version
+        vigente === token &&
+        fallo instanceof ErrorDeApi &&
+        fallo.estado === 403 &&
+        aceptada === AVISO.version
           ? aceptada
           : null;
       if (version !== null) {
         try {
-          setSesion({ estado: "autenticado", usuario: await registrarConsentimiento(version) });
+          confirmar(await registrarConsentimiento(version));
           return;
         } catch (segundoFallo) {
           if (noHabilitado(segundoFallo)) {
@@ -149,6 +185,7 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
       // Desde Perfil la charla está desmontada: la limpieza de identidad no
       // puede depender de que useConversacion siga escuchando los cambios.
       if (token === null) olvidarSesion();
+      else setSesion({ estado: "verificando" });
       void verificar();
     });
   }, [verificar]);
@@ -195,7 +232,10 @@ export function useSesion(avisoVigenteAceptado: string | null = null): {
     const token = obtenerToken();
     registrarConsentimiento(avisoVigenteAceptado).then(
       (actualizado) => {
-        if (obtenerToken() === token) setSesion({ estado: "autenticado", usuario: actualizado });
+        if (obtenerToken() !== token) return;
+        setSesion((actual) =>
+          actual.estado === "autenticado" ? { ...actual, usuario: actualizado } : actual,
+        );
       },
       () => {
         // Un 401 ya borró el token y la verificación vuelve al ingreso: se le

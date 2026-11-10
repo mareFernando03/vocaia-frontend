@@ -6,8 +6,8 @@
  * —una sala de informática de la facultad, por ejemplo— dejar la sesión
  * abierta indefinidamente es un riesgo que no compensa la comodidad.
  *
- * No se guarda ningún dato personal: solo el token, que el backend traduce a
- * un identificador opaco.
+ * No se guarda una copia aparte de los datos de la cuenta. Se conserva sólo
+ * la credencial del proveedor, que el backend traduce a un identificador opaco.
  */
 
 const CLAVE = "vocaia.token_identidad";

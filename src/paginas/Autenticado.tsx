@@ -32,9 +32,10 @@ import PreguntaAviso from "./PreguntaAviso";
 interface Propiedades {
   alSalir: () => Promise<void>;
   alDarDeBaja: () => Promise<void>;
+  correoDeIngreso?: string;
 }
 
-export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
+export default function Autenticado({ alSalir, alDarDeBaja, correoDeIngreso }: Propiedades) {
   const [seccion, setSeccion] = useState<Seccion>("charla");
   const [epoca, setEpoca] = useState(0);
   // El informe va aparte de la sección porque se abre encima de la pantalla de
@@ -87,7 +88,9 @@ export default function Autenticado({ alSalir, alDarDeBaja }: Propiedades) {
       />
     );
   } else if (seccion === "perfil") {
-    pantalla = <Perfil alSalir={alSalir} alDarDeBaja={alDarDeBaja} />;
+    pantalla = (
+      <Perfil alSalir={alSalir} alDarDeBaja={alDarDeBaja} correoDeIngreso={correoDeIngreso} />
+    );
   } else if (seccion === "carreras") {
     pantalla = <Carreras />;
   } else {

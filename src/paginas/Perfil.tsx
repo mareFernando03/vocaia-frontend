@@ -48,6 +48,7 @@ import { fechaCorta } from "../lib/fechas";
 interface Propiedades {
   alSalir: () => Promise<void>;
   alDarDeBaja: () => Promise<void>;
+  correoDeIngreso?: string;
 }
 
 /**
@@ -55,29 +56,31 @@ interface Propiedades {
  * y va al lado del perfil y no adentro: si el perfil no carga, igual tiene que
  * poder consultarlo y revocarlo.
  */
-export default function Perfil({ alSalir, alDarDeBaja }: Propiedades) {
+export default function Perfil({ alSalir, alDarDeBaja, correoDeIngreso }: Propiedades) {
   return (
     <div className="flex flex-col gap-10">
       <ContenidoPerfil />
-      {/* Lo de la cuenta va junto y al final: se usa poco, pero cuando se lo
-          busca tiene que estar en un solo lugar. Cerrar sesión está acá y no
-          arriba en cada pantalla, que es donde lo buscan en las aplicaciones
-          que ya conocen. */}
+      {/* La cuenta activa se muestra junto a la salida, para que la persona
+          pueda identificarla y cambiarla sin confundirla con su perfil. */}
       <section aria-labelledby="tu-cuenta" className="flex flex-col gap-4">
         <h2 id="tu-cuenta" className="text-xl font-semibold tracking-tight">
           Tu cuenta
         </h2>
+        <Tarjeta className="flex-row flex-wrap items-center justify-between gap-x-4 print:hidden">
+          {correoDeIngreso && (
+            <dl className="min-w-0 text-sm">
+              <dt className="text-muted-foreground">Correo de inicio de sesión</dt>
+              <dd className="mt-1 font-medium [overflow-wrap:anywhere]">{correoDeIngreso}</dd>
+            </dl>
+          )}
+          <Boton variante="peligro-fantasma" onClick={() => void alSalir()} className="-ms-3">
+            <LogOut aria-hidden="true" />
+            Cerrar sesión
+          </Boton>
+        </Tarjeta>
         <ConsentimientoNotificacion />
         <DescargaDeDatos />
         <BajaDeLaCuenta alDarDeBaja={alDarDeBaja} />
-        <Boton
-          variante="peligro-fantasma"
-          onClick={() => void alSalir()}
-          className="-ms-3 self-start"
-        >
-          <LogOut aria-hidden="true" />
-          Cerrar sesión
-        </Boton>
       </section>
     </div>
   );
