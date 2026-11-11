@@ -17,7 +17,7 @@
  * del perfil va dentro de cada rasgo: la fuente al lado de lo que sostiene.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 
 import { describir } from "../api/cliente";
 import {
@@ -166,7 +166,9 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
   const ordenados = [...respaldos]
     .sort((a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden)
     .filter((r, i, todos) => todos.findIndex((otro) => otro.fuente === r.fuente) === i);
-  const provisional = respaldos.some((r) => r.estado_validacion === "provisional");
+  const citados = ordenados.filter((r) => r.citado);
+  const idDeLista = useId();
+  const consultados = ordenados.filter((r) => !r.citado);
 
   return (
     <section className="border-accent-strong border-l-4 pl-3">
@@ -177,24 +179,38 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
         </p>
       ) : (
         <>
-          {/* Fuera de cualquier plegado, como en la conversación (R-002). */}
-          {provisional && (
-            <p className="text-muted-foreground mt-1">
-              Datos <strong>provisionales</strong>, todavía sin validar por la Facultad.
-            </p>
+          {citados.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-2">
+              {citados.map((respaldo) => (
+                <li key={respaldo.id}>
+                  <Referencia texto={respaldo.fuente} />
+                  <p className="text-muted-foreground text-xs">La respuesta lo cita.</p>
+                </li>
+              ))}
+            </ul>
           )}
-          <ul className="mt-2 flex flex-col gap-2">
-            {ordenados.map((respaldo) => (
-              <li key={respaldo.id}>
-                <Referencia texto={respaldo.fuente} />
-                <p className="text-muted-foreground text-xs">
-                  {respaldo.citado
-                    ? "La respuesta lo cita."
-                    : "Se consultó, pero la respuesta no lo cita."}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {/* Lo consultado y no citado va junto y con un solo rótulo: repetido
+              debajo de cada fuente, cinco veces «no lo cita» tapaba lo que sí
+              importa, que es si la respuesta se apoyó en algo. */}
+          {consultados.length > 0 && (
+            <div className="mt-3">
+              <p id={`consultadas-${idDeLista}`} className="text-muted-foreground text-xs">
+                {citados.length > 0
+                  ? "También se consultó, pero la respuesta no lo cita:"
+                  : "La respuesta no cita ninguna. Esto es lo que VocaIA tuvo a mano:"}
+              </p>
+              <ul
+                aria-labelledby={`consultadas-${idDeLista}`}
+                className="mt-1 flex flex-col gap-1.5"
+              >
+                {consultados.map((respaldo) => (
+                  <li key={respaldo.id}>
+                    <Referencia texto={respaldo.fuente} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       )}
     </section>

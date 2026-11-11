@@ -143,9 +143,11 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cuánto dura sistemas?");
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
-    // La salvedad de R-002 se ve sin abrir nada; la lista, en una ventana.
-    expect(await screen.findByText(/sin validar/i)).toBeVisible();
-    await usuario.click(screen.getByRole("button", { name: /fuentes de la facultad \(1\)/i }));
+    // La lista va en una ventana. El aviso de datos provisionales se sacó (11/11).
+    await usuario.click(
+      await screen.findByRole("button", { name: /fuentes de la facultad \(1\)/i }),
+    );
+    expect(screen.queryByText(/sin validar|provisional/i)).toBeNull();
     const enlace = await screen.findByRole("link", { name: /Ordenanza C.S. N.º 1877/ });
     expect(enlace).toHaveAttribute("href", "http://csu.rec.utn.edu.ar/CSU/ORD/1877.pdf");
     // La distinción no es cosmética: el backend recupera lo más cercano y el
