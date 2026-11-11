@@ -24,7 +24,7 @@ declare namespace google.accounts.id {
 
   interface OpcionesBoton {
     type?: "standard" | "icon";
-    theme?: "outline" | "filled_blue" | "filled_black";
+    theme?: "outline" | "outline_dark" | "filled_blue" | "filled_black";
     size?: "small" | "medium" | "large";
     text?: "signin_with" | "signup_with" | "continue_with";
     shape?: "rectangular" | "pill";
