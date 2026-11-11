@@ -14,6 +14,7 @@ import PreguntaAviso, { TOPE_CONSULTA_MS } from "./PreguntaAviso";
  * Se falsea `fetch`, como en la sección del perfil, para pasar por el cliente real.
  */
 
+const CUENTA = "opaco-1";
 const NUNCA: Notificacion = { vigente: false, hay_contacto: true };
 const OTORGADO: Notificacion = {
   vigente: true,
@@ -64,46 +65,80 @@ describe("hayQuePreguntar", () => {
     ["lo dejó de autorizar a propósito", REVOCADO, false],
     ["no comparte un correo, así que no podría", { ...NUNCA, hay_contacto: false }, false],
   ])("%s → %s", (_, estado, esperado) => {
-    expect(hayQuePreguntar(estado)).toBe(esperado);
+    expect(hayQuePreguntar(estado, CUENTA)).toBe(esperado);
   });
 });
 
 describe("PreguntaAviso (S7-12)", () => {
-  beforeEach(() => guardarToken("token-de-prueba"));
+  beforeEach(() => {
+    window.localStorage.clear();
+    guardarToken("token-de-prueba");
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     borrarToken();
   });
 
-  it("a quien nunca lo decidió le pregunta, y se puede seguir sin autorizar", async () => {
-    responder({ "GET /api/identidad/notificacion": NUNCA });
+  it("pide una decisión explícita y recuerda el rechazo sólo para esa cuenta", async () => {
+    const espia = responder({
+      "GET /api/identidad/notificacion": NUNCA,
+      "POST /api/identidad/notificacion/revocar": NUNCA,
+    });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
-    const titulo = await screen.findByRole("heading", { name: NOTIFICACION.antesDeEmpezar });
-    // El foco va a la pregunta: si no, un lector de pantalla no se entera. Lo
-    // pone un efecto después de dibujarla, así que se espera.
+    const usuario = userEvent.setup();
+    const titulo = await screen.findByRole("heading", { name: NOTIFICACION.pregunta });
     await waitFor(() => expect(titulo).toHaveFocus());
-    expect(await screen.findByRole("button", { name: NOTIFICACION.otorgar })).toBeInTheDocument();
+    await usuario.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: NOTIFICACION.pregunta })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: NOTIFICACION.autorizarYEmpezar }),
+    ).toBeInTheDocument();
     expect(alSeguir).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.seguir }));
+    await usuario.click(screen.getByRole("button", { name: NOTIFICACION.empezarSinAutorizar }));
 
     expect(alSeguir).toHaveBeenCalledTimes(1);
+    expect(hayQuePreguntar(NUNCA, CUENTA)).toBe(false);
+    expect(hayQuePreguntar(NUNCA, "opaco-2")).toBe(true);
+    expect(espia.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
   });
 
-  it("autorizar desde la pregunta registra la misma versión que el perfil", async () => {
+  it("autorizar registra la misma versión que Perfil y abre la conversación", async () => {
     const espia = responder({
       "GET /api/identidad/notificacion": NUNCA,
       "POST /api/identidad/notificacion": OTORGADO,
     });
-    render(<PreguntaAviso alSeguir={() => {}} alFallarLaConsulta={() => {}} />);
+    const alSeguir = vi.fn();
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
-    await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.otorgar }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: NOTIFICACION.autorizarYEmpezar }),
+    );
 
-    expect(await screen.findByText(/Lo autorizaste el 5 de noviembre de 2026/)).toBeInTheDocument();
+    expect(alSeguir).toHaveBeenCalledTimes(1);
     const otorgamiento = espia.mock.calls.find(([, init]) => init?.method === "POST");
     expect(JSON.parse(String(otorgamiento?.[1]?.body))).toEqual({ version: NOTIFICACION.version });
+  });
+
+  it("mantiene el modal abierto si falla el guardado y permite elegir después", async () => {
+    responder({
+      "GET /api/identidad/notificacion": NUNCA,
+      "POST /api/identidad/notificacion": "sin red",
+      "POST /api/identidad/notificacion/revocar": REVOCADO,
+    });
+    const alSeguir = vi.fn();
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
+
+    const autorizar = await screen.findByRole("button", { name: NOTIFICACION.autorizarYEmpezar });
+    await userEvent.click(autorizar);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo conectar/i);
+    expect(alSeguir).not.toHaveBeenCalled();
+    expect(autorizar).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.empezarSinAutorizar }));
+    expect(alSeguir).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -112,17 +147,17 @@ describe("PreguntaAviso (S7-12)", () => {
   ] as const)("si %s, sigue sola a la conversación", async (_, estado) => {
     responder({ "GET /api/identidad/notificacion": estado });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
     await waitFor(() => expect(alSeguir).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole("heading", { name: NOTIFICACION.antesDeEmpezar })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: NOTIFICACION.pregunta })).toBeNull();
   });
 
   it("sin red, lo dice y deja seguir sin darla por hecha", async () => {
     responder({ "GET /api/identidad/notificacion": "sin red" });
     const alSeguir = vi.fn();
     const alFallar = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={alFallar} />);
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={alFallar} />);
 
     const alerta = await screen.findByRole("alert");
     expect(alerta).toHaveTextContent(NOTIFICACION.consultaFallida);
@@ -142,7 +177,7 @@ describe("PreguntaAviso (S7-12)", () => {
       "GET /api/identidad/notificacion": { estado: 500, detail: "Error interno del servidor." },
     });
     const alSeguir = vi.fn();
-    render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Error interno del servidor.");
     expect(screen.getByRole("button", { name: NOTIFICACION.seguir })).toBeInTheDocument();
@@ -153,14 +188,14 @@ describe("PreguntaAviso (S7-12)", () => {
     // La primera consulta falla y la segunda no: que aparezca la pregunta
     // prueba que se volvió a consultar.
     responder({ "GET /api/identidad/notificacion": ["sin red", NUNCA] });
-    render(<PreguntaAviso alSeguir={() => {}} alFallarLaConsulta={() => {}} />);
+    render(<PreguntaAviso cuenta={CUENTA} alSeguir={() => {}} alFallarLaConsulta={() => {}} />);
 
     await userEvent.click(await screen.findByRole("button", { name: NOTIFICACION.reintentar }));
 
+    expect(await screen.findByRole("dialog", { name: NOTIFICACION.pregunta })).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: NOTIFICACION.antesDeEmpezar }),
+      await screen.findByRole("button", { name: NOTIFICACION.autorizarYEmpezar }),
     ).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: NOTIFICACION.otorgar })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -169,7 +204,7 @@ describe("PreguntaAviso (S7-12)", () => {
     try {
       responder({ "GET /api/identidad/notificacion": "colgado" });
       const alSeguir = vi.fn();
-      render(<PreguntaAviso alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
+      render(<PreguntaAviso cuenta={CUENTA} alSeguir={alSeguir} alFallarLaConsulta={() => {}} />);
 
       await vi.advanceTimersByTimeAsync(TOPE_CONSULTA_MS - 1_000);
       expect(screen.getByText(/preparando la conversación/i)).toBeInTheDocument();

@@ -108,6 +108,7 @@ export default function App() {
           <RanuraNavegacion value={ranura}>
             <Contenido
               sesion={sesion}
+              avisoIAAbierto={hayDialogoAbierto}
               errorDeIngreso={errorDeIngreso}
               avisoDeIngreso={avisoDeIngreso}
               alIngresar={ingresar}
@@ -127,6 +128,7 @@ export default function App() {
 
 interface PropiedadesContenido {
   sesion: ReturnType<typeof useSesion>["sesion"];
+  avisoIAAbierto: boolean;
   errorDeIngreso: string | null;
   avisoDeIngreso: string | null;
   alIngresar: (token: string) => void;
@@ -142,6 +144,7 @@ interface PropiedadesContenido {
  */
 function Contenido({
   sesion,
+  avisoIAAbierto,
   errorDeIngreso,
   avisoDeIngreso,
   alIngresar,
@@ -164,6 +167,9 @@ function Contenido({
   // el aviso ya se leyó, y lo que queda es la conversación (HU-06, HU-07).
   return (
     <Autenticado
+      key={sesion.usuario.identificador_opaco}
+      cuenta={sesion.usuario.identificador_opaco}
+      avisoIAAbierto={avisoIAAbierto}
       alSalir={alSalir}
       alDarDeBaja={alDarDeBaja}
       correoDeIngreso={sesion.correoDeIngreso}

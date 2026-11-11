@@ -22,9 +22,13 @@ export function consultarNotificacion(
 }
 
 /** Registra el otorgamiento con la versión del texto que la persona leyó. */
-export function otorgarNotificacion(version: string): Promise<Notificacion> {
+export function otorgarNotificacion(
+  version: string,
+  opciones: { signal?: AbortSignal } = {},
+): Promise<Notificacion> {
   return pedir<Notificacion>("/api/identidad/notificacion", {
     method: "POST",
+    signal: opciones.signal,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ version }),
   });
@@ -34,6 +38,11 @@ export function otorgarNotificacion(version: string): Promise<Notificacion> {
  * Registra la revocación. No toca la sesión: es un `POST` que deja constancia,
  * no un «salir», y el consentimiento de tratamiento sigue vigente.
  */
-export function revocarNotificacion(): Promise<Notificacion> {
-  return pedir<Notificacion>("/api/identidad/notificacion/revocar", { method: "POST" });
+export function revocarNotificacion(
+  opciones: { signal?: AbortSignal } = {},
+): Promise<Notificacion> {
+  return pedir<Notificacion>("/api/identidad/notificacion/revocar", {
+    method: "POST",
+    signal: opciones.signal,
+  });
 }

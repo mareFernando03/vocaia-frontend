@@ -20,7 +20,7 @@ import { createPortal } from "react-dom";
 import { Navegacion, type Seccion } from "../componentes/Navegacion";
 import { cn } from "../lib/cn";
 import { useRanuraNavegacion } from "../lib/ranura-navegacion";
-import { useAvisoPreguntado } from "../hooks/useAvisoPreguntado";
+import { olvidarRechazo, useAvisoPreguntado } from "../hooks/useAvisoPreguntado";
 import { olvidarSesion, recordarSesion } from "../hooks/useConversacion";
 import Carreras from "./Carreras";
 import Conversacion from "./Conversacion";
@@ -30,12 +30,20 @@ import Perfil from "./Perfil";
 import PreguntaAviso from "./PreguntaAviso";
 
 interface Propiedades {
+  cuenta: string;
+  avisoIAAbierto?: boolean;
   alSalir: () => Promise<void>;
   alDarDeBaja: () => Promise<void>;
   correoDeIngreso?: string;
 }
 
-export default function Autenticado({ alSalir, alDarDeBaja, correoDeIngreso }: Propiedades) {
+export default function Autenticado({
+  cuenta,
+  avisoIAAbierto = false,
+  alSalir,
+  alDarDeBaja,
+  correoDeIngreso,
+}: Propiedades) {
   const [seccion, setSeccion] = useState<Seccion>("charla");
   const [epoca, setEpoca] = useState(0);
   // El informe va aparte de la sección porque se abre encima de la pantalla de
@@ -45,7 +53,7 @@ export default function Autenticado({ alSalir, alDarDeBaja, correoDeIngreso }: P
   // Antes de la primera conversación del ingreso, la pregunta por el aviso a
   // la Facultad (S7-12). Mientras está pendiente no hay pestañas: así nadie
   // llega a otra sección sin haber pasado por ella.
-  const { preguntado, marcar } = useAvisoPreguntado();
+  const { preguntado, marcar } = useAvisoPreguntado(cuenta);
   // Si la consulta falló se sigue sin marcar: la pregunta no se da por hecha.
   const [sinConsulta, setSinConsulta] = useState(false);
   const ranura = useRanuraNavegacion();
@@ -69,9 +77,16 @@ export default function Autenticado({ alSalir, alDarDeBaja, correoDeIngreso }: P
   }, [seccion, informe]);
 
   if (!preguntado && !sinConsulta) {
+    // El diálogo se monta en un portal, fuera del fondo inerte del aviso de IA.
+    // Espera a que se cierre ese aviso para no superponer dos focos modales.
+    if (avisoIAAbierto) return null;
     return (
       <div className="mx-auto w-full max-w-3xl">
-        <PreguntaAviso alSeguir={marcar} alFallarLaConsulta={() => setSinConsulta(true)} />
+        <PreguntaAviso
+          cuenta={cuenta}
+          alSeguir={marcar}
+          alFallarLaConsulta={() => setSinConsulta(true)}
+        />
       </div>
     );
   }
@@ -89,7 +104,14 @@ export default function Autenticado({ alSalir, alDarDeBaja, correoDeIngreso }: P
     );
   } else if (seccion === "perfil") {
     pantalla = (
-      <Perfil alSalir={alSalir} alDarDeBaja={alDarDeBaja} correoDeIngreso={correoDeIngreso} />
+      <Perfil
+        alSalir={alSalir}
+        alDarDeBaja={() => {
+          olvidarRechazo(cuenta);
+          return alDarDeBaja();
+        }}
+        correoDeIngreso={correoDeIngreso}
+      />
     );
   } else if (seccion === "carreras") {
     pantalla = <Carreras />;
