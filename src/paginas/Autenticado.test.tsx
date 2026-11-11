@@ -32,7 +32,8 @@ const { obtenerInforme } = await import("../api/informe");
 const { default: Autenticado } = await import("./Autenticado");
 
 const CLAVE = "vocaia:conversacion:sesion";
-const PREGUNTADO = "vocaia:aviso-facultad:preguntado";
+const CUENTA = "opaco-1";
+const PREGUNTADO = "vocaia:aviso-facultad:preguntado:opaco-1";
 const ANTERIOR = "22222222-2222-4222-8222-222222222222";
 
 function turno(numero: number, rol: string, contenido: string): Turno {
@@ -92,7 +93,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     window.sessionStorage.clear();
     // La pregunta por el aviso a la Facultad ya se hizo: estas pruebas son de
     // la conversación. La pregunta tiene las suyas, al final.
-    window.sessionStorage.setItem(PREGUNTADO, "si");
+    window.sessionStorage.setItem(PREGUNTADO, NOTIFICACION.version);
   });
 
   it("se retoma una conversación de otro día y el hilo continúa", async () => {
@@ -109,7 +110,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       ),
     );
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     // La pestaña nueva abre en la conversación y no en el listado: es lo que
     // hace que recargar en medio de una charla devuelva a la charla (HU-07).
     expect(screen.getByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
@@ -141,7 +142,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       Promise.resolve(historial(id, [turno(1, "usuario", "Estoy entre sistemas y diseño")])),
     );
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
     await usuario.click(screen.getByRole("button", { name: "Historial" }));
@@ -162,7 +163,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       historial(ANTERIOR, [turno(1, "usuario", "Estoy entre sistemas y diseño")]),
     );
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: "Historial" }));
     await screen.findByRole("button", { name: /entre sistemas y diseño/ });
 
@@ -190,7 +191,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       resumen(ANTERIOR, "Estoy entre sistemas y diseño"),
     ]);
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     // Un solo botón por conversación, con todo adentro: quien usa lector de
@@ -206,7 +207,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     const usuario = userEvent.setup();
     vi.mocked(listarSesiones).mockResolvedValue([]);
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     expect(await screen.findByText(/todavía no hablaste con vocaia/i)).toBeInTheDocument();
@@ -219,7 +220,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       resumen(ANTERIOR, "Estoy terminando el secundario"),
     ]);
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(screen.getByRole("button", { name: "Historial" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo conectar/i);
@@ -247,7 +248,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       rasgos: [],
     } as never);
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await screen.findByText("Estoy entre sistemas y diseño");
 
     await usuario.click(screen.getByRole("button", { name: "Perfil" }));
@@ -291,7 +292,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
       notas: ["Todavía no conversamos lo suficiente."],
     });
 
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
     await usuario.click(await screen.findByRole("button", { name: /ver tu informe/i }));
 
     expect(await screen.findByRole("heading", { name: /tu informe/i })).toBeInTheDocument();
@@ -311,7 +312,10 @@ describe("HU-12 · historial de sesiones recuperable", () => {
 });
 
 describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    window.localStorage.clear();
+  });
   beforeEach(() => {
     vi.mocked(listarSesiones).mockReset();
     vi.mocked(obtenerHistorial).mockReset();
@@ -322,13 +326,32 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
     );
   });
 
-  it("aparece al entrar, y al seguir queda anotada para que un F5 no la repita", async () => {
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+  it("al rechazar abre la charla y recuerda la decisión en un nuevo ingreso", async () => {
+    const vista = <Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />;
+    const { unmount } = render(vista);
 
-    await userEvent.click(await screen.findByRole("button", { name: /seguir a la conversación/i }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: NOTIFICACION.empezarSinAutorizar }),
+    );
 
-    expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
-    expect(window.sessionStorage.getItem(PREGUNTADO)).toBe("si");
+    expect(await screen.findByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: NOTIFICACION.pregunta })).toBeNull();
+    expect(window.sessionStorage.getItem(PREGUNTADO)).toBe(NOTIFICACION.version);
+
+    unmount();
+    window.sessionStorage.clear();
+    render(vista);
+    expect(await screen.findByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: NOTIFICACION.pregunta })).toBeNull();
+  });
+
+  it("espera a que se cierre el aviso de IA antes de abrir el modal", async () => {
+    const props = { cuenta: CUENTA, alSalir: salir, alDarDeBaja: async () => {} };
+    const { rerender } = render(<Autenticado {...props} avisoIAAbierto />);
+    expect(fetch).not.toHaveBeenCalled();
+
+    rerender(<Autenticado {...props} avisoIAAbierto={false} />);
+    expect(await screen.findByRole("dialog", { name: NOTIFICACION.pregunta })).toBeInTheDocument();
   });
 
   it("si la consulta falla, deja seguir a la conversación sin anotarla: se vuelve a preguntar", async () => {
@@ -338,7 +361,7 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
         throw new TypeError("Failed to fetch");
       }),
     );
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(NOTIFICACION.consultaFallida);
     await userEvent.click(screen.getByRole("button", { name: NOTIFICACION.seguir }));
@@ -362,19 +385,19 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
         }),
       ),
     );
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
 
     await waitFor(() => expect(screen.queryByText(/preparando la conversación/i)).toBeNull());
     expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
   });
 
   it("un F5 con la marca puesta no repite la pregunta", async () => {
-    window.sessionStorage.setItem(PREGUNTADO, "si");
+    window.sessionStorage.setItem(PREGUNTADO, NOTIFICACION.version);
     const espia = vi.fn(async (_url: string) =>
       Response.json({ vigente: false, hay_contacto: true }),
     );
     vi.stubGlobal("fetch", espia);
-    render(<Autenticado alSalir={salir} alDarDeBaja={async () => {}} />);
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
 
     expect(screen.queryByRole("heading", { name: /antes de empezar/i })).toBeNull();
     expect(screen.queryByText(/preparando la conversación/i)).toBeNull();

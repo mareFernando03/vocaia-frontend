@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
 import { describir, SesionVencida } from "../api/cliente";
-import { consultarNotificacion } from "../api/notificacion";
-import { ConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
-import { NOTIFICACION } from "../contenido/aviso-notificacion";
-import { hayQuePreguntar } from "../hooks/useAvisoPreguntado";
+import {
+  consultarNotificacion,
+  otorgarNotificacion,
+  revocarNotificacion,
+  type Notificacion,
+} from "../api/notificacion";
+import { TextoConsentimientoNotificacion } from "../componentes/ConsentimientoNotificacion";
 import { clasesBoton } from "../componentes/ui/clases-boton";
+import { Dialogo } from "../componentes/ui/Dialogo";
+import { NOTIFICACION } from "../contenido/aviso-notificacion";
+import { hayQuePreguntar, olvidarRechazo, recordarRechazo } from "../hooks/useAvisoPreguntado";
 
 /**
  * Cuánto se espera la consulta antes de darla por fallida. Alcanza para el
@@ -18,9 +24,8 @@ export const TOPE_CONSULTA_MS = 60_000;
  * La pregunta por el aviso a la Facultad, antes de empezar a chatear (S7-12,
  * VOCAIA-204, reunión con la Secretaría del 05/11).
  *
- * No es una puerta: el botón de seguir está siempre, autorice o no. Es la
- * misma sección del perfil, con el mismo texto y la misma versión, así que lo
- * que se otorga acá es lo mismo que se otorga allá.
+ * Ambas decisiones llevan a la conversación. El texto y la versión son los
+ * mismos que se usan al cambiar la autorización desde Perfil.
  *
  * Si no hay nada que preguntar, sigue sola a la conversación, sin mostrarse.
  * Si la consulta falla —o no responde en `TOPE_CONSULTA_MS`— lo dice, y ofrece
@@ -28,14 +33,16 @@ export const TOPE_CONSULTA_MS = 60_000;
  * recargar o en el próximo ingreso, y en el perfil sigue estando.
  */
 export default function PreguntaAviso({
+  cuenta,
   alSeguir,
   alFallarLaConsulta,
 }: {
+  cuenta: string;
   alSeguir: () => void;
   /** Seguir a la conversación después de un fallo, sin dar la pregunta por hecha. */
   alFallarLaConsulta: () => void;
 }) {
-  const [preguntar, setPreguntar] = useState<boolean | null>(null);
+  const [estado, setEstado] = useState<Notificacion | null>(null);
   const [fallo, setFallo] = useState<string | null>(null);
   // Cuenta los fallos para que el mismo mensaje, repetido después de
   // «Reintentar», vuelva a insertarse y un lector de pantalla lo anuncie.
@@ -43,6 +50,9 @@ export default function PreguntaAviso({
   // Cambia con «Reintentar»: vuelve a correr la consulta.
   const [intento, setIntento] = useState(0);
   const tituloRef = useRef<HTMLHeadingElement>(null);
+  const guardado = useRef<AbortController | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [errorAlGuardar, setErrorAlGuardar] = useState<string | null>(null);
 
   useEffect(() => {
     let vigente = true;
@@ -53,7 +63,8 @@ export default function PreguntaAviso({
         (estado) => {
           if (!vigente) return;
           setFallo(null);
-          setPreguntar(hayQuePreguntar(estado));
+          if (hayQuePreguntar(estado, cuenta)) setEstado(estado);
+          else alSeguir();
         },
         (error: unknown) => {
           // La sesión vencida la resuelve App volviendo al ingreso.
@@ -68,16 +79,59 @@ export default function PreguntaAviso({
       clearTimeout(tope);
       control.abort();
     };
-  }, [intento]);
+  }, [intento, cuenta, alSeguir]);
+
+  useEffect(
+    () => () => {
+      const pendiente = guardado.current;
+      guardado.current = null;
+      pendiente?.abort();
+    },
+    [],
+  );
 
   const hayFallo = fallo !== null;
   useEffect(() => {
-    if (preguntar === false) alSeguir();
-    // Al aparecer, el foco va al título: si no, quien usa lector de pantalla no
-    // se entera de que en lugar de la conversación hay una pregunta. Con un
-    // fallo, sólo la primera vez: después de «Reintentar» queda en el botón.
-    if (preguntar === true || hayFallo) tituloRef.current?.focus();
-  }, [preguntar, hayFallo, alSeguir]);
+    // Después de «Reintentar» el aviso sigue montado y conserva el foco.
+    if (hayFallo) tituloRef.current?.focus();
+  }, [hayFallo]);
+
+  async function decidir(autorizar: boolean) {
+    if (guardado.current !== null) return;
+    const control = new AbortController();
+    guardado.current = control;
+    setGuardando(true);
+    setErrorAlGuardar(null);
+    const tope = setTimeout(() => control.abort(), TOPE_CONSULTA_MS);
+    try {
+      const opciones = { signal: control.signal };
+      // Revocar es idempotente. También cubre una autorización anterior o
+      // una que se guardó aunque la respuesta al primer clic se haya cortado.
+      const confirmado = autorizar
+        ? await otorgarNotificacion(NOTIFICACION.version, opciones)
+        : await revocarNotificacion(opciones);
+      if (guardado.current !== control) return;
+      const coincide = autorizar
+        ? confirmado.vigente === true && confirmado.version === NOTIFICACION.version
+        : confirmado.vigente === false;
+      if (!coincide) {
+        setErrorAlGuardar(NOTIFICACION.guardadoFallido);
+        return;
+      }
+      if (autorizar || confirmado.revocado_en) olvidarRechazo(cuenta);
+      else recordarRechazo(cuenta);
+      alSeguir();
+    } catch (error) {
+      if (guardado.current !== control || error instanceof SesionVencida) return;
+      setErrorAlGuardar(describir(error));
+    } finally {
+      clearTimeout(tope);
+      if (guardado.current === control) {
+        guardado.current = null;
+        setGuardando(false);
+      }
+    }
+  }
 
   if (fallo !== null) {
     return (
@@ -110,24 +164,53 @@ export default function PreguntaAviso({
     );
   }
 
-  if (preguntar !== true) {
+  if (estado === null) {
     return <p className="text-muted-foreground text-sm">Preparando la conversación…</p>;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 ref={tituloRef} tabIndex={-1} className="text-xl font-semibold outline-none">
-          {NOTIFICACION.antesDeEmpezar}
-        </h1>
-        <p className="text-muted-foreground text-sm">{NOTIFICACION.antesDeEmpezarIntro}</p>
+    <Dialogo
+      abierto
+      titulo={NOTIFICACION.pregunta}
+      className="max-h-[calc(100dvh-1rem)]"
+      pie={
+        <>
+          {errorAlGuardar !== null && (
+            <p role="alert" className="text-destructive mb-3">
+              {errorAlGuardar}
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              aria-disabled={guardando}
+              onClick={() => void decidir(true)}
+              className={clasesBoton("secundario")}
+            >
+              {NOTIFICACION.autorizarYEmpezar}
+            </button>
+            <button
+              type="button"
+              aria-disabled={guardando}
+              onClick={() => void decidir(false)}
+              className={clasesBoton("secundario")}
+            >
+              {NOTIFICACION.empezarSinAutorizar}
+            </button>
+          </div>
+          {guardando && (
+            <p role="status" className="text-muted-foreground mt-2">
+              {NOTIFICACION.guardandoDecision}
+            </p>
+          )}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <TextoConsentimientoNotificacion />
+        <p className="text-muted-foreground">{NOTIFICACION.cambiarEnPerfil}</p>
+        {estado.vigente && <p>{NOTIFICACION.versionAnterior}</p>}
       </div>
-      <ConsentimientoNotificacion />
-      <div>
-        <button type="button" onClick={alSeguir} className={clasesBoton("secundario")}>
-          {NOTIFICACION.seguir}
-        </button>
-      </div>
-    </div>
+    </Dialogo>
   );
 }
