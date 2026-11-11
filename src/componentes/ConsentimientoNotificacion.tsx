@@ -10,6 +10,23 @@ import {
 import { NOTIFICACION } from "../contenido/aviso-notificacion";
 import { clasesBoton } from "./ui/clases-boton";
 
+export function TextoConsentimientoNotificacion() {
+  return (
+    <>
+      <p>{NOTIFICACION.presentacion}</p>
+      <dl className="flex flex-col gap-2">
+        {NOTIFICACION.detalles.map(({ titulo, texto }) => (
+          <div key={titulo}>
+            <dt className="font-medium">{titulo}</dt>
+            <dd>{texto}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-muted-foreground">{NOTIFICACION.opcional}</p>
+    </>
+  );
+}
+
 /**
  * Otorgar, consultar y revocar el aviso a la Facultad (HU-03b, HU-21).
  *
@@ -127,16 +144,7 @@ export function ConsentimientoNotificacion() {
       <h2 id="notificacion-titulo" className="text-base font-semibold">
         {NOTIFICACION.titulo}
       </h2>
-      <p>{NOTIFICACION.presentacion}</p>
-      <dl className="flex flex-col gap-2">
-        {NOTIFICACION.detalles.map(({ titulo, texto }) => (
-          <div key={titulo}>
-            <dt className="font-medium">{titulo}</dt>
-            <dd>{texto}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="text-muted-foreground">{NOTIFICACION.opcional}</p>
+      <TextoConsentimientoNotificacion />
 
       {/* El porqué sin correo va dentro de la región viva: si aparece después
           de un 409, se anuncia junto con el estado. */}
