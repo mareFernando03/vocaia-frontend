@@ -117,6 +117,19 @@ describe("Carreras", () => {
     expect(screen.queryByText(/dura cinco años/)).not.toBeInTheDocument();
   });
 
+  it("una duración con medio año se escribe con coma", async () => {
+    vi.mocked(listarCarreras).mockResolvedValue([
+      carrera({ duracion: { anios: 5.5, horas_reloj: 4136 } }),
+    ]);
+    const usuario = userEvent.setup();
+    render(<Carreras />);
+    await usuario.click(await screen.findByText("Datos de la carrera"));
+
+    expect(screen.getByText("Duración").nextSibling).toHaveTextContent(
+      "5,5 años · 4.136 horas reloj",
+    );
+  });
+
   it("si dos fuentes no coinciden lo muestra y manda a confirmar con la Secretaría", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([
       carrera({
