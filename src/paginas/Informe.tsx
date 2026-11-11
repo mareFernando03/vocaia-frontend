@@ -5,8 +5,8 @@
  * de lo que le importa a quien lo lee sin haber estado en la conversación:
  * las carreras, cada una con su porqué y su ficha de la Facultad plegada; lo
  * que la puede frenar (becas y habilitantes); lo que contó como respaldo, y con
- * quién hablar, siempre a la vista. Que el dato es provisional o el perfil
- * parcial va arriba, sin desplegar. Al pie, cuándo se calculó el perfil, para
+ * quién hablar, siempre a la vista. Que el perfil es parcial va arriba, sin
+ * desplegar. Al pie, cuándo se calculó el perfil, para
  * que el PDF quede fechado.
  *
  * Lo que contó va en una sección propia y no dentro de cada carrera porque el
@@ -203,9 +203,6 @@ export default function Informe({ sesionId, alVolver }: Propiedades) {
 }
 
 function Contenido({ informe }: { informe: DatosInforme }) {
-  const provisional = informe.recomendaciones.some((carrera) =>
-    carrera.fuentes.some((fuente) => fuente.estado_validacion === "provisional"),
-  );
   const derivacion = informe.recomendaciones.find(
     (carrera) => carrera.derivacion != null,
   )?.derivacion;
@@ -243,12 +240,6 @@ function Contenido({ informe }: { informe: DatosInforme }) {
           reemplaza a un orientador vocacional, y puede equivocarse: antes de decidir, verificá con
           la Facultad lo que dice sobre cada carrera.
         </p>
-        {provisional && (
-          <p>
-            La información de la Facultad es <strong>provisional</strong>: sale de fuentes públicas
-            y la Facultad todavía no la validó.
-          </p>
-        )}
         {!informe.publicable && (
           <p>
             Tu perfil es <strong>parcial</strong>:{" "}
@@ -602,8 +593,6 @@ function Apoyo({ habilitante, verificado }: { habilitante: Habilitante; verifica
               )}
               {fuente.fecha_documento != null &&
                 `, documento del ${fechaLarga(`${fuente.fecha_documento}T00:00`)}`}
-              {fuente.estado_validacion === "provisional" &&
-                ". Dato provisional: la fuente todavía no fue validada"}
             </li>
           ))}
         </ul>

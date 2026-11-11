@@ -99,7 +99,8 @@ describe("Informe", () => {
       "href",
       "https://utn.edu.ar/ord-1877",
     );
-    expect(screen.getByText(/la información de la facultad es/i)).toHaveTextContent("provisional");
+    // Las fuentes del ejemplo son provisionales y no se avisa (11/11).
+    expect(screen.queryByText(/provisional/i)).toBeNull();
     expect(screen.getByRole("heading", { name: "Lo que contaste" })).toBeInTheDocument();
     expect(screen.getByText(/desarmar programas/)).toBeInTheDocument();
     // El puntaje ordena, no se muestra.
@@ -500,13 +501,11 @@ describe("Informe · orden de lectura", () => {
     expect(screen.getByText(nota).closest("details")).toBeNull();
   });
 
-  it("el dato provisional y el perfil parcial se leen sin abrir nada", async () => {
+  it("el perfil parcial se lee sin abrir nada", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(informe({ publicable: false }));
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    const provisional = await screen.findByText(/la información de la facultad es/i);
-    const parcial = screen.getByText(/tu perfil es/i);
-    expect(provisional.closest("details")).toBeNull();
+    const parcial = await screen.findByText(/tu perfil es/i);
     expect(parcial.closest("details")).toBeNull();
     expect(parcial).toHaveTextContent("parcial");
   });

@@ -79,7 +79,6 @@ describe("Trazabilidad", () => {
     expect(within(suyo).getByText(/desarmar cosas/)).toBeInTheDocument();
     expect(within(suyo).queryByText(/Ordenanza/)).toBeNull();
     expect(within(facultad).queryByText(/desarmar cosas/)).toBeNull();
-    expect(within(facultad).getByText(/provisionales/)).toBeInTheDocument();
     expect(obtenerTrazabilidad).toHaveBeenCalledWith(SESION, 4);
   });
 
@@ -93,7 +92,30 @@ describe("Trazabilidad", () => {
       "Ordenanza C.S. N.º 1877",
     ]);
     expect(screen.getByText("La respuesta lo cita.")).toBeInTheDocument();
-    expect(screen.getByText("Se consultó, pero la respuesta no lo cita.")).toBeInTheDocument();
+    // Lo no citado va junto, con un solo rótulo, y no repetido debajo de cada fuente.
+    const consultadas = screen.getByRole("list", { name: /También se consultó/ });
+    expect(within(consultadas).getByRole("link")).toHaveTextContent("Ordenanza C.S. N.º 1877");
+  });
+
+  it("si la respuesta no cita ninguna fuente, lo dice una vez", async () => {
+    vi.mocked(obtenerTrazabilidad).mockResolvedValue(
+      traza({
+        institucional: traza().institucional.map((r) => ({ ...r, citado: false })),
+      }),
+    );
+    render(<Trazabilidad sesionId={SESION} turno={4} />);
+
+    const consultadas = await screen.findByRole("list", { name: /no cita ninguna/ });
+    expect(within(consultadas).getAllByRole("link")).toHaveLength(2);
+    expect(screen.queryByText("La respuesta lo cita.")).toBeNull();
+  });
+
+  it("no avisa que los datos son provisionales (11/11)", async () => {
+    vi.mocked(obtenerTrazabilidad).mockResolvedValue(traza());
+    render(<Trazabilidad sesionId={SESION} turno={4} />);
+
+    await screen.findByRole("heading", { name: "Lo que dice la Facultad" });
+    expect(screen.queryByText(/provisional|sin validar/i)).toBeNull();
   });
 
   it("lista cada fuente una vez y, si un fragmento suyo se citó, la marca como citada", async () => {
@@ -118,7 +140,7 @@ describe("Trazabilidad", () => {
       await screen.findAllByRole("link", { name: /Horarios de Ingeniería Química/ }),
     ).toHaveLength(1);
     expect(screen.getByText("La respuesta lo cita.")).toBeInTheDocument();
-    expect(screen.queryByText("Se consultó, pero la respuesta no lo cita.")).toBeNull();
+    expect(screen.queryByRole("list", { name: /consult/ })).toBeNull();
   });
 
   it("no muestra jerga del backend", async () => {

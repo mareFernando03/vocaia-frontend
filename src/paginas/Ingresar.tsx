@@ -106,9 +106,12 @@ export default function Ingresar({
         Entrá con una cuenta que ya tenés. No vas a tener que inventar otra contraseña.
       </p>
 
-      {/* El documento de Google usa un esquema claro incluso con el botón
-          oscuro. Igualar el esquema del iframe conserva su fondo transparente. */}
-      <div ref={contenedorBoton} className="mt-8 flex justify-center [&_iframe]:scheme-light" />
+      {/* `color-scheme: light` alrededor del botón: el iframe de Google es un
+          documento claro, y cuando el esquema de la página no coincide con el del
+          iframe el navegador le pinta un fondo opaco. En el tema oscuro el botón
+          quedaba dentro de un rectángulo blanco (producción, 11/11). El botón
+          sigue tomando el tema de `theme`; esto sólo saca el fondo. */}
+      <div ref={contenedorBoton} className="mt-8 flex justify-center [color-scheme:light]" />
 
       {aviso && (
         <p role="status" className="mt-6 text-sm">

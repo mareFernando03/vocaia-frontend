@@ -320,8 +320,7 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
   return (
     <>
       {/* Una línea y no un recuadro: en la prueba del piloto el recuadro cargaba
-          el chat. La salvedad de R-002 va en la línea misma y no en la ventana:
-          una salvedad que hay que abrir para leer no es una salvedad. */}
+          el chat. */}
       <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
         <Dialogo
           titulo="Fuentes consultadas"
@@ -339,10 +338,6 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
         >
           <ContenidoFuentes fuentes={fuentes} />
         </Dialogo>
-        <span>
-          · datos <strong className="text-foreground font-semibold">provisionales</strong>, todavía
-          sin validar.
-        </span>
       </p>
     </>
   );
@@ -360,8 +355,6 @@ function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
           necesariamente lo usó todo.
         </InfoTip>
       </p>
-      {/* La salvedad ya está en la línea que abre esta ventana; repetirla
-            acá como insignia sólo sumaba ruido. */}
       <ul className="mt-4 flex flex-col gap-2">
         {fuentes.map((fuente) => (
           <li key={fuente.id}>
