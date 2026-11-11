@@ -4,77 +4,76 @@ import type { Notificacion } from "../api/notificacion";
 import { alCambiarSesion } from "../auth/sesion";
 import { NOTIFICACION } from "../contenido/aviso-notificacion";
 
+function claveRechazo(cuenta: string): string {
+  return `vocaia:aviso-facultad:rechazado:${cuenta}`;
+}
+
 /**
- * Si ya se le preguntó a la persona por el aviso a la Facultad en esta sesión
- * (S7-12, VOCAIA-204).
- *
- * La pregunta va antes de la conversación porque en el perfil casi nadie la
- * encontraba (reunión con la Secretaría del 05/11). Se hace una vez por
- * ingreso y no una sola vez para siempre: quien contestó «ahora no» puede
- * cambiar de idea, y la próxima vez que entre se le vuelve a ofrecer. Quien
- * lo dejó de autorizar a propósito no vuelve a verla: eso lo decide
- * `PreguntaAviso` con lo que responde el backend.
- *
- * Es el mismo patrón que `useAvisoAceptado`: `sessionStorage`, para que un F5
- * en medio de la charla no la vuelva a interrumpir, y se olvida al perder la
- * sesión, para que la persona siguiente en la misma pestaña tenga su pregunta.
+ * El servidor guarda otorgamientos y revocaciones. Cuando no hay un acto
+ * previo que revocar, se recuerda el rechazo inicial por cuenta y versión
+ * en este navegador. Sólo se guarda el identificador opaco.
  */
-
-const CLAVE = "vocaia:aviso-facultad:preguntado";
-
-function leer(): boolean {
+export function recordarRechazo(cuenta: string): void {
   try {
-    return window.sessionStorage.getItem(CLAVE) === "si";
+    window.localStorage.setItem(claveRechazo(cuenta), NOTIFICACION.version);
   } catch {
-    // Con el almacenamiento bloqueado se vuelve a preguntar tras un F5. Es
-    // molesto, no grave: la pregunta tiene un botón para seguir.
-    return false;
+    // La decisión vale en este ingreso aunque el navegador impida recordarla.
   }
 }
 
-export interface AvisoPreguntado {
-  preguntado: boolean;
-  /** Se llama al seguir a la conversación, haya autorizado o no. */
-  marcar: () => void;
+export function olvidarRechazo(cuenta: string): void {
+  try {
+    window.localStorage.removeItem(claveRechazo(cuenta));
+  } catch {
+    // Con el almacenamiento bloqueado tampoco se usa la marca para decidir.
+  }
 }
 
-export function useAvisoPreguntado(): AvisoPreguntado {
-  const [preguntado, setPreguntado] = useState(leer);
+/** Evita volver a consultar al recargar durante una charla. */
+export function useAvisoPreguntado(cuenta: string) {
+  const clave = `vocaia:aviso-facultad:preguntado:${cuenta}`;
+  const [preguntado, setPreguntado] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(clave) === NOTIFICACION.version;
+    } catch {
+      return false;
+    }
+  });
 
   const marcar = useCallback(() => {
     try {
-      window.sessionStorage.setItem(CLAVE, "si");
+      window.sessionStorage.setItem(clave, NOTIFICACION.version);
     } catch {
       // Vale igual para esta carga de la página.
     }
     setPreguntado(true);
-  }, []);
+  }, [clave]);
 
   useEffect(
     () =>
       alCambiarSesion((token) => {
         if (token !== null) return;
         try {
-          window.sessionStorage.removeItem(CLAVE);
+          window.sessionStorage.removeItem(clave);
         } catch {
           // Si no se puede borrar, al menos esta carga vuelve a preguntar.
         }
         setPreguntado(false);
       }),
-    [],
+    [clave],
   );
 
   return { preguntado, marcar };
 }
 
-/**
- * Se pregunta a quien todavía no decidió: nunca lo autorizó, o lo autorizó
- * sobre un texto anterior. No a quien ya lo tiene autorizado, ni a quien lo
- * dejó de autorizar —ya decidió—, ni a quien no comparte un correo, que no
- * podría autorizarlo.
- */
-export function hayQuePreguntar(estado: Notificacion): boolean {
+/** El estado del servidor tiene prioridad sobre el rechazo local. */
+export function hayQuePreguntar(estado: Notificacion, cuenta: string): boolean {
   if (!estado.hay_contacto) return false;
   if (estado.vigente) return estado.version !== NOTIFICACION.version;
-  return !estado.revocado_en;
+  if (estado.revocado_en) return false;
+  try {
+    return window.localStorage.getItem(claveRechazo(cuenta)) !== NOTIFICACION.version;
+  } catch {
+    return true;
+  }
 }

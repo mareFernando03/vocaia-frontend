@@ -36,12 +36,59 @@ vi.mock("../api/cliente", async (importar) => ({
 
 const USUARIO = { identificador_opaco: "opaco-1", proveedor: "google" };
 
+function credencialConCorreo(email: string, verificado: boolean): string {
+  return `cabecera.${btoa(JSON.stringify({ email, email_verified: verificado }))}.firma`;
+}
+
 afterEach(() => {
   vi.clearAllMocks();
   window.sessionStorage.clear();
 });
 
 describe("useSesion · consentimiento", () => {
+  it("sólo expone el correo de Google después de validar la misma credencial", async () => {
+    guardarToken(credencialConCorreo("cuenta@ejemplo.test", true));
+    let confirmar!: (usuario: typeof USUARIO) => void;
+    consultarUsuario.mockReturnValueOnce(new Promise((resolver) => (confirmar = resolver)));
+    const { result } = renderHook(() => useSesion());
+    expect(result.current.sesion).toEqual({ estado: "verificando" });
+    await act(async () => confirmar(USUARIO));
+    expect(result.current.sesion).toEqual({
+      estado: "autenticado",
+      usuario: USUARIO,
+      correoDeIngreso: "cuenta@ejemplo.test",
+    });
+  });
+
+  it.each([
+    credencialConCorreo("cuenta@ejemplo.test", false),
+    "credencial-sin-correo",
+    "cabecera.!invalido.firma",
+  ])("permite entrar cuando la credencial no trae un correo verificable: %s", async (token) => {
+    guardarToken(token);
+    consultarUsuario.mockResolvedValue(USUARIO);
+    const { result } = renderHook(() => useSesion());
+    await waitFor(() =>
+      expect(result.current.sesion).toEqual({ estado: "autenticado", usuario: USUARIO }),
+    );
+  });
+
+  it("una validación demorada no recupera el correo de la sesión anterior", async () => {
+    guardarToken(credencialConCorreo("anterior@ejemplo.test", true));
+    let confirmarAnterior!: (usuario: typeof USUARIO) => void;
+    consultarUsuario.mockReturnValueOnce(new Promise((resolver) => (confirmarAnterior = resolver)));
+    consultarUsuario.mockResolvedValue(USUARIO);
+    cerrarSesionEnBackend.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useSesion());
+    await act(async () => result.current.salir());
+    expect(result.current.sesion).toEqual({ estado: "anonimo" });
+    await act(async () => confirmarAnterior(USUARIO));
+    expect(result.current.sesion).toEqual({ estado: "anonimo" });
+    await act(async () =>
+      result.current.ingresar(credencialConCorreo("actual@ejemplo.test", true)),
+    );
+    expect(result.current.sesion).toMatchObject({ correoDeIngreso: "actual@ejemplo.test" });
+  });
   it.each([false, true])(
     "salir olvida la conversación sin tener la charla montada, fallo remoto: %s",
     async (falloRemoto) => {

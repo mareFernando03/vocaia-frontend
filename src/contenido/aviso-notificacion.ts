@@ -77,8 +77,12 @@ export const NOTIFICACION = {
   // La pregunta antes de la conversación (S7-12, VOCAIA-204). No forman parte
   // de la huella: no cambian lo que se acepta, dicen dónde se pregunta.
   antesDeEmpezar: "Antes de empezar",
-  antesDeEmpezarIntro:
-    "Una pregunta antes de la conversación. La respuesta la podés cambiar después desde tu perfil.",
+  pregunta: "¿Querés que VocaIA le avise a la Facultad si necesitás ayuda?",
+  cambiarEnPerfil: "Podés cambiar tu decisión desde Perfil.",
+  autorizarYEmpezar: "Autorizar y empezar",
+  empezarSinAutorizar: "Empezar sin autorizar",
+  guardandoDecision: "Guardando tu decisión…",
+  guardadoFallido: "No pudimos confirmar tu decisión. Probá de nuevo.",
   seguir: "Seguir a la conversación",
   // Si la consulta falla: la pregunta no se da por hecha y se puede seguir igual.
   consultaFallida: "No pudimos ver si ya respondiste esta pregunta.",
