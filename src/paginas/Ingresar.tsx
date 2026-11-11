@@ -46,6 +46,7 @@ export default function Ingresar({
     }
 
     let cancelado = false;
+    let observador: MutationObserver | undefined;
 
     void cargarScript()
       .then(() => {
@@ -58,13 +59,27 @@ export default function Ingresar({
           auto_select: false,
           cancel_on_tap_outside: true,
         });
-        google.accounts.id.renderButton(contenedorBoton.current, {
-          type: "standard",
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          shape: "pill",
-          locale: "es",
+        const contenedor = contenedorBoton.current;
+        const dibujarBoton = () => {
+          // El tema nativo conserva los colores del logo y del avatar. Un
+          // filtro sobre el iframe también altera la foto de la persona.
+          contenedor.replaceChildren();
+          google.accounts.id.renderButton(contenedor, {
+            type: "standard",
+            theme: document.documentElement.dataset.tema === "oscuro" ? "outline_dark" : "outline",
+            size: "large",
+            text: "continue_with",
+            shape: "pill",
+            locale: "es",
+          });
+        };
+        dibujarBoton();
+        // El selector ya aplica el tema en <html>. Observar esa misma marca
+        // evita crear una segunda preferencia que se desincronice de la barra.
+        observador = new MutationObserver(dibujarBoton);
+        observador.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["data-tema"],
         });
       })
       .catch(() => {
@@ -78,6 +93,7 @@ export default function Ingresar({
 
     return () => {
       cancelado = true;
+      observador?.disconnect();
     };
   }, [alIngresar]);
 
@@ -90,14 +106,7 @@ export default function Ingresar({
         Entrá con una cuenta que ya tenés. No vas a tener que inventar otra contraseña.
       </p>
 
-      {/* Google sólo ofrece su botón oscuro con la G sobre un círculo blanco,
-          que no se parece al claro. En el tema oscuro se invierte el claro: es
-          el mismo botón, con el fondo oscuro y la G sin nada detrás. El giro de
-          tono devuelve los colores de la G a su lugar después de invertirlos. */}
-      <div
-        ref={contenedorBoton}
-        className="mt-8 flex justify-center [[data-tema=oscuro]_&]:hue-rotate-180 [[data-tema=oscuro]_&]:invert"
-      />
+      <div ref={contenedorBoton} className="mt-8 flex justify-center" />
 
       {aviso && (
         <p role="status" className="mt-6 text-sm">

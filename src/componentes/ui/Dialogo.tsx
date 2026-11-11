@@ -37,11 +37,11 @@ export function Dialogo({
     <Dialog.Root open={abierto} onOpenChange={alCambiar}>
       <Dialog.Trigger asChild>{disparador}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-overlay animate-aparecer fixed inset-0 z-40" />
+        <Dialog.Overlay className="bg-overlay animate-aparecer fixed inset-0 z-40 print:hidden" />
         <Dialog.Content
           aria-describedby={undefined}
           className={cn(
-            "bg-surface-raised text-foreground border-border shadow-flotante animate-subir fixed z-50 flex flex-col overflow-hidden border text-sm outline-none",
+            "bg-surface-raised text-foreground border-border shadow-flotante animate-subir fixed z-50 flex flex-col overflow-hidden border text-sm outline-none print:hidden",
             "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]",
             "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[80dvh] sm:w-[min(36rem,calc(100%-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-0",
             className,
