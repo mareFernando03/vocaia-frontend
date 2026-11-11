@@ -181,11 +181,11 @@ export default function Carreras() {
       )}
 
       {!cargando && error === null && carreras.length > 0 && (
-        // Dos columnas cuando hay ancho. `items-start`: al abrir los datos de
-        // una ficha, la de al lado no se estira para acompañarla.
-        <ul className="grid items-start gap-4 lg:grid-cols-2">
+        // La grilla iguala el alto por fila. El contenido desplegado sigue
+        // determinando el alto: no hay que recortar datos para alinearlo.
+        <ul className="grid gap-4 lg:grid-cols-2">
           {carreras.map((carrera) => (
-            <li key={carrera.id}>
+            <li key={carrera.id} className="flex min-w-0">
               <Ficha carrera={carrera} />
             </li>
           ))}
@@ -198,9 +198,11 @@ export default function Carreras() {
 function Ficha({ carrera }: { carrera: Carrera }) {
   const conFuente = carrera.fuente.trim() !== "";
   return (
-    <Tarjeta como="article" className="text-sm">
+    <Tarjeta como="article" className="w-full text-sm">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg leading-snug font-semibold">{carrera.denominacion}</h2>
+        <h2 className="text-lg leading-snug font-semibold lg:min-h-[2lh]">
+          {carrera.denominacion}
+        </h2>
         <p className="text-muted-foreground">{NIVELES[carrera.nivel] ?? carrera.nivel}</p>
       </div>
       {conFuente ? (

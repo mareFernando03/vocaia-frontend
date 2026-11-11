@@ -471,10 +471,11 @@ describe("Informe · orden de lectura", () => {
     });
     const tarjeta = titulo.closest("article")!;
     expect(within(tarjeta).getByText("Datos de la carrera")).toBeInTheDocument();
-    expect(within(tarjeta).getByRole("link", { name: "Avisanos" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("mailto:"),
-    );
+    expect(
+      within(tarjeta).getByRole("button", {
+        name: "Avisar de un dato de Ingeniería en Sistemas de Información",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("la ficha de la Facultad y sus fuentes quedan plegadas, y se abren al tocar el resumen", async () => {

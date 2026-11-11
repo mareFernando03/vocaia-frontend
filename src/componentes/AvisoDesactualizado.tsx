@@ -1,18 +1,23 @@
-import { Check, Copy, Flag } from "lucide-react";
+import { Check, Copy, Flag, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { CONTACTO, correoDatoDesactualizado } from "../contenido/contacto";
+import { Boton } from "./ui/Boton";
 import { BotonIcono } from "./ui/BotonIcono";
+import { clasesBoton } from "./ui/clases-boton";
+import { Dialogo } from "./ui/Dialogo";
 
 /**
- * «¿Este dato está desactualizado? Avisanos», al pie de cada carrera.
+ * Una acción corta al pie de cada carrera. El correo aparece al abrirla,
+ * así el catálogo y el informe no repiten la misma dirección en cada ficha.
  *
  * El enlace abre un correo ya escrito con el nombre de la carrera, así que no
  * hace falta backend ni que la persona explique de qué ficha habla. Pero un
- * `mailto:` no hace nada en un teléfono sin aplicación de correo, así que la
- * dirección también está a la vista, con un botón para copiarla.
+ * `mailto:` necesita una aplicación de correo, así que también se ofrece
+ * copiar la dirección para usarla por otro medio.
  */
 export function AvisoDesactualizado({ carrera }: { carrera: string }) {
+  const [abierto, setAbierto] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
@@ -32,31 +37,51 @@ export function AvisoDesactualizado({ carrera }: { carrera: string }) {
   }
 
   return (
-    <div className="border-border text-muted-foreground flex flex-col border-t pt-1 text-sm print:hidden">
-      <p className="flex flex-wrap items-center gap-x-1.5">
-        <Flag aria-hidden="true" className="size-4 shrink-0" />
-        <span>¿Este dato está desactualizado?</span>
-        <a
-          href={correoDatoDesactualizado(carrera)}
-          className="text-primary inline-flex min-h-11 items-center font-medium underline underline-offset-4"
-        >
-          Avisanos
-        </a>
-      </p>
-      <p className="-mt-2 flex items-center ps-5.5">
-        <span className="select-all">{CONTACTO.correo}</span>
-        <BotonIcono
-          etiqueta={copiado ? "Dirección copiada" : "Copiar la dirección de correo"}
-          onClick={() => void copiar()}
-          className="[&_svg]:size-4"
-        >
-          {copiado ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-        </BotonIcono>
-        {/* La confirmación se anuncia: el cambio de ícono no lo ve un lector. */}
-        <span role="status" className="sr-only">
-          {copiado ? "Dirección copiada" : ""}
-        </span>
-      </p>
+    <div className="border-border mt-auto border-t pt-1 print:hidden">
+      <Dialogo
+        titulo="Avisar de un dato"
+        abierto={abierto}
+        alCambiar={(mostrar) => {
+          setAbierto(mostrar);
+          if (!mostrar) setCopiado(false);
+        }}
+        disparador={
+          <Boton
+            variante="fantasma"
+            className="text-muted-foreground -ms-3"
+            aria-label={`Avisar de un dato de ${carrera}`}
+          >
+            <Flag aria-hidden="true" />
+            Avisar de un dato
+          </Boton>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="font-semibold">{carrera}</p>
+          <p className="text-muted-foreground">
+            Contanos qué dato habría que revisar. El correo ya incluye el nombre de la carrera.
+          </p>
+          <div className="flex flex-wrap items-center gap-x-2">
+            <span className="select-all">{CONTACTO.correo}</span>
+            <BotonIcono
+              etiqueta={copiado ? "Dirección copiada" : "Copiar la dirección de correo"}
+              onClick={() => void copiar()}
+            >
+              {copiado ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            </BotonIcono>
+            <span role="status" className="sr-only">
+              {copiado ? "Dirección copiada" : ""}
+            </span>
+          </div>
+          <a
+            href={correoDatoDesactualizado(carrera)}
+            className={clasesBoton("primario", "self-start")}
+          >
+            <Mail aria-hidden="true" />
+            Abrir correo
+          </a>
+        </div>
+      </Dialogo>
     </div>
   );
 }
