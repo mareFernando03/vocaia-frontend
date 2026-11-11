@@ -25,8 +25,13 @@
 
 import type { ReactNode } from "react";
 
-/** Un párrafo termina donde hay un renglón en blanco, como en markdown. */
-const CORTE_DE_PARRAFO = /\n\s*\n/;
+/**
+ * Un párrafo termina donde hay un renglón en blanco, como en markdown, o en un salto
+ * forzado —dos espacios al final del renglón—. El modelo usa el salto forzado para
+ * separar la pregunta final, y juntarlo la pegaba al párrafo de arriba. El encuadre
+ * no tiene espacios al final, así que sus renglones cortados a mano se siguen juntando.
+ */
+const CORTE_DE_PARRAFO = /\n\s*\n| {2,}\n/;
 
 /** Un ítem de lista, con cualquiera de las tres marcas que usa el modelo. */
 const ITEM_DE_LISTA = /^\s*[-*•]\s+(.+)$/;

@@ -100,6 +100,15 @@ cortado a mano.`}
     expect(screen.getByText("Te dijo -esto- y nada más.")).toBeInTheDocument();
   });
 
+  it("un salto forzado del modelo separa párrafos en vez de juntarlos", () => {
+    const { container } = render(
+      <Prosa texto={"Las dos duran 5 años.  \nCambia el título.  \n¿Qué te interesa más?"} />,
+    );
+
+    expect(container.querySelectorAll("p")).toHaveLength(3);
+    expect(screen.getByText("¿Qué te interesa más?")).toBeInTheDocument();
+  });
+
   it("la negrita adentro de un ítem se respeta", () => {
     render(<Prosa texto={"- Te mueve **hacer cosas con las manos**."} />);
 
