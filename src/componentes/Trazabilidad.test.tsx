@@ -79,7 +79,6 @@ describe("Trazabilidad", () => {
     expect(within(suyo).getByText(/desarmar cosas/)).toBeInTheDocument();
     expect(within(suyo).queryByText(/Ordenanza/)).toBeNull();
     expect(within(facultad).queryByText(/desarmar cosas/)).toBeNull();
-    expect(within(facultad).getByText(/provisionales/)).toBeInTheDocument();
     expect(obtenerTrazabilidad).toHaveBeenCalledWith(SESION, 4);
   });
 
@@ -111,13 +110,12 @@ describe("Trazabilidad", () => {
     expect(screen.queryByText("La respuesta lo cita.")).toBeNull();
   });
 
-  it("dice de dónde salen los datos provisionales y qué hacer con ellos", async () => {
+  it("no avisa que los datos son provisionales (11/11)", async () => {
     vi.mocked(obtenerTrazabilidad).mockResolvedValue(traza());
     render(<Trazabilidad sesionId={SESION} turno={4} />);
 
-    const aviso = (await screen.findByText(/Datos provisionales/)).closest("p");
-    expect(aviso).toHaveTextContent(/publica la Facultad/);
-    expect(aviso).toHaveTextContent(/confirmalo/);
+    await screen.findByRole("heading", { name: "Lo que dice la Facultad" });
+    expect(screen.queryByText(/provisional|sin validar/i)).toBeNull();
   });
 
   it("lista cada fuente una vez y, si un fragmento suyo se citó, la marca como citada", async () => {

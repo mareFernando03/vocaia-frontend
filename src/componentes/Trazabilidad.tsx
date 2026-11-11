@@ -17,7 +17,6 @@
  * del perfil va dentro de cada rasgo: la fuente al lado de lo que sostiene.
  */
 
-import { Info } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { describir } from "../api/cliente";
@@ -167,7 +166,6 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
   const ordenados = [...respaldos]
     .sort((a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden)
     .filter((r, i, todos) => todos.findIndex((otro) => otro.fuente === r.fuente) === i);
-  const provisional = respaldos.some((r) => r.estado_validacion === "provisional");
   const citados = ordenados.filter((r) => r.citado);
   const idDeLista = useId();
   const consultados = ordenados.filter((r) => !r.citado);
@@ -181,18 +179,6 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
         </p>
       ) : (
         <>
-          {/* Fuera de cualquier plegado, como en la conversación (R-002). Además de que
-              falta validarlo, dice de dónde sale —lo que publica la propia
-              Facultad— y qué hacer con eso (producción, 11/11). */}
-          {provisional && (
-            <p className="bg-accent-soft text-accent-foreground mt-2 flex gap-2 rounded-md p-3">
-              <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <span>
-                <strong>Datos provisionales.</strong> Salen de lo que publica la Facultad, que
-                todavía no los revisó para VocaIA. Si algo pesa en tu decisión, confirmalo con ella.
-              </span>
-            </p>
-          )}
           {citados.length > 0 && (
             <ul className="mt-3 flex flex-col gap-2">
               {citados.map((respaldo) => (
