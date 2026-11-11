@@ -106,7 +106,9 @@ export default function Ingresar({
         Entrá con una cuenta que ya tenés. No vas a tener que inventar otra contraseña.
       </p>
 
-      <div ref={contenedorBoton} className="mt-8 flex justify-center" />
+      {/* El documento de Google usa un esquema claro incluso con el botón
+          oscuro. Igualar el esquema del iframe conserva su fondo transparente. */}
+      <div ref={contenedorBoton} className="mt-8 flex justify-center [&_iframe]:scheme-light" />
 
       {aviso && (
         <p role="status" className="mt-6 text-sm">
