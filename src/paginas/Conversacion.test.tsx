@@ -154,6 +154,53 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     expect(screen.queryByText(/citadas/i)).not.toBeInTheDocument();
   });
 
+  it("muestra cada fuente una sola vez aunque lleguen varios fragmentos suyos", async () => {
+    const usuario = userEvent.setup();
+    const horarios = "Horarios de Ingeniería Química, UTN FRSFco — https://example.org/horarios";
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo(
+        { delta: "Se cursa a la mañana." },
+        {
+          fin: true,
+          turno_usuario: 1,
+          turno_agente: 2,
+          fuentes: [
+            { id: "horarios-ingenieria-quimica-1", fuente: horarios },
+            { id: "horarios-ingenieria-quimica-2", fuente: horarios },
+            { id: "horarios-ingenieria-quimica-3", fuente: horarios },
+            {
+              id: "ingenieria-quimica",
+              fuente: "Ordenanza C.S. N.º 1875 — https://example.org/1875",
+            },
+          ],
+        },
+      ),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [
+          turno(1, "usuario", "¿En qué horario se cursa Química?"),
+          turno(2, "agente", "Se cursa a la mañana."),
+        ]),
+      ),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(
+      screen.getByLabelText(/escribí tu mensaje/i),
+      "¿En qué horario se cursa Química?",
+    );
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await usuario.click(
+      await screen.findByRole("button", { name: /fuentes de la facultad \(2\)/i }),
+    );
+    expect(
+      await screen.findAllByRole("link", { name: /Horarios de Ingeniería Química/ }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /Ordenanza C.S. N.º 1875/ })).toBeInTheDocument();
+  });
+
   it("un turno sin fuentes no dibuja el bloque", async () => {
     const usuario = userEvent.setup();
     vi.mocked(enviarMensaje).mockReturnValue(

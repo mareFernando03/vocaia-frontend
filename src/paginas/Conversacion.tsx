@@ -306,7 +306,16 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
   );
 }
 
-function Fuentes({ fuentes }: { fuentes: Fuente[] }) {
+/**
+ * Una línea por fuente. Los horarios llegan en un fragmento por año y los tres
+ * comparten la página de la carrera: sin esto, la misma fuente salía repetida.
+ */
+function unaPorFuente<T extends { fuente: string }>(fuentes: T[]): T[] {
+  return fuentes.filter((f, i) => fuentes.findIndex((otra) => otra.fuente === f.fuente) === i);
+}
+
+function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
+  const fuentes = unaPorFuente(todas);
   const [abierta, setAbierta] = useState(false);
   return (
     <>

@@ -96,6 +96,31 @@ describe("Trazabilidad", () => {
     expect(screen.getByText("Se consultó, pero la respuesta no lo cita.")).toBeInTheDocument();
   });
 
+  it("lista cada fuente una vez y, si un fragmento suyo se citó, la marca como citada", async () => {
+    const horarios = "Horarios de Ingeniería Química, UTN FRSFco — https://example.org/horarios";
+    const fragmento = (anio: number, orden: number, citado: boolean) => ({
+      procedencia: "corpus" as const,
+      id: `horarios-ingenieria-quimica-${anio}`,
+      orden,
+      fuente: horarios,
+      puntaje: 0.9,
+      estado_validacion: "provisional",
+      citado,
+    });
+    vi.mocked(obtenerTrazabilidad).mockResolvedValue(
+      traza({
+        institucional: [fragmento(1, 1, false), fragmento(2, 2, true), fragmento(3, 3, false)],
+      }),
+    );
+    render(<Trazabilidad sesionId={SESION} turno={4} />);
+
+    expect(
+      await screen.findAllByRole("link", { name: /Horarios de Ingeniería Química/ }),
+    ).toHaveLength(1);
+    expect(screen.getByText("La respuesta lo cita.")).toBeInTheDocument();
+    expect(screen.queryByText("Se consultó, pero la respuesta no lo cita.")).toBeNull();
+  });
+
   it("no muestra jerga del backend", async () => {
     vi.mocked(obtenerTrazabilidad).mockResolvedValue(traza());
     const { container } = render(<Trazabilidad sesionId={SESION} turno={4} />);
