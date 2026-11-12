@@ -398,7 +398,7 @@ function Carrera({ carrera }: { carrera: CarreraInforme }) {
         <p className="leading-relaxed">
           Si necesitás recibirte antes: el <strong>{carrera.via_corta.titulo}</strong>
           {carrera.via_corta.duracion_anios != null &&
-            ` (${carrera.via_corta.duracion_anios} años)`}{" "}
+            ` (${carrera.via_corta.duracion_anios.toLocaleString("es-AR")} años)`}{" "}
           es el título intermedio de esta carrera.
         </p>
       )}

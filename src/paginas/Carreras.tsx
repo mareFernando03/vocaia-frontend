@@ -230,10 +230,15 @@ function Ficha({ carrera }: { carrera: Carrera }) {
   );
 }
 
-/** «5 años», «3.600 horas reloj», o la condición si el título no sale por duración. */
+/**
+ * «5,5 años», «3.600 horas reloj», o la condición si el título no sale por duración.
+ * Con coma decimal: Ingeniería Electrónica dura cinco años y medio (VOCAIA-65), y
+ * «5.5 años» se lee como en inglés.
+ */
 function duracionLegible(duracion: NonNullable<Carrera["duracion"]>): string | null {
   const partes = [
-    duracion.anios != null && `${duracion.anios} ${duracion.anios === 1 ? "año" : "años"}`,
+    duracion.anios != null &&
+      `${duracion.anios.toLocaleString("es-AR")} ${duracion.anios === 1 ? "año" : "años"}`,
     duracion.horas_reloj != null && `${duracion.horas_reloj.toLocaleString("es-AR")} horas reloj`,
     duracion.condicion_de_obtencion,
   ].filter((parte): parte is string => typeof parte === "string" && parte !== "");
