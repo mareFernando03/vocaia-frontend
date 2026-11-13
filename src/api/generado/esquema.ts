@@ -439,7 +439,11 @@ export interface paths {
     };
     /**
      * Consultar el informe del cierre de mi sesión
-     * @description El informe del último cierre de la sesión. Leerlo no lo recalcula.
+     * @description El informe del último cierre de la sesión. Leerlo no lo recalcula, salvo una vez.
+     *
+     *     **Si la sesión se reabrió y hay evidencia nueva desde el último informe, se
+     *     rehace** (VOCAIA-214): el perfil se recalcula y el informe se arma de nuevo,
+     *     con lo que la persona contó después.
      *
      *     La ajena se contesta con el mismo 404 que la inexistente, como el historial.
      *
@@ -1942,7 +1946,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N, 'escalamiento': bool}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error—, y `{'error': '...'}` si la generación se corta. */
+      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N, 'escalamiento': bool, 'perfil_alcanza': bool | null, 'falta_para_recomendar': '...' | null}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error; `perfil_alcanza` viene sólo si el turno cerró esta parte de la charla, y `falta_para_recomendar`, si no alcanzó—, y `{'error': '...'}` si la generación se corta. */
       200: {
         headers: {
           [name: string]: unknown;
