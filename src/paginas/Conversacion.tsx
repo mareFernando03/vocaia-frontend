@@ -48,6 +48,7 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
     intercambios,
     estado,
     tieneInforme,
+    faltaParaRecomendar,
     enviar,
     terminar,
     reintentar,
@@ -239,7 +240,18 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
           {estado === "cerrada" && !enviando && (
             <Aviso tono="info" className="items-center">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
+                {/* Si el perfil no alcanzó, el aviso dice lo mismo que el informe y
+                    que la despedida del chat: sin esto mandaba a ver carreras que el
+                    informe no tenía (VOCAIA-214). */}
+                {faltaParaRecomendar === null ? (
+                  <p>Terminó esta parte de la charla. Podés ver tu informe o seguir escribiendo.</p>
+                ) : (
+                  <p>
+                    Terminó esta parte de la charla. Todavía no alcanza para sugerirte carreras: nos
+                    falta conocer {faltaParaRecomendar}. Si seguís escribiendo, tu informe se
+                    actualiza; mientras tanto podés ver lo que armamos hasta ahora.
+                  </p>
+                )}
                 <Boton
                   ref={botonInforme}
                   variante="primario"

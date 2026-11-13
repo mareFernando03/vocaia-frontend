@@ -104,6 +104,13 @@ interface EventoFin {
   fuentes?: Fuente[];
   /** La respuesta fue de contención y la sesión quedó `derivada`. Opcional por lo mismo. */
   escalamiento?: boolean;
+  /**
+   * Sólo si el turno cerró esta parte de la charla: si el perfil alcanza para
+   * sugerir carreras (VOCAIA-214). `null` o ausente si no cerró o no se sabe.
+   */
+  perfil_alcanza?: boolean | null;
+  /** Si cerró sin alcanzar, lo que falta conocer, dicho para la persona. */
+  falta_para_recomendar?: string | null;
 }
 
 /** La generación se cortó a mitad de camino. */

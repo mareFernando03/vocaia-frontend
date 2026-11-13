@@ -111,6 +111,12 @@ export interface Conversacion {
    * y recién cerrada todavía se está armando.
    */
   tieneInforme: boolean;
+  /**
+   * Si el último envío cerró esta parte sin que el perfil alcance para sugerir
+   * carreras, lo que falta conocer (VOCAIA-214). `null` en cualquier otro caso:
+   * el aviso de cierre dice entonces lo de siempre.
+   */
+  faltaParaRecomendar: string | null;
   enviar: (contenido: string) => Promise<void>;
   /** Cierra esta parte a pedido de la persona. Devuelve si cerró. */
   terminar: () => Promise<boolean>;
@@ -138,6 +144,7 @@ export function useConversacion(): Conversacion {
   const [fuentes, setFuentes] = useState<Fuente[]>([]);
   const [estado, setEstado] = useState<string | null>(null);
   const [tieneInforme, setTieneInforme] = useState(false);
+  const [faltaParaRecomendar, setFaltaParaRecomendar] = useState<string | null>(null);
 
   /**
    * Trae los turnos y nada más.
@@ -186,6 +193,7 @@ export function useConversacion(): Conversacion {
       // Se limpian al empezar y no al terminar: las de la respuesta anterior no
       // respaldan la que se está por escribir.
       setFuentes([]);
+      setFaltaParaRecomendar(null);
 
       try {
         for await (const evento of enviarMensaje(sesion.id, texto)) {
@@ -198,6 +206,9 @@ export function useConversacion(): Conversacion {
             // esquema OpenAPI no la puede describir— y nada garantiza en
             // compilación que el backend del otro lado ya emita la clave.
             setFuentes(evento.fuentes ?? []);
+            setFaltaParaRecomendar(
+              evento.perfil_alcanza === false ? (evento.falta_para_recomendar ?? null) : null,
+            );
           } else if ("error" in evento) {
             // El stream ya había arrancado, así que lo que se alcanzó a
             // mostrar sigue siendo válido: se avisa y se conserva.
@@ -247,6 +258,7 @@ export function useConversacion(): Conversacion {
     intercambios,
     estado,
     tieneInforme,
+    faltaParaRecomendar,
     enviar,
     terminar,
     errorAlTerminar,
