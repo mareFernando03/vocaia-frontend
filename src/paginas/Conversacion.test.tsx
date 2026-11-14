@@ -304,6 +304,40 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/terminó esta parte de la charla/i);
   });
 
+  it("si el perfil no alcanzó, el aviso de cierre dice qué falta y no promete carreras", async () => {
+    // VOCAIA-214: el aviso decía «podés ver tu informe» y el informe abría con que
+    // todavía no alcanzaba para sugerir carreras.
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo(
+        { delta: "Quedó bastante." },
+        {
+          fin: true,
+          turno_usuario: 1,
+          turno_agente: 2,
+          fuentes: [],
+          perfil_alcanza: false,
+          falta_para_recomendar: "qué cosas te gusta hacer",
+        },
+      ),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "Nada más"), turno(2, "agente", "Quedó bastante.")]),
+        estado: "cerrada",
+      }),
+    );
+    montar();
+
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "Nada más");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await screen.findByRole("button", { name: "Ver tu informe" });
+    const aviso = screen.getByRole("status");
+    expect(aviso).toHaveTextContent(/todavía no alcanza para sugerirte carreras/i);
+    expect(aviso).toHaveTextContent(/qué cosas te gusta hacer/);
+  });
+
   it("una sesión reabierta sigue dando acceso al informe del cierre anterior", async () => {
     window.sessionStorage.setItem(CLAVE, "33333333-3333-4333-8333-333333333333");
     vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
