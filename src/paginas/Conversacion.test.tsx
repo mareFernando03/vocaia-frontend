@@ -134,7 +134,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       Promise.resolve(
         historial(id, [
           turno(1, "usuario", "¿Cuánto dura sistemas?"),
-          turno(2, "agente", "Dura cinco años."),
+          turno(2, "agente", "Dura cinco años [1]."),
         ]),
       ),
     );
@@ -182,7 +182,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
       Promise.resolve(
         historial(id, [
           turno(1, "usuario", "¿En qué horario se cursa Química?"),
-          turno(2, "agente", "Se cursa a la mañana."),
+          turno(2, "agente", "Se cursa a la mañana [1]."),
         ]),
       ),
     );
@@ -351,6 +351,36 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
 
     expect(await screen.findByRole("button", { name: "Tu informe" })).toBeInTheDocument();
     expect(screen.queryByText(/terminó esta parte/i)).not.toBeInTheDocument();
+  });
+
+  it("si la respuesta no citó nada, no muestra el pie de fuentes", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo(
+        { delta: "Podés decírselo sin pelear." },
+        {
+          fin: true,
+          turno_usuario: 1,
+          turno_agente: 2,
+          fuentes: [{ id: "x", fuente: "Ordenanza" }],
+        },
+      ),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [
+          turno(1, "usuario", "¿Cómo le digo a mi vieja?"),
+          turno(2, "agente", "Podés decírselo sin pelear."),
+        ]),
+      ),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cómo le digo a mi vieja?");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Podés decírselo sin pelear.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /fuentes de la facultad/i })).toBeNull();
   });
 
   it("una sesión cortada por escalamiento no ofrece el informe ni muestra fuentes", async () => {
