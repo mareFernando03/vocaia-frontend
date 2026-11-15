@@ -216,6 +216,7 @@ function Contenido({ informe }: { informe: DatosInforme }) {
   const conApoyos = informe.recomendaciones.filter(
     (carrera) => carrera.habilitantes != null && hayApoyos(carrera.habilitantes),
   );
+  const comunes = restriccionesComunes(conApoyos.map((carrera) => carrera.habilitantes!));
   const hayCarreras = informe.recomendaciones.length > 0;
 
   useAbrirPlegadosAlImprimir();
@@ -288,12 +289,32 @@ function Contenido({ informe }: { informe: DatosInforme }) {
 
       {conApoyos.length > 0 && (
         <Seccion id="lo-que-te-frena" titulo="Si hay algo que te frena">
-          {conApoyos.map((carrera) => (
-            <Tarjeta key={carrera.carrera} className={TARJETA}>
-              <h3 className="text-base font-semibold">{carrera.titulo}</h3>
-              <SiAlgoTeFrena habilitantes={carrera.habilitantes!} />
+          {/* Lo que vale igual para todas va una vez: la plata y la distancia no
+              cambian de una carrera a otra, y repetidas tres veces tapaban lo que
+              sí cambia, que son los horarios (repetición del recorrido, 14/11). */}
+          {comunes.length > 0 && (
+            <Tarjeta className={TARJETA}>
+              <h3 className="text-base font-semibold">En cualquiera de estas carreras</h3>
+              <SiAlgoTeFrena
+                habilitantes={{
+                  ...conApoyos[0].habilitantes!,
+                  por_restriccion: comunes,
+                  alternativas: [],
+                }}
+              />
             </Tarjeta>
-          ))}
+          )}
+          {conApoyos.map((carrera) => {
+            const propios = sinLasComunes(carrera.habilitantes!, comunes);
+            return (
+              hayApoyos(propios) && (
+                <Tarjeta key={carrera.carrera} className={TARJETA}>
+                  <h3 className="text-base font-semibold">{carrera.titulo}</h3>
+                  <SiAlgoTeFrena habilitantes={propios} />
+                </Tarjeta>
+              )
+            );
+          })}
         </Seccion>
       )}
 
@@ -377,6 +398,30 @@ function useAbrirPlegadosAlImprimir() {
       window.removeEventListener("afterprint", despues);
     };
   }, []);
+}
+
+/** Las restricciones que todas las carreras responden igual, palabra por palabra. */
+function restriccionesComunes(porCarrera: Habilitantes[]): Habilitantes["por_restriccion"] {
+  if (porCarrera.length < 2) return [];
+  const [primera, ...resto] = porCarrera;
+  return primera.por_restriccion.filter((grupo) =>
+    resto.every((otra) =>
+      otra.por_restriccion.some((suyo) => JSON.stringify(suyo) === JSON.stringify(grupo)),
+    ),
+  );
+}
+
+function sinLasComunes(
+  habilitantes: Habilitantes,
+  comunes: Habilitantes["por_restriccion"],
+): Habilitantes {
+  const repetidas = new Set(comunes.map((grupo) => JSON.stringify(grupo)));
+  return {
+    ...habilitantes,
+    por_restriccion: habilitantes.por_restriccion.filter(
+      (grupo) => !repetidas.has(JSON.stringify(grupo)),
+    ),
+  };
 }
 
 function hayApoyos(habilitantes: Habilitantes): boolean {

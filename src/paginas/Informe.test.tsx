@@ -224,6 +224,53 @@ describe("Informe", () => {
     expect(screen.queryByRole("heading", { name: /carreras que te sugerimos/i })).toBeNull();
   });
 
+  it("lo que frena igual en todas las carreras va una vez, y por carrera queda lo que cambia", async () => {
+    const plata = {
+      restriccion: "economica",
+      citas: ["en casa no llegamos"],
+      evidencias: [],
+      verificados: [habilitante()],
+      no_verificados: [],
+    };
+    const trabajo = (texto: string) => ({
+      restriccion: "laboral",
+      citas: ["trabajo hasta las 7"],
+      evidencias: [],
+      verificados: [],
+      no_verificados: [],
+      sin_habilitante: texto,
+    });
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        recomendaciones: [
+          carrera({
+            carrera: "sistemas",
+            titulo: "Ingeniería en Sistemas",
+            habilitantes: { por_restriccion: [trabajo("Todo de noche."), plata], alternativas: [] },
+          }),
+          carrera({
+            carrera: "quimica",
+            titulo: "Ingeniería Química",
+            habilitantes: {
+              por_restriccion: [trabajo("Física I sólo de día."), plata],
+              alternativas: [],
+            },
+          }),
+        ],
+      }),
+    );
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const seccion = (await screen.findByRole("heading", { name: /si hay algo que te frena/i }))
+      .parentElement!;
+    expect(within(seccion).getAllByText(/lo que te frena es la plata/i)).toHaveLength(1);
+    expect(
+      within(seccion).getByRole("heading", { name: "En cualquiera de estas carreras" }),
+    ).toBeInTheDocument();
+    expect(within(seccion).getAllByText(/lo que te frena es el trabajo/i)).toHaveLength(2);
+    expect(within(seccion).getByText("Física I sólo de día.")).toBeInTheDocument();
+  });
+
   it("rotula distinto los habilitantes verificados de los que no, y dice qué falta confirmar", async () => {
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({
