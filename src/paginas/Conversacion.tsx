@@ -54,6 +54,10 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
     reintentar,
     errorAlTerminar,
   } = useConversacion();
+  // El pie de fuentes va sólo si la última respuesta citó algo con su `[n]`: en una
+  // respuesta sobre la madre, «Fuentes de la Facultad (5)» no decía nada (14/11).
+  const ultimaRespuesta = [...turnos].reverse().find((turno) => turno.rol === "agente");
+  const citaAlgo = /\[\d{1,2}\]/.test(ultimaRespuesta?.contenido ?? "");
   const [borrador, setBorrador] = useState("");
   const [encuadre, setEncuadre] = useState<string | null>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -199,7 +203,7 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
           "[[data-teclado]_&]:bottom-0",
         )}
       >
-        {fuentes.length > 0 && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
+        {fuentes.length > 0 && citaAlgo && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
 
         {/* La región viva existe siempre y lo que cambia es su contenido: una
             que aparece ya llena no se anuncia en todos los lectores. Sin el
