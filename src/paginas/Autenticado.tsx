@@ -116,7 +116,13 @@ export default function Autenticado({
   } else if (seccion === "carreras") {
     pantalla = <Carreras />;
   } else {
-    pantalla = <Conversacion key={epoca} alVerInforme={setInforme} />;
+    pantalla = (
+      <Conversacion
+        key={epoca}
+        alVerInforme={setInforme}
+        alIrAlHistorial={() => elegir("historial")}
+      />
+    );
   }
 
   // Carreras es una grilla de fichas y aprovecha el ancho; lo demás se lee de

@@ -13,13 +13,14 @@ import type { EventoConversacion, Historial, Turno } from "../api/conversacion";
  */
 
 vi.mock("../api/conversacion", () => ({
+  listarSesiones: vi.fn(),
   obtenerHistorial: vi.fn(),
   enviarMensaje: vi.fn(),
   obtenerEncuadre: vi.fn(),
   terminarConversacion: vi.fn(),
 }));
 
-const { obtenerHistorial, enviarMensaje, obtenerEncuadre, terminarConversacion } =
+const { listarSesiones, obtenerHistorial, enviarMensaje, obtenerEncuadre, terminarConversacion } =
   await import("../api/conversacion");
 const { default: Conversacion } = await import("./Conversacion");
 
@@ -507,5 +508,69 @@ describe("Conversacion · revisión del #38", () => {
 
     await waitFor(() => expect(alVerInforme).toHaveBeenCalledWith(sesionId));
     expect(terminarConversacion).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Conversacion · seguir una conversación o empezar otra (VOCAIA-222)", () => {
+  const ANTERIOR = "22222222-2222-4222-8222-222222222222";
+
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(listarSesiones).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("una conversación retomada dice que sigue la que ya había empezado", async () => {
+    window.sessionStorage.setItem(CLAVE, ANTERIOR);
+    vi.mocked(obtenerHistorial).mockResolvedValue(
+      historial(ANTERIOR, [
+        turno(1, "usuario", "Estoy terminando el secundario"),
+        turno(2, "agente", "Contame más."),
+      ]),
+    );
+    render(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);
+
+    expect(await screen.findByText("Contame más.")).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent(/seguís una conversación/i);
+    // Retomada no pregunta por las anteriores: ya está en una.
+    expect(listarSesiones).not.toHaveBeenCalled();
+  });
+
+  it("una charla nueva avisa que las anteriores están en el historial y lleva hasta ahí", async () => {
+    const usuario = userEvent.setup();
+    const alIrAlHistorial = vi.fn();
+    vi.mocked(listarSesiones).mockResolvedValue([
+      {
+        sesion_id: ANTERIOR,
+        estado: "abierta",
+        iniciada_en: "2026-11-12T12:00:00Z",
+        actualizada_en: "2026-11-12T12:30:00Z",
+        cantidad_turnos: 4,
+        vista_previa: "Estoy terminando el secundario",
+        tiene_informe: false,
+      },
+    ]);
+    render(<Conversacion alVerInforme={() => {}} alIrAlHistorial={alIrAlHistorial} />);
+
+    expect(
+      await screen.findByText(/querías seguir una conversación anterior/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Ir al historial" }));
+    expect(alIrAlHistorial).toHaveBeenCalled();
+  });
+
+  it("sin conversaciones anteriores, o si la lista no llega, no dice nada", async () => {
+    vi.mocked(listarSesiones).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("caído"));
+    const { unmount } = render(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);
+    await waitFor(() => expect(listarSesiones).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/querías seguir/i)).not.toBeInTheDocument();
+    unmount();
+
+    render(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);
+    await waitFor(() => expect(listarSesiones).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(/querías seguir/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

@@ -80,6 +80,12 @@ export interface TurnoEnCurso {
 export interface Conversacion {
   /** Hace falta para pedir la traza de una respuesta (HU-18). */
   sesionId: string;
+  /**
+   * Si al montar ya había una sesión guardada: se retomó desde Historial o se
+   * recargó la página. Lo usa la pantalla para decir que se sigue una
+   * conversación ya empezada y no se arranca otra (VOCAIA-222).
+   */
+  recuperada: boolean;
   /** Turnos confirmados. Vienen del backend, nunca se arman acá. */
   turnos: Turno[];
   enCurso: TurnoEnCurso | null;
@@ -249,6 +255,7 @@ export function useConversacion(): Conversacion {
 
   return {
     sesionId: sesion.id,
+    recuperada: sesion.recuperada,
     turnos,
     enCurso,
     cargando,

@@ -23,6 +23,7 @@ import { Cargando } from "../componentes/ui/Cargando";
 import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { RETOMAR } from "../contenido/retomar";
 import { fechaLarga } from "../lib/fechas";
 
 interface Propiedades {
@@ -60,7 +61,12 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVerInforme }: P
             Empezar una conversación nueva
           </Boton>
         }
-      />
+      >
+        {/* Cerrar la pestaña empieza otra conversación a propósito (HU-07), y
+            nada decía que la anterior se sigue desde acá ni qué trae una nueva
+            (VOCAIA-222). */}
+        <p className="text-muted-foreground">{RETOMAR.explicacionHistorial}</p>
+      </EncabezadoPagina>
 
       {cargando && <Cargando texto="Buscando tus conversaciones…" />}
 
@@ -118,10 +124,13 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVerInforme }: P
                       {sesion.vista_previa ?? "Conversación sin mensajes tuyos todavía"}
                     </span>
                   </span>
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="text-muted-foreground mt-6 size-5 shrink-0"
-                  />
+                  {/* Una palabra y no solo la flecha: la flecha sola no dice
+                      que tocar sigue esa misma conversación. El espacio previo
+                      la separa en el nombre accesible, como arriba. */}{" "}
+                  <span className="text-primary mt-6 flex shrink-0 items-center gap-0.5 text-sm font-medium">
+                    {RETOMAR.seguir}
+                    <ChevronRight aria-hidden="true" className="size-5" />
+                  </span>
                 </button>
                 {/* Al lado y no adentro del botón de retomar: un botón dentro
                     de otro no es HTML válido y el lector de pantalla leería los

@@ -87,7 +87,9 @@ describe("HU-12 · historial de sesiones recuperable", () => {
         throw new TypeError("Failed to fetch");
       }),
     );
-    vi.mocked(listarSesiones).mockReset();
+    // La charla nueva pregunta si hay conversaciones anteriores (VOCAIA-222);
+    // cada prueba que las necesita pone las suyas.
+    vi.mocked(listarSesiones).mockReset().mockResolvedValue([]);
     vi.mocked(obtenerHistorial).mockReset();
     vi.mocked(enviarMensaje).mockReset();
     window.sessionStorage.clear();
@@ -199,7 +201,7 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     // en lugar de tres elementos sueltos que hay que juntar mentalmente.
     const item = await screen.findByRole("button", { name: /entre sistemas y diseño/ });
     expect(item).toHaveAccessibleName(
-      /^24 de agosto de 2026 · 1 intercambio Estoy entre sistemas y diseño$/,
+      /^24 de agosto de 2026 · 1 intercambio Estoy entre sistemas y diseño Seguir$/,
     );
   });
 
@@ -215,6 +217,9 @@ describe("HU-12 · historial de sesiones recuperable", () => {
 
   it("si el listado falla, avisa y deja reintentar", async () => {
     const usuario = userEvent.setup();
+    // La primera consulta es la de la charla, que pregunta si hay conversaciones
+    // anteriores (VOCAIA-222); la que tiene que fallar es la del historial.
+    vi.mocked(listarSesiones).mockResolvedValueOnce([]);
     vi.mocked(listarSesiones).mockRejectedValueOnce(new TypeError("Failed to fetch"));
     vi.mocked(listarSesiones).mockResolvedValueOnce([
       resumen(ANTERIOR, "Estoy terminando el secundario"),
@@ -317,7 +322,9 @@ describe("S7-12 · la pregunta por el aviso, antes de la conversación", () => {
     window.localStorage.clear();
   });
   beforeEach(() => {
-    vi.mocked(listarSesiones).mockReset();
+    // La charla nueva pregunta si hay conversaciones anteriores (VOCAIA-222);
+    // cada prueba que las necesita pone las suyas.
+    vi.mocked(listarSesiones).mockReset().mockResolvedValue([]);
     vi.mocked(obtenerHistorial).mockReset();
     window.sessionStorage.clear();
     vi.stubGlobal(

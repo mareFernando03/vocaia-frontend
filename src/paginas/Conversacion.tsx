@@ -15,7 +15,7 @@
 import { ArrowUp, BookOpenText, FileText, HeartHandshake, Phone } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { obtenerEncuadre, type Fuente } from "../api/conversacion";
+import { listarSesiones, obtenerEncuadre, type Fuente } from "../api/conversacion";
 import { Prosa } from "../componentes/Prosa";
 import { Referencia } from "../componentes/Referencia";
 import { Trazabilidad } from "../componentes/Trazabilidad";
@@ -26,19 +26,23 @@ import { Cargando } from "../componentes/ui/Cargando";
 import { Dialogo } from "../componentes/ui/Dialogo";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { InfoTip } from "../componentes/ui/InfoTip";
+import { RETOMAR } from "../contenido/retomar";
 import { useConversacion } from "../hooks/useConversacion";
 import { cn } from "../lib/cn";
 
 interface Propiedades {
   alVerInforme: (sesionId: string) => void;
+  /** Lleva a «Tus conversaciones». Sin ella, la charla nueva no ofrece ir. */
+  alIrAlHistorial?: () => void;
 }
 
 /** Hasta dónde crece el campo antes de pasar a tener su propio scroll. */
 const ALTO_MAXIMO_CAMPO = 160;
 
-export default function Conversacion({ alVerInforme }: Propiedades) {
+export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propiedades) {
   const {
     sesionId,
+    recuperada,
     turnos,
     enCurso,
     cargando,
@@ -124,6 +128,25 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
     );
   }, [sinTurnos, cargando, sinEncuadre]);
 
+  // Quien cerró la pestaña y volvió encuentra una charla vacía a propósito
+  // (HU-07), y nada le decía que la anterior se sigue desde Historial
+  // (VOCAIA-222). Se pregunta sólo para una charla nueva, y si la lista no
+  // llega no se dice nada: es una ayuda, no algo que pueda fallar.
+  const [hayAnteriores, setHayAnteriores] = useState(false);
+  useEffect(() => {
+    if (recuperada || alIrAlHistorial === undefined) return;
+    let vigente = true;
+    listarSesiones().then(
+      (sesiones) => {
+        if (vigente) setHayAnteriores(sesiones.some((s) => s.sesion_id !== sesionId));
+      },
+      () => undefined,
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [recuperada, alIrAlHistorial, sesionId]);
+
   // Una sesión reabierta sigue teniendo el informe de su cierre anterior;
   // recién cerrada, el acceso es el aviso de abajo.
   const ofreceInforme = tieneInforme && estado !== "cerrada" && !derivada;
@@ -150,6 +173,22 @@ export default function Conversacion({ alVerInforme }: Propiedades) {
           </Boton>
         )}
       </div>
+
+      {/* Afuera de la lista y no adentro: la lista anuncia lo que cambia, y
+          esto no es parte de la charla. */}
+      {recuperada && !cargando && turnos.length > 0 && (
+        <p role="note" className="text-muted-foreground text-center text-sm">
+          {RETOMAR.retomada}
+        </p>
+      )}
+      {!recuperada && vacia && hayAnteriores && alIrAlHistorial !== undefined && (
+        <p className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-2 text-center text-sm">
+          {RETOMAR.hayAnteriores}
+          <Boton variante="fantasma" onClick={alIrAlHistorial}>
+            {RETOMAR.irAlHistorial}
+          </Boton>
+        </p>
+      )}
 
       {/* `aria-live` va acá y no en cada burbuja: lo que tiene que anunciarse
           es la respuesta a medida que se escribe. `polite` y no `assertive`
