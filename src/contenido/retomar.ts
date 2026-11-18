@@ -8,11 +8,13 @@
  *
  * No promete memoria. Una conversación nueva no sabe lo que se habló en otra
  * —la guía de retoma del backend entra recién después de 60 días—; lo que sí
- * se junta de todas es el perfil.
+ * se junta de todas es el perfil. «Se suma» y no «sigue en»: el perfil se
+ * recalcula al cerrar una parte de la charla, y quien cerró la pestaña a la
+ * mitad todavía no lo ve en su pantalla de perfil.
  */
 export const RETOMAR = {
   explicacionHistorial:
-    "Tocá una conversación para seguirla donde quedó. Si empezás una nueva, la charla arranca de cero, pero lo que ya contaste sigue en tu perfil.",
+    "Tocá una conversación para seguirla donde quedó. Si empezás una nueva, la charla arranca de cero, pero lo que ya contaste se suma a tu perfil.",
   seguir: "Seguir",
   retomada: "Seguís una conversación que ya habías empezado.",
   hayAnteriores: "¿Querías seguir una conversación anterior? Está en tu historial.",

@@ -133,8 +133,11 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
   // (VOCAIA-222). Se pregunta sólo para una charla nueva, y si la lista no
   // llega no se dice nada: es una ayuda, no algo que pueda fallar.
   const [hayAnteriores, setHayAnteriores] = useState(false);
+  // Depende de si hay a dónde ir y no de la función: quien la pasa la arma de
+  // nuevo en cada render, y cada render volvía a pedir la lista.
+  const ofreceHistorial = alIrAlHistorial !== undefined;
   useEffect(() => {
-    if (recuperada || alIrAlHistorial === undefined) return;
+    if (recuperada || !ofreceHistorial) return;
     let vigente = true;
     listarSesiones().then(
       (sesiones) => {
@@ -145,7 +148,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
     return () => {
       vigente = false;
     };
-  }, [recuperada, alIrAlHistorial, sesionId]);
+  }, [recuperada, ofreceHistorial, sesionId]);
 
   // Una sesión reabierta sigue teniendo el informe de su cierre anterior;
   // recién cerrada, el acceso es el aviso de abajo.

@@ -561,6 +561,20 @@ describe("Conversacion · seguir una conversación o empezar otra (VOCAIA-222)",
     expect(alIrAlHistorial).toHaveBeenCalled();
   });
 
+  it("pide la lista una sola vez aunque quien la monta se vuelva a dibujar", async () => {
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    const { rerender } = render(
+      <Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />,
+    );
+    await waitFor(() => expect(listarSesiones).toHaveBeenCalledTimes(1));
+
+    // Una función nueva en cada render, como la pasa `Autenticado`.
+    rerender(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);
+    rerender(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);
+
+    expect(listarSesiones).toHaveBeenCalledTimes(1);
+  });
+
   it("sin conversaciones anteriores, o si la lista no llega, no dice nada", async () => {
     vi.mocked(listarSesiones).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("caído"));
     const { unmount } = render(<Conversacion alVerInforme={() => {}} alIrAlHistorial={() => {}} />);

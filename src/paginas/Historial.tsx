@@ -64,8 +64,11 @@ export default function Historial({ alRetomar, alEmpezarNueva, alVerInforme }: P
       >
         {/* Cerrar la pestaña empieza otra conversación a propósito (HU-07), y
             nada decía que la anterior se sigue desde acá ni qué trae una nueva
-            (VOCAIA-222). */}
-        <p className="text-muted-foreground">{RETOMAR.explicacionHistorial}</p>
+            (VOCAIA-222). Sólo con algo que tocar: sin conversaciones era una
+            instrucción sin objeto. */}
+        {sesiones.length > 0 && (
+          <p className="text-muted-foreground">{RETOMAR.explicacionHistorial}</p>
+        )}
       </EncabezadoPagina>
 
       {cargando && <Cargando texto="Buscando tus conversaciones…" />}

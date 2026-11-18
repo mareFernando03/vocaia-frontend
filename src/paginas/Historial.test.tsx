@@ -29,14 +29,22 @@ describe("Historial · seguir una conversación o empezar otra (VOCAIA-222)", ()
   });
 
   it("explica qué hace tocar una conversación y qué trae una nueva, sin prometer memoria", async () => {
+    vi.mocked(listarSesiones).mockResolvedValue([resumen("Estoy terminando el secundario")]);
+    render(<Historial alRetomar={() => {}} alEmpezarNueva={() => {}} alVerInforme={() => {}} />);
+
+    expect(await screen.findByText(/seguirla donde quedó/i)).toBeInTheDocument();
+    // «Se suma» y no «sigue en»: el perfil se arma al cerrar una parte de la charla.
+    expect(
+      screen.getByText(/la charla arranca de cero, pero lo que ya contaste se suma a tu perfil/i),
+    ).toBeInTheDocument();
+  });
+
+  it("sin conversaciones no da una instrucción sobre algo que no hay", async () => {
     vi.mocked(listarSesiones).mockResolvedValue([]);
     render(<Historial alRetomar={() => {}} alEmpezarNueva={() => {}} alVerInforme={() => {}} />);
 
-    expect(screen.getByText(/seguirla donde quedó/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/la charla arranca de cero, pero lo que ya contaste sigue en tu perfil/i),
-    ).toBeInTheDocument();
     expect(await screen.findByText(/todavía no hablaste con vocaia/i)).toBeInTheDocument();
+    expect(screen.queryByText(/seguirla donde quedó/i)).not.toBeInTheDocument();
   });
 
   it("cada conversación dice que se sigue, y seguirla retoma esa misma", async () => {

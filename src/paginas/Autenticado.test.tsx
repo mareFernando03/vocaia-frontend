@@ -215,6 +215,27 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     expect(await screen.findByText(/todavía no hablaste con vocaia/i)).toBeInTheDocument();
   });
 
+  it("quien elige empezar una conversación nueva no recibe la pregunta por las anteriores (VOCAIA-222)", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(listarSesiones).mockResolvedValue([
+      resumen(ANTERIOR, "Estoy entre sistemas y diseño"),
+    ]);
+
+    render(<Autenticado cuenta={CUENTA} alSalir={salir} alDarDeBaja={async () => {}} />);
+    // La charla con la que abre la pestaña sí la hace: es quien cerró y volvió.
+    expect(
+      await screen.findByText(/querías seguir una conversación anterior/i),
+    ).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: "Historial" }));
+    await usuario.click(
+      await screen.findByRole("button", { name: /empezar una conversación nueva/i }),
+    );
+
+    expect(await screen.findByRole("heading", { name: /tu conversación/i })).toBeInTheDocument();
+    expect(screen.queryByText(/querías seguir una conversación anterior/i)).not.toBeInTheDocument();
+  });
+
   it("si el listado falla, avisa y deja reintentar", async () => {
     const usuario = userEvent.setup();
     // La primera consulta es la de la charla, que pregunta si hay conversaciones
