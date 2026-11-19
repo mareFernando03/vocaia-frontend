@@ -46,6 +46,9 @@ export default function Autenticado({
 }: Propiedades) {
   const [seccion, setSeccion] = useState<Seccion>("charla");
   const [epoca, setEpoca] = useState(0);
+  // Quien acaba de elegir «Empezar una conversación nueva» no necesita que la
+  // charla le pregunte si quería seguir otra (VOCAIA-222).
+  const [eligioNueva, setEligioNueva] = useState(false);
   // El informe va aparte de la sección porque se abre encima de la pantalla de
   // la que se vino: al cerrarlo, la sección sigue ahí y se vuelve al historial
   // o a la charla sin tener que recordar cuál era.
@@ -97,8 +100,14 @@ export default function Autenticado({
   } else if (seccion === "historial") {
     pantalla = (
       <Historial
-        alRetomar={(sesionId) => cambiarDeSesion(() => recordarSesion(sesionId))}
-        alEmpezarNueva={() => cambiarDeSesion(olvidarSesion)}
+        alRetomar={(sesionId) => {
+          setEligioNueva(false);
+          cambiarDeSesion(() => recordarSesion(sesionId));
+        }}
+        alEmpezarNueva={() => {
+          setEligioNueva(true);
+          cambiarDeSesion(olvidarSesion);
+        }}
         alVerInforme={setInforme}
       />
     );
@@ -116,7 +125,13 @@ export default function Autenticado({
   } else if (seccion === "carreras") {
     pantalla = <Carreras />;
   } else {
-    pantalla = <Conversacion key={epoca} alVerInforme={setInforme} />;
+    pantalla = (
+      <Conversacion
+        key={epoca}
+        alVerInforme={setInforme}
+        alIrAlHistorial={eligioNueva ? undefined : () => elegir("historial")}
+      />
+    );
   }
 
   // Carreras es una grilla de fichas y aprovecha el ancho; lo demás se lee de
