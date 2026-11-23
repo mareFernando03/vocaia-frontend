@@ -25,7 +25,7 @@
  * le sirve para nada y estrenaría su sesión con un 404 de por medio.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { describir, SesionVencida } from "../api/cliente";
 import {
@@ -190,6 +190,8 @@ export function useConversacion(): Conversacion {
   const [estado, setEstado] = useState<string | null>(null);
   const [tieneInforme, setTieneInforme] = useState(false);
   const [faltaParaRecomendar, setFaltaParaRecomendar] = useState<string | null>(null);
+  // Cuántos turnos había en el último historial leído: dice si un envío cortado llegó.
+  const cantidadDeTurnos = useRef(0);
   const [noEnviado, setNoEnviado] = useState<string | null>(() => leerNoEnviado(sesion.id));
   const [error, setError] = useState<string | null>(() =>
     leerNoEnviado(sesion.id) === null ? null : NO_LLEGO,
@@ -204,6 +206,7 @@ export function useConversacion(): Conversacion {
    */
   const traer = useCallback(async () => {
     const historial = await obtenerHistorial(sesion.id);
+    cantidadDeTurnos.current = historial?.turnos.length ?? 0;
     setTurnos(historial?.turnos ?? []);
     setEstado(historial?.estado ?? null);
     setTieneInforme(historial?.tiene_informe ?? false);
@@ -240,6 +243,7 @@ export function useConversacion(): Conversacion {
       // del streaming, el turno ya quedó persistido del otro lado y sin el
       // identificador guardado no habría forma de volver a encontrarlo.
       recordarSesion(sesion.id);
+      const turnosAntes = cantidadDeTurnos.current;
       setEnCurso({ usuario: texto, agente: "" });
       setEnviando(true);
       setError(null);
@@ -290,8 +294,11 @@ export function useConversacion(): Conversacion {
         // Si el backend llegó a contestarlo antes del corte, no se marca como perdido:
         // reenviarlo lo duplicaría.
         const historial = await traer().catch(() => null);
+        // Con dos turnos nuevos y no sólo los dos últimos: un «sí» igual al anterior que
+        // no llegó se daba por contestado con la respuesta vieja (revisión del #68).
         const ultimos = historial?.turnos.slice(-2) ?? [];
         const contestado =
+          (historial?.turnos.length ?? 0) >= turnosAntes + 2 &&
           ultimos.length === 2 &&
           ultimos[0].rol === "usuario" &&
           ultimos[0].contenido === texto &&

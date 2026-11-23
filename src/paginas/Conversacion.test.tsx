@@ -698,3 +698,34 @@ describe("Conversacion · lo que la revisión del #68 pidió probar", () => {
     expect(enviarMensaje).not.toHaveBeenCalled();
   });
 });
+
+describe("Conversacion · un «sí» repetido que no llegó (segunda vuelta del #68)", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("no se da por contestado con la respuesta al «sí» anterior", async () => {
+    const usuario = userEvent.setup();
+    window.sessionStorage.setItem(CLAVE, "55555555-5555-4555-8555-555555555555");
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [turno(1, "usuario", "sí"), turno(2, "agente", "¿Y qué más?")]),
+      ),
+    );
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await screen.findByText("¿Y qué más?");
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "sí");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("No se envió")).toBeInTheDocument();
+  });
+});
