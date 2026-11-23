@@ -42,6 +42,7 @@ function carrera(extra: Partial<CarreraInforme> = {}): CarreraInforme {
 function informe(extra: Partial<DatosInforme> = {}): DatosInforme {
   return {
     formato: 1,
+    sin_hablar: [],
     sesion_id: SESION,
     generado_en: "2026-09-25T12:00:00Z",
     publicable: true,
@@ -648,5 +649,43 @@ describe("Informe · citas de otra conversación (recorrido local del 27/10)", (
     ).toBeInTheDocument();
     // La cita de esta conversación no lleva la aclaración.
     expect(screen.getAllByText(/Lo contaste en otra conversación/)).toHaveLength(1);
+  });
+});
+
+describe("Informe · «Lo que contaste» (VOCAIA-220, recorrido del 22/11)", () => {
+  it("dice de qué no se habló y muestra la pregunta de una cita corta", async () => {
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerInforme).mockResolvedValue(
+      informe({
+        sin_hablar: ["Realista", "Convencional"],
+        evidencia: [
+          {
+            dimension: "I",
+            nombre: "Investigador",
+            confianza: "media",
+            intensidad: -2,
+            citas: [
+              {
+                evidencia_id: "e9",
+                sesion_id: SESION,
+                turno: 19,
+                texto: "eso ni loco",
+                valencia: -2,
+                pregunta: "¿Y hay algo que no te guste para nada?",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(
+      await screen.findByText(/De esto todavía no hablamos: Realista, Convencional/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Contestabas a: «¿Y hay algo que no te guste para nada?»"),
+    ).toBeInTheDocument();
   });
 });

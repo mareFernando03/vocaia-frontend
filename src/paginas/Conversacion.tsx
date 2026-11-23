@@ -25,10 +25,10 @@ import { BotonIcono } from "../componentes/ui/BotonIcono";
 import { Cargando } from "../componentes/ui/Cargando";
 import { Dialogo } from "../componentes/ui/Dialogo";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
-import { InfoTip } from "../componentes/ui/InfoTip";
 import { RETOMAR } from "../contenido/retomar";
 import { useConversacion } from "../hooks/useConversacion";
 import { cn } from "../lib/cn";
+import { citadas, unaPorDocumento } from "../lib/fuentes";
 
 interface Propiedades {
   alVerInforme: (sesionId: string) => void;
@@ -53,6 +53,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
     estado,
     tieneInforme,
     faltaParaRecomendar,
+    noEnviado,
     enviar,
     terminar,
     reintentar,
@@ -221,6 +222,12 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
           />
         ))}
 
+        {/* El mensaje que no llegó queda a la vista hasta que se reenvíe. Si el backend
+            lo había guardado ya está en `turnos`, y no se muestra dos veces. */}
+        {noEnviado !== null && enCurso === null && turnos.at(-1)?.contenido !== noEnviado && (
+          <Burbuja rol="usuario" texto={noEnviado} />
+        )}
+
         {enCurso !== null && (
           <>
             <Burbuja rol="usuario" texto={enCurso.usuario} />
@@ -245,7 +252,9 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
           "[[data-teclado]_&]:bottom-0",
         )}
       >
-        {fuentes.length > 0 && citaAlgo && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
+        {fuentes.length > 0 && citaAlgo && !enviando && !derivada && (
+          <Fuentes fuentes={fuentes} respuesta={ultimaRespuesta?.contenido ?? ""} />
+        )}
 
         {/* La región viva existe siempre y lo que cambia es su contenido: una
             que aparece ya llena no se anuncia en todos los lectores. Sin el
@@ -314,6 +323,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
         {error !== null && (
           <ErrorConReintento
             alReintentar={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
+            textoBoton={noEnviado !== null && !errorAlTerminar ? "Reenviar" : undefined}
           >
             {error}
           </ErrorConReintento>
@@ -368,12 +378,10 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
  * Una línea por fuente. Los horarios llegan en un fragmento por año y los tres
  * comparten la página de la carrera: sin esto, la misma fuente salía repetida.
  */
-function unaPorFuente<T extends { fuente: string }>(fuentes: T[]): T[] {
-  return fuentes.filter((f, i) => fuentes.findIndex((otra) => otra.fuente === f.fuente) === i);
-}
-
-function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
-  const fuentes = unaPorFuente(todas);
+function Fuentes({ fuentes: todas, respuesta }: { fuentes: Fuente[]; respuesta: string }) {
+  // Sólo las que la respuesta cita, una por documento: el 22/11 listaba el plan de
+  // Industrial y el calendario debajo de qué se ve en Análisis Matemático I.
+  const fuentes = unaPorDocumento(citadas(todas, respuesta));
   const [abierta, setAbierta] = useState(false);
   return (
     <>
@@ -381,7 +389,7 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
           el chat. */}
       <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
         <Dialogo
-          titulo="Fuentes consultadas"
+          titulo="Fuentes de la Facultad"
           abierto={abierta}
           alCambiar={setAbierta}
           disparador={
@@ -404,15 +412,7 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
 function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
     <>
-      {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
-            lo que se escribió y el modelo puede haber ignorado todo. */}
-      <p className="text-muted-foreground flex items-center gap-1">
-        Lo que VocaIA leyó para la última respuesta.
-        <InfoTip tema="estas fuentes">
-          Es el material de la Facultad más cercano a lo que escribiste. La respuesta no
-          necesariamente lo usó todo.
-        </InfoTip>
-      </p>
+      <p className="text-muted-foreground">De donde sale lo que dice la última respuesta.</p>
       <ul className="mt-4 flex flex-col gap-2">
         {fuentes.map((fuente) => (
           <li key={fuente.id}>

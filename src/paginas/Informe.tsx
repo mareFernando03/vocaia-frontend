@@ -323,7 +323,7 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         <p className="text-muted-foreground -mt-6 text-sm">{notaHabilitantes}</p>
       )}
 
-      {informe.evidencia.length > 0 && (
+      {(informe.evidencia.length > 0 || (informe.sin_hablar ?? []).length > 0) && (
         <Seccion id="lo-que-contaste" titulo="Lo que contaste">
           <p className="text-muted-foreground -mt-2 text-sm">
             Tus palabras, tal como las escribiste, agrupadas por el interés que muestran. Es de
@@ -339,6 +339,14 @@ function Contenido({ informe }: { informe: DatosInforme }) {
               />
             ))}
           </div>
+          {/* Lo acordado con la asesora (VOCAIA-220): de lo que no se habló se dice que
+              no se habló, como en el perfil. El 22/11 faltaban dos áreas sin aviso. */}
+          {(informe.sin_hablar ?? []).length > 0 && (
+            <p className="text-muted-foreground text-sm">
+              De esto todavía no hablamos: {(informe.sin_hablar ?? []).join(", ")}. No es que te
+              haya salido bajo: es que no salió en la charla.
+            </p>
+          )}
         </Seccion>
       )}
 
@@ -349,8 +357,10 @@ function Contenido({ informe }: { informe: DatosInforme }) {
       {/* La versión del instrumento sigue guardada en el informe, que es donde
           la leen el asesor y la medición de concordancia; a la persona no le
           dice nada (prueba del piloto). */}
+      {/* No va en el PDF: el informe ya dice cuándo se armó, y esta línea sola quedaba
+          ocupando la segunda hoja (recorrido del 22/11). */}
       {informe.perfil_actualizado_en !== null && (
-        <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+        <p className="text-muted-foreground border-border border-t pt-3 text-xs print:hidden">
           Perfil calculado el {fechaLarga(informe.perfil_actualizado_en)}.
         </p>
       )}
@@ -681,6 +691,10 @@ function Dimension({
       <ul className="flex flex-col gap-2">
         {dimension.citas.map((cita) => (
           <li key={cita.evidencia_id}>
+            {/* Una cita corta sola no se entiende: va con lo que se le preguntó. */}
+            {cita.pregunta != null && (
+              <p className="text-muted-foreground ps-3 text-xs">Contestabas a: «{cita.pregunta}»</p>
+            )}
             <blockquote className="border-border border-l-2 pl-3 leading-relaxed italic">
               «{cita.texto}»
             </blockquote>

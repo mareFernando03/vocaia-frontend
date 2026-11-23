@@ -14,7 +14,15 @@
  */
 
 import { borrarToken, obtenerToken } from "../auth/sesion";
-import { BASE, ErrorDeApi, leerDetalle, pedir, SesionVencida } from "./cliente";
+import {
+  BASE,
+  ErrorDeApi,
+  ESPERA_MAXIMA_MS,
+  leerDetalle,
+  pedir,
+  SesionVencida,
+  SinRespuesta,
+} from "./cliente";
 import type { components } from "./generado/esquema";
 
 export type Historial = components["schemas"]["HistorialSalida"];
@@ -140,20 +148,41 @@ export async function* enviarMensaje(
   const cabeceras = new Headers({ "Content-Type": "application/json" });
   if (token) cabeceras.set("Authorization", `Bearer ${token}`);
 
-  const respuesta = await fetch(`${BASE}/api/conversacion/${sesionId}/mensaje`, {
-    method: "POST",
-    headers: cabeceras,
-    body: JSON.stringify({ contenido }),
-  });
+  // Se corta si pasa `ESPERA_MAXIMA_MS` sin que llegue nada: ni la respuesta, ni un trozo,
+  // ni uno de los latidos que el backend manda cada diez segundos mientras valida. Sin
+  // esto, una conexión muerta dejaba «Escribiendo…» para siempre (recorrido del 22/11).
+  const control = new AbortController();
+  let reloj = setTimeout(() => control.abort(), ESPERA_MAXIMA_MS);
+  const rearmar = () => {
+    clearTimeout(reloj);
+    reloj = setTimeout(() => control.abort(), ESPERA_MAXIMA_MS);
+  };
+
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE}/api/conversacion/${sesionId}/mensaje`, {
+      method: "POST",
+      headers: cabeceras,
+      body: JSON.stringify({ contenido }),
+      signal: control.signal,
+    });
+  } catch (fallo) {
+    clearTimeout(reloj);
+    if (control.signal.aborted) throw new SinRespuesta();
+    throw fallo;
+  }
 
   if (respuesta.status === 401) {
+    clearTimeout(reloj);
     borrarToken();
     throw new SesionVencida();
   }
   if (!respuesta.ok) {
+    clearTimeout(reloj);
     throw new ErrorDeApi(respuesta.status, await leerDetalle(respuesta));
   }
   if (respuesta.body === null) {
+    clearTimeout(reloj);
     throw new ErrorDeApi(respuesta.status, "El servidor no devolvió un cuerpo que leer.");
   }
 
@@ -163,8 +192,16 @@ export async function* enviarMensaje(
 
   try {
     for (;;) {
-      const { done, value } = await lector.read();
+      let leido: ReadableStreamReadResult<Uint8Array>;
+      try {
+        leido = await lector.read();
+      } catch (fallo) {
+        if (control.signal.aborted) throw new SinRespuesta();
+        throw fallo;
+      }
+      const { done, value } = leido;
       if (done) break;
+      rearmar();
       // `stream: true` para no romper un carácter multibyte partido entre dos
       // trozos: sin esto, un acento a caballo de dos lecturas sale como "".
       pendiente += decodificador.decode(value, { stream: true });
@@ -182,7 +219,8 @@ export async function* enviarMensaje(
     // Si quien consume corta el bucle antes de tiempo, `releaseLock` sola deja
     // el cuerpo sin leer y la conexión abierta: lo que la cierra es `cancel`.
     // Sobre un flujo que ya terminó no hace nada.
-    await lector.cancel();
+    clearTimeout(reloj);
+    await lector.cancel().catch(() => undefined);
   }
 }
 

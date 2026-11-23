@@ -12,6 +12,15 @@ import Ingresar from "./Ingresar";
  */
 
 describe("Ingresar", () => {
+  it("con el aviso abierto, el botón de Google no asoma detrás (recorrido del 22/11)", () => {
+    const { container, rerender } = render(<Ingresar alIngresar={() => {}} avisoAbierto />);
+    const contenedor = container.querySelector("[aria-hidden]");
+    expect(contenedor).toHaveClass("invisible");
+
+    rerender(<Ingresar alIngresar={() => {}} avisoAbierto={false} />);
+    expect(contenedor).not.toHaveClass("invisible");
+  });
+
   it("muestra por qué fue rechazado el último intento", () => {
     render(<Ingresar alIngresar={() => {}} error="El ingreso fue rechazado." />);
 

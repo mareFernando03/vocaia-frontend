@@ -27,7 +27,7 @@ vi.mock("../api/notificacion", () => ({
 vi.mock("../api/conversacion", () => ({ obtenerHistorial: vi.fn(), listarSesiones: vi.fn() }));
 
 const { obtenerPerfil, objetar } = await import("../api/perfil");
-const { obtenerHistorial, listarSesiones } = await import("../api/conversacion");
+const { listarSesiones } = await import("../api/conversacion");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Perfil } = await import("./Perfil");
 
@@ -168,9 +168,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
 
     render(<Perfil alSalir={async () => {}} alDarDeBaja={async () => {}} />);
 
-    expect(
-      await screen.findByRole("heading", { name: "Circunstancias y restricciones" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tu situación" })).toBeInTheDocument();
     expect(screen.queryByText(/te desagrada/i)).not.toBeInTheDocument();
   });
 
@@ -194,7 +192,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     expect(tarjetas.map((titulo) => titulo?.textContent)).toEqual([
       "Investigador",
       "Realista",
-      "Circunstancias",
+      "Tu situación",
     ]);
   });
 
@@ -384,29 +382,18 @@ describe("Perfil · «En qué me baso» (segundo recorrido local)", () => {
           rasgo({
             dimension: "R",
             nombre: "Realista",
-            evidencias: [evidencia("Armar", { sesion_id: sesion, turno: 20 })],
+            // La pregunta la trae el backend (VOCAIA-220).
+            evidencias: [
+              evidencia("Armar", {
+                sesion_id: sesion,
+                turno: 20,
+                pregunta: "¿Qué hiciste vos en esa competencia, armar o programar?",
+              }),
+            ],
           }),
         ],
       }),
     );
-    vi.mocked(obtenerHistorial).mockResolvedValue({
-      sesion_id: sesion,
-      estado: "cerrada",
-      turnos: [
-        {
-          numero: 19,
-          rol: "agente",
-          contenido:
-            "Ahí aparece algo concreto. ¿Qué hiciste vos en esa competencia, armar o programar?",
-          ocurrido_en: "2026-10-27T13:00:00Z",
-        },
-      ],
-      iniciada_en: "2026-10-27T13:00:00Z",
-      actualizada_en: "2026-10-27T13:00:00Z",
-      version_instrumento: "instrumento-v3",
-      version_prompt: "sistema-v7",
-      tiene_informe: true,
-    });
     render(<Perfil alSalir={async () => {}} alDarDeBaja={async () => {}} />);
 
     await usuario.click(await screen.findByText("En qué me baso"));

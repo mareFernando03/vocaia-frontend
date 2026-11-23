@@ -82,19 +82,16 @@ describe("Trazabilidad", () => {
     expect(obtenerTrazabilidad).toHaveBeenCalledWith(SESION, 4);
   });
 
-  it("pone primero lo citado y rotula lo que sólo se consultó", async () => {
+  it("si la respuesta cita algo, muestra sólo lo citado (recorrido del 22/11)", async () => {
     vi.mocked(obtenerTrazabilidad).mockResolvedValue(traza());
     render(<Trazabilidad sesionId={SESION} turno={4} />);
 
     const fuentes = await screen.findAllByRole("link");
-    expect(fuentes.map((a) => a.textContent)).toEqual([
-      "Perfil del graduado ISI",
-      "Ordenanza C.S. N.º 1877",
-    ]);
+    expect(fuentes.map((a) => a.textContent)).toEqual(["Perfil del graduado ISI"]);
     expect(screen.getByText("La respuesta lo cita.")).toBeInTheDocument();
-    // Lo no citado va junto, con un solo rótulo, y no repetido debajo de cada fuente.
-    const consultadas = screen.getByRole("list", { name: /También se consultó/ });
-    expect(within(consultadas).getByRole("link")).toHaveTextContent("Ordenanza C.S. N.º 1877");
+    // Lo consultado sin citar eran fuentes ajenas a la pregunta: el plan de Industrial y
+    // el calendario debajo de qué se ve en Análisis Matemático I.
+    expect(screen.queryByText(/También se consultó/)).toBeNull();
   });
 
   it("si la respuesta no cita ninguna fuente, lo dice una vez", async () => {

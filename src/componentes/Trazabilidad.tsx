@@ -26,6 +26,7 @@ import {
   type RespaldoInstitucional,
   type Traza,
 } from "../api/trazabilidad";
+import { sinContenidas, unaPorDocumento } from "../lib/fuentes";
 import { Referencia } from "./Referencia";
 import { clasesBoton } from "./ui/clases-boton";
 
@@ -100,6 +101,8 @@ export function Trazabilidad({ sesionId, turno }: Propiedades) {
 }
 
 function Conversacional({ respaldos }: { respaldos: RespaldoConversacional[] }) {
+  // «porque dicen que tiene salida» no va aparte de la frase que la contiene.
+  const unicas = sinContenidas(respaldos);
   return (
     <section className="border-primary border-l-4 pl-3">
       <h3 className="font-medium">Lo que contaste vos</h3>
@@ -120,13 +123,13 @@ function Conversacional({ respaldos }: { respaldos: RespaldoConversacional[] }) 
               backend manda todo lo acumulado de la sesión, y en una charla
               larga eran unas treinta frases debajo de cada respuesta (prueba
               del piloto). El resto queda a un clic. */}
-          <Citas respaldos={recientes(respaldos)} />
-          {respaldos.length > recientes(respaldos).length && (
+          <Citas respaldos={recientes(unicas)} />
+          {unicas.length > recientes(unicas).length && (
             <details className="mt-2">
               <summary className="text-primary cursor-pointer">
-                Y {respaldos.length - recientes(respaldos).length} cosas más que ya sabía de vos
+                Y {unicas.length - recientes(unicas).length} cosas más que ya sabía de vos
               </summary>
-              <Citas respaldos={respaldos.filter((r) => !recientes(respaldos).includes(r))} />
+              <Citas respaldos={unicas.filter((r) => !recientes(unicas).includes(r))} />
             </details>
           )}
         </>
@@ -163,12 +166,15 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
   // traza —el sistema lo tuvo delante—, pero no respalda ninguna frase.
   // Una línea por fuente, y si un fragmento de ella se citó, la que queda es
   // ésa: el orden pone lo citado primero (los horarios van uno por año).
-  const ordenados = [...respaldos]
-    .sort((a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden)
-    .filter((r, i, todos) => todos.findIndex((otro) => otro.fuente === r.fuente) === i);
+  // Una por documento y no por texto: con la página en el texto, la misma ordenanza
+  // salía tres veces (recorrido del 22/11). Y si la respuesta cita algo, sólo eso: lo
+  // consultado sin citar eran fuentes ajenas a la pregunta.
+  const ordenados = unaPorDocumento(
+    [...respaldos].sort((a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden),
+  );
   const citados = ordenados.filter((r) => r.citado);
   const idDeLista = useId();
-  const consultados = ordenados.filter((r) => !r.citado);
+  const consultados = citados.length > 0 ? [] : ordenados;
 
   return (
     <section className="border-accent-strong border-l-4 pl-3">

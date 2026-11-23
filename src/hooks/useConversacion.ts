@@ -71,6 +71,35 @@ export function olvidarSesion(): void {
   }
 }
 
+/**
+ * El mensaje que no llegó a contestarse, por sesión, para que no se pierda al ir al
+ * historial o recargar (recorrido del 22/11: salió de la pantalla y el mensaje no
+ * estaba, sin aviso). En `sessionStorage`, como el resto de la conversación.
+ */
+function claveNoEnviado(sesionId: string): string {
+  return `vocaia:conversacion:no-enviado:${sesionId}`;
+}
+
+function leerNoEnviado(sesionId: string): string | null {
+  try {
+    return window.sessionStorage.getItem(claveNoEnviado(sesionId));
+  } catch {
+    return null;
+  }
+}
+
+function anotarNoEnviado(sesionId: string, texto: string | null): void {
+  try {
+    if (texto === null) window.sessionStorage.removeItem(claveNoEnviado(sesionId));
+    else window.sessionStorage.setItem(claveNoEnviado(sesionId), texto);
+  } catch {
+    // Sin almacenamiento, el mensaje queda a la vista mientras dure esta carga.
+  }
+}
+
+export const NO_LLEGO =
+  "Este mensaje no llegó a contestarse. Podés reenviarlo tal cual, o escribir otro.";
+
 /** Lo que se está escribiendo ahora mismo, todavía no confirmado por el backend. */
 export interface TurnoEnCurso {
   usuario: string;
@@ -123,6 +152,11 @@ export interface Conversacion {
    * el aviso de cierre dice entonces lo de siempre.
    */
   faltaParaRecomendar: string | null;
+  /**
+   * El último mensaje que no llegó a contestarse, para mostrarlo con su error y
+   * reenviarlo. `null` si no hay ninguno.
+   */
+  noEnviado: string | null;
   enviar: (contenido: string) => Promise<void>;
   /** Cierra esta parte a pedido de la persona. Devuelve si cerró. */
   terminar: () => Promise<boolean>;
@@ -146,11 +180,14 @@ export function useConversacion(): Conversacion {
   // confirmar que no hay nada.
   const [cargando, setCargando] = useState(sesion.recuperada);
   const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [fuentes, setFuentes] = useState<Fuente[]>([]);
   const [estado, setEstado] = useState<string | null>(null);
   const [tieneInforme, setTieneInforme] = useState(false);
   const [faltaParaRecomendar, setFaltaParaRecomendar] = useState<string | null>(null);
+  const [noEnviado, setNoEnviado] = useState<string | null>(() => leerNoEnviado(sesion.id));
+  const [error, setError] = useState<string | null>(() =>
+    leerNoEnviado(sesion.id) === null ? null : NO_LLEGO,
+  );
 
   /**
    * Trae los turnos y nada más.
@@ -164,13 +201,16 @@ export function useConversacion(): Conversacion {
     setTurnos(historial?.turnos ?? []);
     setEstado(historial?.estado ?? null);
     setTieneInforme(historial?.tiene_informe ?? false);
+    // Del historial y no sólo del evento `fin`: al volver o recargar, el aviso de
+    // cierre decía sólo «Podés ver tu informe» (recorrido del 22/11).
+    setFaltaParaRecomendar(historial?.falta_para_recomendar ?? null);
   }, [sesion.id]);
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
       await traer();
-      setError(null);
+      setError((actual) => (actual === NO_LLEGO ? actual : null));
     } catch (fallo) {
       setError(describir(fallo));
     } finally {
@@ -200,6 +240,9 @@ export function useConversacion(): Conversacion {
       // respaldan la que se está por escribir.
       setFuentes([]);
       setFaltaParaRecomendar(null);
+      setNoEnviado(null);
+      anotarNoEnviado(sesion.id, null);
+      let sinRespuesta = false;
 
       try {
         for await (const evento of enviarMensaje(sesion.id, texto)) {
@@ -219,7 +262,12 @@ export function useConversacion(): Conversacion {
             // El stream ya había arrancado, así que lo que se alcanzó a
             // mostrar sigue siendo válido: se avisa y se conserva.
             setError(evento.error);
+            sinRespuesta = true;
           }
+        }
+        if (sinRespuesta) {
+          setNoEnviado(texto);
+          anotarNoEnviado(sesion.id, texto);
         }
         // El historial del backend es la fuente de verdad, incluida la
         // numeración de los turnos. Recargarlo acá es también lo que ejercita
@@ -227,7 +275,13 @@ export function useConversacion(): Conversacion {
         await traer();
         setEnCurso(null);
       } catch (fallo) {
+        // Queda a la vista con su error, para reenviarlo: si el backend lo había
+        // guardado, el reenvío lo contesta sin duplicarlo.
+        setEnCurso(null);
+        setNoEnviado(texto);
+        anotarNoEnviado(sesion.id, texto);
         setError(describir(fallo));
+        await traer().catch(() => undefined);
       } finally {
         setEnviando(false);
       }
@@ -243,6 +297,7 @@ export function useConversacion(): Conversacion {
       const historial = await terminarConversacion(sesion.id);
       setEstado(historial.estado);
       setTieneInforme(historial.tiene_informe);
+      setFaltaParaRecomendar(historial.falta_para_recomendar ?? null);
       return true;
     } catch (fallo) {
       setError(describir(fallo));
@@ -266,9 +321,11 @@ export function useConversacion(): Conversacion {
     estado,
     tieneInforme,
     faltaParaRecomendar,
+    noEnviado,
     enviar,
     terminar,
     errorAlTerminar,
-    reintentar: () => void cargar(),
+    // Con un mensaje sin contestar, reintentar es reenviarlo; si no, volver a cargar.
+    reintentar: () => void (noEnviado !== null ? enviar(noEnviado) : cargar()),
   };
 }

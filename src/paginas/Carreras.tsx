@@ -33,6 +33,7 @@ import { Cargando } from "../componentes/ui/Cargando";
 import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { AVISO } from "../contenido/aviso-ia";
 
 const NIVELES: Record<string, string> = {
   grado: "Carrera de grado",
@@ -172,11 +173,32 @@ export default function Carreras() {
       {!cargando && error === null && carreras.length === 0 && (
         <div className="text-muted-foreground flex flex-col items-center gap-3 py-10 text-center">
           <GraduationCap aria-hidden="true" className="size-10" strokeWidth={1.5} />
-          <p>
-            {buscado
-              ? `No encontramos carreras con respaldo institucional para «${buscado}».`
-              : "Por ahora no hay carreras para mostrar: puede que todavía no estén cargadas, o que estén esperando la validación de la Facultad."}
-          </p>
+          {buscado ? (
+            // «Sin respaldo institucional» no le decía que eso no se dicta acá ni a quién
+            // preguntar (recorrido del 22/11, «algo de historia o escribir»).
+            <>
+              <p>
+                «{buscado}» no aparece entre las carreras que se dictan en la UTN San Francisco. Si
+                querés saber dónde se estudia, la Secretaría de Coordinación y Políticas
+                Universitarias de la Facultad te puede orientar:
+              </p>
+              <ul className="flex flex-col gap-1">
+                {AVISO.canales.map((canal) => (
+                  <li key={canal.nombre}>
+                    {canal.nombre}:{" "}
+                    <a href={canal.href} className="text-primary underline underline-offset-4">
+                      {canal.detalle}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p>
+              Por ahora no hay carreras para mostrar: puede que todavía no estén cargadas, o que
+              estén esperando la validación de la Facultad.
+            </p>
+          )}
         </div>
       )}
 

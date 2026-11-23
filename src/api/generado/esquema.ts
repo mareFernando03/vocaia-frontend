@@ -766,6 +766,11 @@ export interface components {
        */
       evidencia_id: string;
       /**
+       * Pregunta
+       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
+       */
+      pregunta?: string | null;
+      /**
        * Sesion Id
        * Format: uuid
        * @description De qué sesión salió: el perfil junta todas.
@@ -989,6 +994,11 @@ export interface components {
        */
       id: string;
       /**
+       * Pregunta
+       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
+       */
+      pregunta?: string | null;
+      /**
        * Sesion Id
        * Format: uuid
        */
@@ -1125,6 +1135,11 @@ export interface components {
       /** Estado */
       estado: string;
       /**
+       * Falta Para Recomendar
+       * @description Si la sesión está cerrada y el perfil no alcanza para sugerir carreras, lo que falta conocer, para la persona. Es lo mismo que el evento `fin` del turno que cerró: así el aviso de cierre dice lo mismo al volver o al recargar.
+       */
+      falta_para_recomendar?: string | null;
+      /**
        * Iniciada En
        * Format: date-time
        */
@@ -1183,6 +1198,12 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
+      /**
+       * Sin Hablar
+       * @description Los intereses de los que no se habló, por nombre. No es que salieron bajos.
+       * @default []
+       */
+      sin_hablar: string[];
       /**
        * Version Habilitantes
        * @description Contra qué inventario se calcularon los habilitantes. Vacío si no se calcularon.
@@ -1449,6 +1470,11 @@ export interface components {
        * Format: uuid
        */
       id: string;
+      /**
+       * Pregunta
+       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
+       */
+      pregunta?: string | null;
       /**
        * Procedencia
        * @description Siempre `conversacion`: lo contó la persona, no lo dice la Facultad.

@@ -158,7 +158,12 @@ function Contenido({
   if (sesion.estado === "anonimo") {
     return (
       <div className="mx-auto w-full max-w-3xl">
-        <Ingresar alIngresar={alIngresar} error={errorDeIngreso} aviso={avisoDeIngreso} />
+        <Ingresar
+          alIngresar={alIngresar}
+          error={errorDeIngreso}
+          aviso={avisoDeIngreso}
+          avisoAbierto={avisoIAAbierto}
+        />
       </div>
     );
   }
