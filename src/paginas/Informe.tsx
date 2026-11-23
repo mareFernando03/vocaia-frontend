@@ -56,8 +56,10 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { AREAS_DE_INTERES, rotuloDeRechazo } from "../contenido/dimensiones";
 import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
+import { usePreguntas } from "../hooks/usePreguntas";
 import { fechaLarga } from "../lib/fechas";
 
 interface Propiedades {
@@ -210,6 +212,24 @@ function Contenido({ informe }: { informe: DatosInforme }) {
     d.citas.some((cita) => cita.sesion_id !== informe.sesion_id),
   );
   const inicios = useInicios(deOtra);
+  // En el informe se buscan al cargar y no al desplegar, como en el perfil: las
+  // citas están a la vista y el PDF las lleva con su pregunta.
+  const preguntas = usePreguntas(
+    informe.evidencia.flatMap((d) =>
+      d.citas.map((cita) => ({
+        id: cita.evidencia_id,
+        sesionId: cita.sesion_id,
+        turno: cita.turno,
+        texto: cita.texto,
+      })),
+    ),
+    true,
+  );
+  // Las áreas sin evidencia no llegan en el informe: se nombran para que su
+  // ausencia no se lea como desinterés, igual que en el perfil (VOCAIA-220).
+  const sinHablar = AREAS_DE_INTERES.filter(
+    (area) => !informe.evidencia.some((d) => d.dimension === area.codigo),
+  );
   const notaHabilitantes = informe.recomendaciones.find(
     (carrera) => carrera.habilitantes?.nota != null,
   )?.habilitantes?.nota;
@@ -336,9 +356,28 @@ function Contenido({ informe }: { informe: DatosInforme }) {
                 dimension={dimension}
                 sesionDelInforme={informe.sesion_id}
                 inicios={inicios}
+                preguntas={preguntas}
               />
             ))}
           </div>
+          {sinHablar.length > 0 && (
+            <Tarjeta className={TARJETA}>
+              <h3 className="text-base font-semibold">De esto no hablamos</h3>
+              <p className="text-muted-foreground">
+                No es que te haya salido bajo: es que no salió en lo que charlamos.
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {sinHablar.map((area) => (
+                  <li
+                    key={area.codigo}
+                    className="bg-primary-soft rounded-full px-3 py-1.5 font-medium print:border"
+                  >
+                    {area.nombre}
+                  </li>
+                ))}
+              </ul>
+            </Tarjeta>
+          )}
         </Seccion>
       )}
 
@@ -661,10 +700,13 @@ function Dimension({
   dimension,
   sesionDelInforme,
   inicios,
+  preguntas,
 }: {
   dimension: EvidenciaInforme;
   sesionDelInforme: string;
   inicios: Map<string, string | null>;
+  /** La pregunta que contestaba cada cita corta, por su evidencia. */
+  preguntas: Map<string, string>;
 }) {
   return (
     <Tarjeta className={TARJETA}>
@@ -683,16 +725,18 @@ function Dimension({
       <ul className="flex flex-col gap-2">
         {dimension.citas.map((cita) => (
           <li key={cita.evidencia_id}>
+            {preguntas.has(cita.evidencia_id) && (
+              <p className="text-muted-foreground mb-0.5 ps-3 text-xs">
+                Contestabas a: «{preguntas.get(cita.evidencia_id)}»
+              </p>
+            )}
             <blockquote className="border-border border-l-2 pl-3 leading-relaxed italic">
               «{cita.texto}»
             </blockquote>
-            {/* Solo el rechazo explícito (−2) se rotula: sin decirlo, «odio
-                arreglar cosas» se leería como afinidad. Con −1 es una
-                aclaración («no fue por arte») y rotularla como rechazo la
-                falsea. Arreglo parcial: el de fondo es del backend. */}
-            {cita.valencia === -2 && (
+            {/* El mismo rótulo que en el perfil (`rotuloDeRechazo`). */}
+            {rotuloDeRechazo(cita.valencia) !== null && (
               <p className="text-muted-foreground mt-0.5 ps-3 text-xs">
-                Lo dijiste como algo que no te gusta.
+                {rotuloDeRechazo(cita.valencia)}
               </p>
             )}
             {/* El perfil junta todas las conversaciones; sin esto, el informe de

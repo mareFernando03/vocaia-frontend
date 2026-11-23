@@ -478,3 +478,48 @@ describe("Perfil · de qué conversación sale cada cita", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("Perfil · el rechazo se rotula como en el informe (VOCAIA-220)", () => {
+  it("una cita de rechazo explícito en un área de interés lo dice", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            dimension: "R",
+            nombre: "Realista",
+            intensidad: -1.5,
+            evidencias: [evidencia("odio arreglar cosas", { valencia: -2 })],
+          }),
+        ],
+      }),
+    );
+    render(<Perfil alSalir={async () => {}} alDarDeBaja={async () => {}} />);
+
+    await usuario.click(await screen.findByText("En qué me baso"));
+
+    expect(screen.getByText("Lo dijiste como algo que no te gusta.")).toBeInTheDocument();
+  });
+
+  it("una restricción dicha en negativo no se rotula como algo que no le gusta", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(obtenerPerfil).mockResolvedValue(
+      perfil({
+        rasgos: [
+          rasgo({
+            dimension: "C-1",
+            nombre: "Circunstancias y restricciones",
+            mide_interes: false,
+            evidencias: [evidencia("no me pueden pagar el viaje", { valencia: -2 })],
+          }),
+        ],
+      }),
+    );
+    render(<Perfil alSalir={async () => {}} alDarDeBaja={async () => {}} />);
+
+    await usuario.click(await screen.findByText("En qué me baso"));
+
+    expect(screen.getByText(/no me pueden pagar el viaje/)).toBeInTheDocument();
+    expect(screen.queryByText(/no te gusta/)).toBeNull();
+  });
+});
