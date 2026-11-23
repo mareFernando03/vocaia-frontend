@@ -660,8 +660,10 @@ describe("Informe · se lee como el perfil (VOCAIA-220)", () => {
       .parentElement!;
     expect(within(tarjeta).getByText(/no es que te haya salido bajo/i)).toBeInTheDocument();
     for (const nombre of ["Realista", "Artístico", "Social", "Emprendedor", "Convencional"]) {
-      expect(within(tarjeta).getByText(nombre)).toBeInTheDocument();
+      expect(within(tarjeta).getByText(`${nombre}:`)).toBeInTheDocument();
     }
+    // Con qué es cada una: el nombre solo no dice de qué no se habló.
+    expect(within(tarjeta).getByText(/Ordenar y organizar/)).toBeInTheDocument();
     // Del área con citas sí se habló: no va en la lista.
     expect(within(tarjeta).queryByText("Investigador")).toBeNull();
   });
