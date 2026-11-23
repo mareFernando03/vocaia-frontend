@@ -460,10 +460,12 @@ function ContenidoResenas({ resenas }: { resenas: Fuente[] }) {
   return (
     <>
       <p className="text-muted-foreground">
-        Cuentan cómo puede ser cursar una materia. Las escribió el equipo de VocaIA a partir del
-        plan de estudios y de los contenidos de cada materia, y las revisó una persona del equipo.{" "}
-        <strong>No son información de la Facultad ni opiniones de estudiantes</strong>: tomalas como
-        una orientación.
+        {/* Vale para los dos orígenes de ADR-018: hoy todas las escribió el equipo a partir
+            del plan, pero una de estudiantes diría lo contrario de «no son de estudiantes».
+            De dónde sale cada una lo dice su fuente, debajo. */}
+        Cuentan cómo puede ser cursar una materia.{" "}
+        <strong>No son información de la Facultad</strong>: tomalas como una orientación. Cada una
+        dice de dónde sale.
       </p>
       <ul className="mt-4 flex flex-col gap-2">
         {resenas.map((resena) => (

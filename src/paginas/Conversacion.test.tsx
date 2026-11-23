@@ -249,9 +249,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     await usuario.keyboard("{Escape}");
 
     await usuario.click(screen.getByRole("button", { name: /reseñas orientativas \(1\)/i }));
-    expect(
-      screen.getByText(/No son información de la Facultad ni opiniones de estudiantes/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No son información de la Facultad/)).toBeInTheDocument();
     expect(screen.getByText(/Reseña orientativa de Análisis Matemático I/)).toBeInTheDocument();
   });
 

@@ -229,8 +229,7 @@ function Resenas({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
     <section className="border-border border-l-4 pl-3">
       <h3 className="font-medium">Reseñas orientativas</h3>
       <p className="text-muted-foreground mt-1">
-        Las escribió el equipo de VocaIA a partir del plan de estudios. No son información de la
-        Facultad ni opiniones de estudiantes.
+        No son información de la Facultad: son una orientación. Cada una dice de dónde sale.
       </p>
       <ul className="mt-3 flex flex-col gap-2">
         {ordenados.map((respaldo) => (
