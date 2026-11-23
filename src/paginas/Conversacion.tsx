@@ -12,7 +12,14 @@
  * el campo hacia arriba sin que nada quede atrapado detrás.
  */
 
-import { ArrowUp, BookOpenText, FileText, HeartHandshake, Phone } from "lucide-react";
+import {
+  ArrowUp,
+  BookOpenText,
+  FileText,
+  HeartHandshake,
+  MessageSquareQuote,
+  Phone,
+} from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { listarSesiones, obtenerEncuadre, type Fuente } from "../api/conversacion";
@@ -373,29 +380,54 @@ function unaPorFuente<T extends { fuente: string }>(fuentes: T[]): T[] {
 }
 
 function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
-  const fuentes = unaPorFuente(todas);
+  // Una reseña de cursada no es de la Facultad (HU-22): va aparte, con su rótulo, y
+  // no suma al número de «Fuentes de la Facultad».
+  const unicas = unaPorFuente(todas);
+  const fuentes = unicas.filter((f) => f.tipo !== "experiencial");
+  const resenas = unicas.filter((f) => f.tipo === "experiencial");
   const [abierta, setAbierta] = useState(false);
+  const [resenasAbiertas, setResenasAbiertas] = useState(false);
   return (
     <>
       {/* Una línea y no un recuadro: en la prueba del piloto el recuadro cargaba
           el chat. */}
-      <p className="text-muted-foreground flex flex-wrap items-center gap-x-1 text-sm">
-        <Dialogo
-          titulo="Fuentes consultadas"
-          abierto={abierta}
-          alCambiar={setAbierta}
-          disparador={
-            <button
-              type="button"
-              className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
-            >
-              <BookOpenText aria-hidden="true" className="size-4" />
-              Fuentes de la Facultad ({fuentes.length})
-            </button>
-          }
-        >
-          <ContenidoFuentes fuentes={fuentes} />
-        </Dialogo>
+      <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 text-sm">
+        {fuentes.length > 0 && (
+          <Dialogo
+            titulo="Fuentes consultadas"
+            abierto={abierta}
+            alCambiar={setAbierta}
+            disparador={
+              <button
+                type="button"
+                className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
+              >
+                <BookOpenText aria-hidden="true" className="size-4" />
+                Fuentes de la Facultad ({fuentes.length})
+              </button>
+            }
+          >
+            <ContenidoFuentes fuentes={fuentes} />
+          </Dialogo>
+        )}
+        {resenas.length > 0 && (
+          <Dialogo
+            titulo="Reseñas orientativas"
+            abierto={resenasAbiertas}
+            alCambiar={setResenasAbiertas}
+            disparador={
+              <button
+                type="button"
+                className="text-primary inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4"
+              >
+                <MessageSquareQuote aria-hidden="true" className="size-4" />
+                Reseñas orientativas ({resenas.length})
+              </button>
+            }
+          >
+            <ContenidoResenas resenas={resenas} />
+          </Dialogo>
+        )}
       </p>
     </>
   );
@@ -417,6 +449,26 @@ function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
         {fuentes.map((fuente) => (
           <li key={fuente.id}>
             <Referencia texto={fuente.fuente} />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function ContenidoResenas({ resenas }: { resenas: Fuente[] }) {
+  return (
+    <>
+      <p className="text-muted-foreground">
+        Cuentan cómo puede ser cursar una materia. Las escribió el equipo de VocaIA a partir del
+        plan de estudios y de los contenidos de cada materia, y las revisó una persona del equipo.{" "}
+        <strong>No son información de la Facultad ni opiniones de estudiantes</strong>: tomalas como
+        una orientación.
+      </p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {resenas.map((resena) => (
+          <li key={resena.id}>
+            <Referencia texto={resena.fuente} />
           </li>
         ))}
       </ul>
