@@ -23,7 +23,6 @@ import { ChevronDown, LogOut, MessageSquareOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
-import { obtenerHistorial, type Historial } from "../api/conversacion";
 import {
   objetar,
   obtenerPerfil,
@@ -41,8 +40,9 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
-import { descripcionParaLaPersona } from "../contenido/dimensiones";
+import { descripcionParaLaPersona, rotuloDeRechazo } from "../contenido/dimensiones";
 import { enLaConversacion, useInicios } from "../hooks/useConversaciones";
+import { usePreguntas } from "../hooks/usePreguntas";
 import { fechaCorta } from "../lib/fechas";
 
 interface Propiedades {
@@ -364,10 +364,9 @@ function Objecion({ rasgo, alObjetar }: PropiedadesTarjeta) {
 }
 
 /**
- * Las citas de un rasgo. Las cortas —«Armar», «Con los de matemática»— no se
- * entienden sin la pregunta que contestaban (segundo recorrido local), así que
- * al abrir se busca esa pregunta en el historial de su sesión. Al abrir y no al
- * dibujar, como la traza de cada respuesta: casi nadie despliega todas.
+ * Las citas de un rasgo. Las cortas llevan la pregunta que contestaban
+ * (`usePreguntas`), que se busca al abrir y no al dibujar, como la traza de
+ * cada respuesta: casi nadie despliega todas.
  */
 function EnQueMeBaso({
   rasgo,
@@ -378,19 +377,16 @@ function EnQueMeBaso({
   conFecha: boolean;
   inicios?: Map<string, string | null>;
 }) {
-  const [preguntas, setPreguntas] = useState<Map<string, string>>(new Map());
   const [abierto, setAbierto] = useState(false);
-
-  useEffect(() => {
-    if (!abierto) return;
-    let vigente = true;
-    void preguntasDe(rasgo.evidencias.filter((e) => esCorta(e.fragmento))).then(
-      (encontradas) => vigente && setPreguntas(encontradas),
-    );
-    return () => {
-      vigente = false;
-    };
-  }, [abierto, rasgo.evidencias]);
+  const preguntas = usePreguntas(
+    rasgo.evidencias.map((e) => ({
+      id: e.id,
+      sesionId: e.sesion_id,
+      turno: e.turno,
+      texto: e.fragmento,
+    })),
+    abierto,
+  );
 
   return (
     <details
@@ -412,6 +408,8 @@ function EnQueMeBaso({
             pregunta={preguntas.get(evidencia.id)}
             conFecha={conFecha}
             conversacion={inicios && enLaConversacion(inicios.get(evidencia.sesion_id))}
+            // Una restricción dicha en negativo no es algo que no le guste.
+            rechazo={rasgo.mide_interes ? rotuloDeRechazo(evidencia.valencia) : null}
             // La advertencia del mandato es para un interés que pesó menos por
             // eso, no para la cita que cuenta el mandato (segundo recorrido).
             conPinzas={rasgo.mide_interes && evidencia.confianza_degradada}
@@ -420,38 +418,6 @@ function EnQueMeBaso({
       </ul>
     </details>
   );
-}
-
-function esCorta(fragmento: string): boolean {
-  return fragmento.trim().split(/\s+/).length <= 4;
-}
-
-// El historial de cada sesión se pide una vez por carga de la página, aunque se
-// abran varias tarjetas con citas de la misma charla.
-const historiales = new Map<string, Promise<Historial | null>>();
-
-async function preguntasDe(evidencias: Evidencia[]): Promise<Map<string, string>> {
-  const encontradas = new Map<string, string>();
-  for (const evidencia of evidencias) {
-    if (!historiales.has(evidencia.sesion_id)) {
-      historiales.set(
-        evidencia.sesion_id,
-        obtenerHistorial(evidencia.sesion_id).catch(() => null),
-      );
-    }
-    const historial = await historiales.get(evidencia.sesion_id);
-    const anterior = historial?.turnos.find(
-      (turno) => turno.numero === evidencia.turno - 1 && turno.rol === "agente",
-    );
-    const pregunta = anterior && ultimaPregunta(anterior.contenido);
-    if (pregunta) encontradas.set(evidencia.id, pregunta);
-  }
-  return encontradas;
-}
-
-function ultimaPregunta(texto: string): string | null {
-  const preguntas = texto.match(/[^.!?\n]*\?/g);
-  return preguntas ? preguntas[preguntas.length - 1].trim() : null;
 }
 
 function variosDias(rasgos: Rasgo[]): boolean {
@@ -465,11 +431,14 @@ function Cita({
   conFecha,
   conPinzas,
   conversacion,
+  rechazo,
 }: {
   evidencia: Evidencia;
   pregunta?: string;
   conFecha: boolean;
   conPinzas: boolean;
+  /** El rótulo del rechazo explícito, igual que en el informe. */
+  rechazo: string | null;
   /** De qué conversación salió, cuando el perfil junta más de una. */
   conversacion?: string | null;
 }) {
@@ -479,6 +448,7 @@ function Cita({
         <p className="text-muted-foreground text-xs">Contestabas a: «{pregunta}»</p>
       )}
       <blockquote className="leading-relaxed italic">«{evidencia.fragmento}»</blockquote>
+      {rechazo !== null && <p className="text-muted-foreground mt-0.5 text-xs">{rechazo}</p>}
       <p className="text-muted-foreground mt-1 text-xs empty:hidden">
         {conversacion && `${conversacion} `}
         {conFecha && `Lo dijiste el ${fecha(evidencia.emitida_en)}.`}

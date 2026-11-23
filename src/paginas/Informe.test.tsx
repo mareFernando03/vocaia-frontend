@@ -11,10 +11,10 @@ import type { CarreraInforme, Habilitante, Informe as DatosInforme } from "../ap
  */
 
 vi.mock("../api/informe", () => ({ obtenerInforme: vi.fn() }));
-vi.mock("../api/conversacion", () => ({ listarSesiones: vi.fn() }));
+vi.mock("../api/conversacion", () => ({ listarSesiones: vi.fn(), obtenerHistorial: vi.fn() }));
 
 const { obtenerInforme } = await import("../api/informe");
-const { listarSesiones } = await import("../api/conversacion");
+const { listarSesiones, obtenerHistorial } = await import("../api/conversacion");
 const { ErrorDeApi } = await import("../api/cliente");
 const { default: Informe } = await import("./Informe");
 
@@ -648,5 +648,71 @@ describe("Informe · citas de otra conversación (recorrido local del 27/10)", (
     ).toBeInTheDocument();
     // La cita de esta conversación no lleva la aclaración.
     expect(screen.getAllByText(/Lo contaste en otra conversación/)).toHaveLength(1);
+  });
+});
+
+describe("Informe · se lee como el perfil (VOCAIA-220)", () => {
+  it("nombra las áreas de las que no se habló, sin mostrarlas como un interés bajo", async () => {
+    vi.mocked(obtenerInforme).mockResolvedValue(informe());
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    const tarjeta = (await screen.findByRole("heading", { name: "De esto no hablamos" }))
+      .parentElement!;
+    expect(within(tarjeta).getByText(/no es que te haya salido bajo/i)).toBeInTheDocument();
+    for (const nombre of ["Realista", "Artístico", "Social", "Emprendedor", "Convencional"]) {
+      expect(within(tarjeta).getByText(nombre)).toBeInTheDocument();
+    }
+    // Del área con citas sí se habló: no va en la lista.
+    expect(within(tarjeta).queryByText("Investigador")).toBeNull();
+  });
+
+  it("si se habló de las seis áreas, no aparece la lista", async () => {
+    const base = informe();
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      ...base,
+      evidencia: ["R", "I", "A", "S", "E", "C"].map((dimension) => ({
+        ...base.evidencia[0],
+        dimension,
+        nombre: dimension,
+        citas: [{ ...base.evidencia[0].citas[0], evidencia_id: `e-${dimension}` }],
+      })),
+    });
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    await screen.findByRole("heading", { name: "Lo que contaste" });
+    expect(screen.queryByRole("heading", { name: "De esto no hablamos" })).toBeNull();
+  });
+
+  it("una respuesta corta va con la pregunta que contestaba, sin abrir nada", async () => {
+    const base = informe();
+    vi.mocked(obtenerHistorial).mockResolvedValue({
+      sesion_id: SESION,
+      estado: "cerrada",
+      turnos: [
+        {
+          numero: 4,
+          rol: "agente",
+          contenido: "Ahí aparece algo concreto. ¿Qué hiciste vos, armar o programar?",
+          ocurrido_en: "2026-09-25T12:00:00Z",
+        },
+      ],
+      iniciada_en: "2026-09-25T11:50:00Z",
+    } as never);
+    vi.mocked(obtenerInforme).mockResolvedValue({
+      ...base,
+      evidencia: [
+        {
+          ...base.evidencia[0],
+          citas: [{ ...base.evidencia[0].citas[0], turno: 5, texto: "Armar" }],
+        },
+      ],
+    });
+    render(<Informe sesionId={SESION} alVolver={() => {}} />);
+
+    expect(
+      await screen.findByText("Contestabas a: «¿Qué hiciste vos, armar o programar?»"),
+    ).toBeInTheDocument();
+    // La cita sigue siendo la suya, literal.
+    expect(screen.getByText("«Armar»")).toBeInTheDocument();
   });
 });
