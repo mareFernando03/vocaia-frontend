@@ -80,6 +80,13 @@ interface EventoDelta {
 export interface Fuente {
   id: string;
   fuente: string;
+  /**
+   * `experiencial` es una reseña de cursada (HU-22): orientativa, escrita por el
+   * equipo a partir del plan, y nunca va bajo «Fuentes de la Facultad» (ADR-018 §2).
+   * Opcional porque un backend anterior a VOCAIA-228 no lo manda: sin él, es
+   * institucional, que es lo único que ese backend podía mandar.
+   */
+  tipo?: "institucional" | "experiencial";
 }
 
 /**
