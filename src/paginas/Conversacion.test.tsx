@@ -151,7 +151,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     expect(screen.queryByText(/sin validar|provisional/i)).toBeNull();
     const enlace = await screen.findByRole("link", { name: /Ordenanza C.S. N.º 1877/ });
     expect(enlace).toHaveAttribute("href", "http://csu.rec.utn.edu.ar/CSU/ORD/1877.pdf");
-    expect(screen.getByText(/de donde sale lo que dice la última respuesta/i)).toBeInTheDocument();
+    expect(screen.getByText(/de dónde sale lo que dice la última respuesta/i)).toBeInTheDocument();
   });
 
   it("lista sólo lo citado, una vez por documento (recorrido del 22/11)", async () => {
@@ -624,5 +624,77 @@ describe("Conversacion · un mensaje que no llegó no se pierde (recorrido del 2
     await usuario.click(screen.getByRole("button", { name: "Reenviar" }));
     expect(enviarMensaje).toHaveBeenLastCalledWith(expect.any(String), perdido);
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+});
+
+describe("Conversacion · lo que la revisión del #68 pidió probar", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerHistorial).mockReset().mockResolvedValue(null);
+    vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("al salir no queda en el navegador ningún mensaje sin enviar", async () => {
+    const { olvidarSesion } = await import("../hooks/useConversacion");
+    window.sessionStorage.setItem("vocaia:conversacion:no-enviado:a", "algo personal");
+    window.sessionStorage.setItem("vocaia:conversacion:no-enviado:b", "otra cosa");
+
+    olvidarSesion();
+
+    expect(Object.keys(window.sessionStorage)).toEqual([]);
+  });
+
+  it("con la sesión vencida el mensaje no se guarda", async () => {
+    const { SesionVencida } = await import("../api/cliente");
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new SesionVencida();
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "algo personal");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await screen.findByRole("alert");
+    expect(Object.keys(window.sessionStorage).filter((c) => c.includes("no-enviado"))).toEqual([]);
+  });
+
+  it("si el backend llegó a contestarlo antes del corte, no queda como no enviado", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [turno(1, "usuario", "hola"), turno(2, "agente", "Contame más.")]),
+      ),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "hola");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Contame más.")).toBeInTheDocument();
+    expect(screen.queryByText("No se envió")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("al recargar una charla cerrada, el aviso dice qué falta sin mandar nada", async () => {
+    window.sessionStorage.setItem(CLAVE, "44444444-4444-4444-8444-444444444444");
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "nada"), turno(2, "agente", "Quedó bastante.")]),
+        estado: "cerrada",
+        falta_para_recomendar: "cómo te llevás con dos de estas cosas",
+      }),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+
+    await screen.findByRole("button", { name: "Ver tu informe" });
+    expect(screen.getByRole("status")).toHaveTextContent(/cómo te llevás con dos de estas cosas/);
+    expect(enviarMensaje).not.toHaveBeenCalled();
   });
 });

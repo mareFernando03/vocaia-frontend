@@ -178,15 +178,23 @@ export default function Carreras() {
             // preguntar (recorrido del 22/11, «algo de historia o escribir»).
             <>
               <p>
-                «{buscado}» no aparece entre las carreras que se dictan en la UTN San Francisco. Si
-                querés saber dónde se estudia, la Secretaría de Coordinación y Políticas
-                Universitarias de la Facultad te puede orientar:
+                «{buscado}» no aparece entre las carreras que se dictan en la UTN San Francisco.{" "}
+                {AVISO.presentacionAyuda}
               </p>
               <ul className="flex flex-col gap-1">
                 {AVISO.canales.map((canal) => (
                   <li key={canal.nombre}>
                     {canal.nombre}:{" "}
-                    <a href={canal.href} className="text-primary underline underline-offset-4">
+                    {/* Como en el encuadre: área táctil de HU-08, el canal en el nombre
+                        accesible, y lo que sale de VocaIA avisa que abre otra pestaña. */}
+                    <a
+                      href={canal.href}
+                      className="text-primary inline-flex min-h-11 items-center underline underline-offset-4"
+                      aria-label={`${canal.nombre}: ${canal.detalle}${externo(canal.href) ? " (se abre fuera de VocaIA, en otra pestaña)" : ""}`}
+                      {...(externo(canal.href)
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                    >
                       {canal.detalle}
                     </a>
                   </li>
@@ -353,4 +361,8 @@ function Datos({ carrera }: { carrera: Carrera }) {
       )}
     </div>
   );
+}
+
+function externo(href: string | undefined): boolean {
+  return href !== undefined && /^https?:/.test(href);
 }

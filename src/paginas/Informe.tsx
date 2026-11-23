@@ -56,6 +56,7 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { descripcionParaLaPersona } from "../contenido/dimensiones";
 import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 import { fechaLarga } from "../lib/fechas";
@@ -341,11 +342,20 @@ function Contenido({ informe }: { informe: DatosInforme }) {
           </div>
           {/* Lo acordado con la asesora (VOCAIA-220): de lo que no se habló se dice que
               no se habló, como en el perfil. El 22/11 faltaban dos áreas sin aviso. */}
+          {/* Con las palabras del perfil y no con los nombres de Holland: «Convencional»
+              solo no le dice de qué no habló (revisión del #68). */}
           {(informe.sin_hablar ?? []).length > 0 && (
-            <p className="text-muted-foreground text-sm">
-              De esto todavía no hablamos: {(informe.sin_hablar ?? []).join(", ")}. No es que te
-              haya salido bajo: es que no salió en la charla.
-            </p>
+            <div className="text-muted-foreground text-sm">
+              <p>
+                De esto todavía no hablamos. No es que te haya salido bajo: es que no salió en la
+                charla.
+              </p>
+              <ul className="mt-1 list-disc ps-5">
+                {(informe.sin_hablar ?? []).map((codigo) => (
+                  <li key={codigo}>{descripcionParaLaPersona(codigo, codigo)}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </Seccion>
       )}

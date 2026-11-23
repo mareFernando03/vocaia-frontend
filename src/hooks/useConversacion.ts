@@ -27,7 +27,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { describir } from "../api/cliente";
+import { describir, SesionVencida } from "../api/cliente";
 import {
   enviarMensaje,
   type Fuente,
@@ -38,6 +38,7 @@ import {
 import { alCambiarSesion } from "../auth/sesion";
 
 const CLAVE = "vocaia:conversacion:sesion";
+const PREFIJO_NO_ENVIADO = "vocaia:conversacion:no-enviado:";
 
 function sesionGuardada(): string | null {
   try {
@@ -66,6 +67,11 @@ export function recordarSesion(id: string): void {
 export function olvidarSesion(): void {
   try {
     window.sessionStorage.removeItem(CLAVE);
+    // También los mensajes que no llegaron: lo que la persona escribió no puede quedar
+    // en una pestaña de una computadora compartida después de salir (revisión del #68).
+    for (const clave of Object.keys(window.sessionStorage)) {
+      if (clave.startsWith(PREFIJO_NO_ENVIADO)) window.sessionStorage.removeItem(clave);
+    }
   } catch {
     // Si no se pudo escribir, tampoco hay nada guardado que borrar.
   }
@@ -77,7 +83,7 @@ export function olvidarSesion(): void {
  * estaba, sin aviso). En `sessionStorage`, como el resto de la conversación.
  */
 function claveNoEnviado(sesionId: string): string {
-  return `vocaia:conversacion:no-enviado:${sesionId}`;
+  return `${PREFIJO_NO_ENVIADO}${sesionId}`;
 }
 
 function leerNoEnviado(sesionId: string): string | null {
@@ -204,6 +210,7 @@ export function useConversacion(): Conversacion {
     // Del historial y no sólo del evento `fin`: al volver o recargar, el aviso de
     // cierre decía sólo «Podés ver tu informe» (recorrido del 22/11).
     setFaltaParaRecomendar(historial?.falta_para_recomendar ?? null);
+    return historial;
   }, [sesion.id]);
 
   const cargar = useCallback(async () => {
@@ -275,13 +282,28 @@ export function useConversacion(): Conversacion {
         await traer();
         setEnCurso(null);
       } catch (fallo) {
-        // Queda a la vista con su error, para reenviarlo: si el backend lo había
-        // guardado, el reenvío lo contesta sin duplicarlo.
         setEnCurso(null);
+        setError(describir(fallo));
+        // Con la sesión vencida no se guarda: ya se hizo la limpieza del cierre, y lo
+        // escrito quedaría en el navegador sin nadie que lo borre (revisión del #68).
+        if (fallo instanceof SesionVencida) return;
+        // Si el backend llegó a contestarlo antes del corte, no se marca como perdido:
+        // reenviarlo lo duplicaría.
+        const historial = await traer().catch(() => null);
+        const ultimos = historial?.turnos.slice(-2) ?? [];
+        const contestado =
+          ultimos.length === 2 &&
+          ultimos[0].rol === "usuario" &&
+          ultimos[0].contenido === texto &&
+          ultimos[1].rol === "agente";
+        if (contestado) {
+          setError(null);
+          return;
+        }
+        // Queda a la vista con su error, para reenviarlo: si el backend lo había
+        // guardado sin contestar, el reenvío lo contesta sin duplicarlo.
         setNoEnviado(texto);
         anotarNoEnviado(sesion.id, texto);
-        setError(describir(fallo));
-        await traer().catch(() => undefined);
       } finally {
         setEnviando(false);
       }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SesionVencida } from "./cliente";
+import { ESPERA_MAXIMA_MS, SesionVencida, SinRespuesta } from "./cliente";
 import { enviarMensaje, type EventoConversacion } from "./conversacion";
 
 /**
@@ -100,5 +100,76 @@ describe("enviarMensaje · lectura del flujo de eventos", () => {
     }
 
     expect(cancelado).toBe(true);
+  });
+});
+
+describe("enviarMensaje · tiempo máximo (recorrido del 22/11)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("se corta con SinRespuesta si pasa el tiempo máximo sin recibir nada", async () => {
+    vi.useFakeTimers();
+    // Como el `fetch` real: al abortar, la lectura del cuerpo falla con AbortError.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, opciones: RequestInit) =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controlador) {
+                opciones.signal?.addEventListener("abort", () =>
+                  controlador.error(new DOMException("Aborted", "AbortError")),
+                );
+              },
+            }),
+          ),
+        ),
+      ),
+    );
+
+    const resultado = juntar().then(
+      () => "terminó",
+      (fallo: unknown) => fallo,
+    );
+    await vi.advanceTimersByTimeAsync(ESPERA_MAXIMA_MS + 1);
+
+    expect(await resultado).toBeInstanceOf(SinRespuesta);
+  });
+
+  it("cada latido rearma el reloj: un stream vivo no se corta", async () => {
+    vi.useFakeTimers();
+    const latidos = Array.from({ length: 10 }, () => ": latido\n\n");
+    let tiempos = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              async pull(controlador) {
+                await new Promise((r) => setTimeout(r, ESPERA_MAXIMA_MS / 2));
+                tiempos += 1;
+                if (tiempos <= latidos.length) {
+                  controlador.enqueue(new TextEncoder().encode(latidos[tiempos - 1]));
+                } else {
+                  controlador.enqueue(
+                    new TextEncoder().encode(
+                      'data: {"fin": true, "turno_usuario": 1, "turno_agente": 2}\n\n',
+                    ),
+                  );
+                  controlador.close();
+                }
+              },
+            }),
+          ),
+        ),
+      ),
+    );
+
+    const resultado = juntar();
+    await vi.advanceTimersByTimeAsync(ESPERA_MAXIMA_MS * 6);
+
+    expect(await resultado).toEqual([{ fin: true, turno_usuario: 1, turno_agente: 2 }]);
   });
 });

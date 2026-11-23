@@ -6,6 +6,10 @@
  * persona, y la del instrumento queda de respaldo para una dimensión que no esté
  * en la lista. **Son textos provisorios**: los revisa el asesor en psicología
  * vocacional.
+ *
+ * El comienzo de cada interés lo repite el backend en la frase de lo que falta para
+ * sugerir carreras (`INTERESES_PARA_LA_PERSONA` en `dominio/perfil/perfilado.py`): si
+ * cambia uno, cambia el otro.
  */
 const PARA_LA_PERSONA: Record<string, string> = {
   R: "Hacer cosas con las manos, con herramientas o máquinas, y ver un resultado concreto.",

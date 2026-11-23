@@ -240,11 +240,10 @@ describe("Carreras", () => {
         /no aparece entre las carreras que se dictan en la UTN San Francisco/,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "scpu@fr.sanfrancisco.utn.edu.ar" })).toHaveAttribute(
-      "href",
-      "mailto:scpu@fr.sanfrancisco.utn.edu.ar",
-    );
-    expect(screen.queryByText(/respaldo institucional/)).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Correo: scpu@fr.sanfrancisco.utn.edu.ar" }),
+    ).toHaveAttribute("href", "mailto:scpu@fr.sanfrancisco.utn.edu.ar");
+    expect(screen.queryByText(/respaldo institucional|dónde se estudia/)).toBeNull();
   });
 
   it("el catálogo vacío no afirma que el corpus no esté cargado", async () => {

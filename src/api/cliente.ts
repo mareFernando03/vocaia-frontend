@@ -56,10 +56,11 @@ export const MOTIVO_NO_HABILITADO = "correo-no-habilitado";
  * Cuánto se espera una respuesta antes de darla por perdida.
  *
  * Sin tope, «Reintentar» quedó más de dos minutos esperando en el recorrido del 22/11.
- * Cuarenta y cinco segundos y no menos: el plan gratuito de Render tarda cerca de un
- * minuto en despertar el servicio, y cortar antes convertiría cada arranque en un error.
+ * Un minuto, como `TOPE_CONSULTA_MS` de `PreguntaAviso`: el plan gratuito de Render tarda
+ * de 30 a 50 segundos en despertar el servicio, y cortar antes convertiría el primer
+ * ingreso del día en un error (revisión del #68).
  */
-export const ESPERA_MAXIMA_MS = 45_000;
+export const ESPERA_MAXIMA_MS = 60_000;
 
 /** El pedido se cortó por tiempo: lo cortó `ESPERA_MAXIMA_MS` o la inactividad del stream. */
 export class SinRespuesta extends Error {

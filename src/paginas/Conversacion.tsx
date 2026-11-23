@@ -225,7 +225,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
         {/* El mensaje que no llegó queda a la vista hasta que se reenvíe. Si el backend
             lo había guardado ya está en `turnos`, y no se muestra dos veces. */}
         {noEnviado !== null && enCurso === null && turnos.at(-1)?.contenido !== noEnviado && (
-          <Burbuja rol="usuario" texto={noEnviado} />
+          <Burbuja rol="usuario" texto={noEnviado} noEnviado />
         )}
 
         {enCurso !== null && (
@@ -412,7 +412,7 @@ function Fuentes({ fuentes: todas, respuesta }: { fuentes: Fuente[]; respuesta: 
 function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
     <>
-      <p className="text-muted-foreground">De donde sale lo que dice la última respuesta.</p>
+      <p className="text-muted-foreground">De dónde sale lo que dice la última respuesta.</p>
       <ul className="mt-4 flex flex-col gap-2">
         {fuentes.map((fuente) => (
           <li key={fuente.id}>
@@ -430,9 +430,17 @@ interface PropiedadesBurbuja {
   escribiendo?: boolean;
   /** Sólo en respuestas confirmadas: la que se está escribiendo no tiene número todavía. */
   traza?: { sesionId: string; turno: number };
+  /** El mensaje que no llegó: lo dice en la burbuja, no sólo en el error de abajo. */
+  noEnviado?: boolean;
 }
 
-function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja) {
+function Burbuja({
+  rol,
+  texto,
+  escribiendo = false,
+  traza,
+  noEnviado = false,
+}: PropiedadesBurbuja) {
   const esPersona = rol === "usuario";
   // La traza se pide al abrir y no al dibujar: una conversación larga haría un
   // pedido por respuesta para algo que casi nadie despliega.
@@ -456,10 +464,18 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
             esto, un lector de pantalla lee dos textos seguidos sin saber quién
             dijo cada cosa. */}
         <span className="sr-only">{esPersona ? "Vos:" : "VocaIA:"}</span>
+        {noEnviado && <span className="sr-only">(no se envió)</span>}
         {escribiendo ? (
           <Cargando texto="Escribiendo…" />
         ) : esPersona ? (
-          <p className="whitespace-pre-wrap">{texto}</p>
+          <>
+            <p className="whitespace-pre-wrap">{texto}</p>
+            {noEnviado && (
+              <p aria-hidden="true" className="mt-1 text-xs opacity-80">
+                No se envió
+              </p>
+            )}
+          </>
         ) : (
           <Prosa texto={texto} />
         )}

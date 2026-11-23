@@ -657,7 +657,7 @@ describe("Informe · «Lo que contaste» (VOCAIA-220, recorrido del 22/11)", () 
     vi.mocked(listarSesiones).mockResolvedValue([]);
     vi.mocked(obtenerInforme).mockResolvedValue(
       informe({
-        sin_hablar: ["Realista", "Convencional"],
+        sin_hablar: ["R", "C"],
         evidencia: [
           {
             dimension: "I",
@@ -681,9 +681,10 @@ describe("Informe · «Lo que contaste» (VOCAIA-220, recorrido del 22/11)", () 
 
     render(<Informe sesionId={SESION} alVolver={() => {}} />);
 
-    expect(
-      await screen.findByText(/De esto todavía no hablamos: Realista, Convencional/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/De esto todavía no hablamos/)).toBeInTheDocument();
+    expect(screen.getByText(/Hacer cosas con las manos/)).toBeInTheDocument();
+    expect(screen.getByText(/Ordenar y organizar/)).toBeInTheDocument();
+    expect(screen.queryByText(/Convencional/)).toBeNull();
     expect(
       screen.getByText("Contestabas a: «¿Y hay algo que no te guste para nada?»"),
     ).toBeInTheDocument();

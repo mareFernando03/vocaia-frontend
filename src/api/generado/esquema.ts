@@ -1200,7 +1200,7 @@ export interface components {
       sesion_id: string;
       /**
        * Sin Hablar
-       * @description Los intereses de los que no se habló, por nombre. No es que salieron bajos.
+       * @description Los códigos de los intereses de los que no se habló. No es que salieron bajos: no salieron en la charla.
        * @default []
        */
       sin_hablar: string[];
