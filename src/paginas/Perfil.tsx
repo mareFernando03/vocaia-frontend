@@ -23,6 +23,7 @@ import { ChevronDown, LogOut, MessageSquareOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorDeApi, SesionVencida } from "../api/cliente";
+import { obtenerHistorial, type Historial } from "../api/conversacion";
 import {
   objetar,
   obtenerPerfil,
@@ -379,8 +380,25 @@ function EnQueMeBaso({
   conFecha: boolean;
   inicios?: Map<string, string | null>;
 }) {
+  const [preguntas, setPreguntas] = useState<Map<string, string>>(new Map());
+  const [abierto, setAbierto] = useState(false);
+
+  useEffect(() => {
+    if (!abierto) return;
+    let vigente = true;
+    void preguntasDe(rasgo.evidencias.filter((e) => esCorta(e.fragmento))).then(
+      (encontradas) => vigente && setPreguntas(encontradas),
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [abierto, rasgo.evidencias]);
+
   return (
-    <details className="group border-border border-t pt-1">
+    <details
+      className="group border-border border-t pt-1"
+      onToggle={(evento) => setAbierto(evento.currentTarget.open)}
+    >
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
         En qué me baso
         <ChevronDown
@@ -393,9 +411,7 @@ function EnQueMeBaso({
           <Cita
             key={evidencia.id}
             evidencia={evidencia}
-            // La pregunta de una cita corta la trae el backend (VOCAIA-220): pedida
-            // acá, por historial, se perdía si la charla no cargaba (22/11).
-            pregunta={evidencia.pregunta ?? undefined}
+            pregunta={preguntas.get(evidencia.id)}
             conFecha={conFecha}
             conversacion={inicios && enLaConversacion(inicios.get(evidencia.sesion_id))}
             // La advertencia del mandato es para un interés que pesó menos por
@@ -406,6 +422,38 @@ function EnQueMeBaso({
       </ul>
     </details>
   );
+}
+
+function esCorta(fragmento: string): boolean {
+  return fragmento.trim().split(/\s+/).length <= 4;
+}
+
+// El historial de cada sesión se pide una vez por carga de la página, aunque se
+// abran varias tarjetas con citas de la misma charla.
+const historiales = new Map<string, Promise<Historial | null>>();
+
+async function preguntasDe(evidencias: Evidencia[]): Promise<Map<string, string>> {
+  const encontradas = new Map<string, string>();
+  for (const evidencia of evidencias) {
+    if (!historiales.has(evidencia.sesion_id)) {
+      historiales.set(
+        evidencia.sesion_id,
+        obtenerHistorial(evidencia.sesion_id).catch(() => null),
+      );
+    }
+    const historial = await historiales.get(evidencia.sesion_id);
+    const anterior = historial?.turnos.find(
+      (turno) => turno.numero === evidencia.turno - 1 && turno.rol === "agente",
+    );
+    const pregunta = anterior && ultimaPregunta(anterior.contenido);
+    if (pregunta) encontradas.set(evidencia.id, pregunta);
+  }
+  return encontradas;
+}
+
+function ultimaPregunta(texto: string): string | null {
+  const preguntas = texto.match(/[^.!?\n]*\?/g);
+  return preguntas ? preguntas[preguntas.length - 1].trim() : null;
 }
 
 function variosDias(rasgos: Rasgo[]): boolean {

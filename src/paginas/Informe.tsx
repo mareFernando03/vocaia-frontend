@@ -56,7 +56,6 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
-import { descripcionParaLaPersona } from "../contenido/dimensiones";
 import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 import { fechaLarga } from "../lib/fechas";
@@ -324,7 +323,7 @@ function Contenido({ informe }: { informe: DatosInforme }) {
         <p className="text-muted-foreground -mt-6 text-sm">{notaHabilitantes}</p>
       )}
 
-      {(informe.evidencia.length > 0 || (informe.sin_hablar ?? []).length > 0) && (
+      {informe.evidencia.length > 0 && (
         <Seccion id="lo-que-contaste" titulo="Lo que contaste">
           <p className="text-muted-foreground -mt-2 text-sm">
             Tus palabras, tal como las escribiste, agrupadas por el interés que muestran. Es de
@@ -340,23 +339,6 @@ function Contenido({ informe }: { informe: DatosInforme }) {
               />
             ))}
           </div>
-          {/* Lo acordado con la asesora (VOCAIA-220): de lo que no se habló se dice que
-              no se habló, como en el perfil. El 22/11 faltaban dos áreas sin aviso. */}
-          {/* Con las palabras del perfil y no con los nombres de Holland: «Convencional»
-              solo no le dice de qué no habló (revisión del #68). */}
-          {(informe.sin_hablar ?? []).length > 0 && (
-            <div className="text-muted-foreground text-sm">
-              <p>
-                De esto todavía no hablamos. No es que te haya salido bajo: es que no salió en la
-                charla.
-              </p>
-              <ul className="mt-1 list-disc ps-5">
-                {(informe.sin_hablar ?? []).map((codigo) => (
-                  <li key={codigo}>{descripcionParaLaPersona(codigo, codigo)}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </Seccion>
       )}
 
@@ -701,10 +683,6 @@ function Dimension({
       <ul className="flex flex-col gap-2">
         {dimension.citas.map((cita) => (
           <li key={cita.evidencia_id}>
-            {/* Una cita corta sola no se entiende: va con lo que se le preguntó. */}
-            {cita.pregunta != null && (
-              <p className="text-muted-foreground ps-3 text-xs">Contestabas a: «{cita.pregunta}»</p>
-            )}
             <blockquote className="border-border border-l-2 pl-3 leading-relaxed italic">
               «{cita.texto}»
             </blockquote>

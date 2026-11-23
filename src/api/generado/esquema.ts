@@ -766,11 +766,6 @@ export interface components {
        */
       evidencia_id: string;
       /**
-       * Pregunta
-       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
-       */
-      pregunta?: string | null;
-      /**
        * Sesion Id
        * Format: uuid
        * @description De qué sesión salió: el perfil junta todas.
@@ -994,11 +989,6 @@ export interface components {
        */
       id: string;
       /**
-       * Pregunta
-       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
-       */
-      pregunta?: string | null;
-      /**
        * Sesion Id
        * Format: uuid
        */
@@ -1198,12 +1188,6 @@ export interface components {
        * Format: uuid
        */
       sesion_id: string;
-      /**
-       * Sin Hablar
-       * @description Los códigos de los intereses de los que no se habló. No es que salieron bajos: no salieron en la charla.
-       * @default []
-       */
-      sin_hablar: string[];
       /**
        * Version Habilitantes
        * @description Contra qué inventario se calcularon los habilitantes. Vacío si no se calcularon.
@@ -1470,11 +1454,6 @@ export interface components {
        * Format: uuid
        */
       id: string;
-      /**
-       * Pregunta
-       * @description Lo que le habían preguntado, si la cita es corta y sola no se entiende.
-       */
-      pregunta?: string | null;
       /**
        * Procedencia
        * @description Siempre `conversacion`: lo contó la persona, no lo dice la Facultad.

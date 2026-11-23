@@ -308,7 +308,6 @@ describe("HU-12 · historial de sesiones recuperable", () => {
     ]);
     vi.mocked(obtenerInforme).mockResolvedValue({
       formato: 1,
-      sin_hablar: [],
       sesion_id: ANTERIOR,
       generado_en: "2026-09-25T12:00:00Z",
       publicable: false,
