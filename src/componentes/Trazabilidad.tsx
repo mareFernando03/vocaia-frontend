@@ -94,7 +94,10 @@ export function Trazabilidad({ sesionId, turno }: Propiedades) {
   return (
     <div className="flex flex-col gap-4 text-sm">
       <Conversacional respaldos={traza.conversacional} />
-      <Institucional respaldos={traza.institucional} />
+      {/* Una reseña de cursada sale del corpus pero no la dice la Facultad (HU-22,
+          ADR-018 §2): va en su bloque, con su rótulo, y sólo si hay alguna. */}
+      <Institucional respaldos={traza.institucional.filter((r) => r.tipo !== "experiencial")} />
+      <Resenas respaldos={traza.institucional.filter((r) => r.tipo === "experiencial")} />
     </div>
   );
 }
@@ -213,6 +216,33 @@ function Institucional({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
           )}
         </>
       )}
+    </section>
+  );
+}
+
+function Resenas({ respaldos }: { respaldos: RespaldoInstitucional[] }) {
+  if (respaldos.length === 0) return null;
+  const ordenados = [...respaldos].sort(
+    (a, b) => Number(b.citado) - Number(a.citado) || a.orden - b.orden,
+  );
+  return (
+    <section className="border-border border-l-4 pl-3">
+      <h3 className="font-medium">Reseñas orientativas</h3>
+      <p className="text-muted-foreground mt-1">
+        No son información de la Facultad: son una orientación. Cada una dice de dónde sale.
+      </p>
+      <ul className="mt-3 flex flex-col gap-2">
+        {ordenados.map((respaldo) => (
+          <li key={respaldo.id}>
+            <Referencia texto={respaldo.fuente} />
+            <p className="text-muted-foreground text-xs">
+              {respaldo.citado
+                ? "La respuesta la cita."
+                : "Se consultó, pero la respuesta no la cita."}
+            </p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
