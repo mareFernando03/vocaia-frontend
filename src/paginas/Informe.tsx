@@ -56,7 +56,11 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
-import { AREAS_DE_INTERES, rotuloDeRechazo } from "../contenido/dimensiones";
+import {
+  AREAS_DE_INTERES,
+  descripcionParaLaPersona,
+  rotuloDeRechazo,
+} from "../contenido/dimensiones";
 import { PILOTO } from "../contenido/piloto";
 import { enOtraConversacion, useInicios } from "../hooks/useConversaciones";
 import { usePreguntas } from "../hooks/usePreguntas";
@@ -366,13 +370,12 @@ function Contenido({ informe }: { informe: DatosInforme }) {
               <p className="text-muted-foreground">
                 No es que te haya salido bajo: es que no salió en lo que charlamos.
               </p>
-              <ul className="flex flex-wrap gap-2">
+              {/* Con qué es cada una al lado: «Convencional» solo no dice de qué no se
+                  habló, y en el PDF no hay texto emergente que lo aclare (revisión del #69). */}
+              <ul className="flex flex-col gap-1.5">
                 {sinHablar.map((area) => (
-                  <li
-                    key={area.codigo}
-                    className="bg-primary-soft rounded-full px-3 py-1.5 font-medium print:border"
-                  >
-                    {area.nombre}
+                  <li key={area.codigo}>
+                    <strong>{area.nombre}:</strong> {descripcionParaLaPersona(area.codigo, "")}
                   </li>
                 ))}
               </ul>
