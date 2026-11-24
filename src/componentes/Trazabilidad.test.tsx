@@ -47,6 +47,7 @@ function traza(extra: Partial<Traza> = {}): Traza {
         puntaje: 1.37,
         estado_validacion: "provisional",
         citado: false,
+        tipo: "institucional",
       },
       {
         procedencia: "corpus",
@@ -56,6 +57,7 @@ function traza(extra: Partial<Traza> = {}): Traza {
         puntaje: 0.82,
         estado_validacion: "provisional",
         citado: true,
+        tipo: "institucional",
       },
     ],
     ...extra,
@@ -125,6 +127,7 @@ describe("Trazabilidad", () => {
       puntaje: 0.9,
       estado_validacion: "provisional",
       citado,
+      tipo: "institucional" as const,
     });
     vi.mocked(obtenerTrazabilidad).mockResolvedValue(
       traza({
@@ -138,6 +141,48 @@ describe("Trazabilidad", () => {
     ).toHaveLength(1);
     expect(screen.getByText("La respuesta lo cita.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: /consult/ })).toBeNull();
+  });
+
+  it("una reseña de cursada va en su bloque y no bajo lo que dice la Facultad (HU-22)", async () => {
+    const base = traza();
+    vi.mocked(obtenerTrazabilidad).mockResolvedValue(
+      traza({
+        institucional: [
+          ...base.institucional,
+          {
+            procedencia: "corpus",
+            id: "resena-isi-analisis-matematico-i",
+            orden: 3,
+            fuente: "Reseña orientativa de Análisis Matemático I, basada en el plan 2023",
+            puntaje: 0.7,
+            estado_validacion: "revisado_por_equipo",
+            citado: true,
+            tipo: "experiencial",
+          },
+        ],
+      }),
+    );
+    render(<Trazabilidad sesionId={SESION} turno={4} />);
+
+    const resenas = (await screen.findByRole("heading", { name: "Reseñas orientativas" })).closest(
+      "section",
+    )!;
+    const facultad = screen
+      .getByRole("heading", { name: "Lo que dice la Facultad" })
+      .closest("section")!;
+
+    expect(within(resenas).getByText(/Análisis Matemático I/)).toBeInTheDocument();
+    expect(within(resenas).getByText("La respuesta la cita.")).toBeInTheDocument();
+    expect(within(resenas).getByText(/No son información de la Facultad/)).toBeInTheDocument();
+    expect(within(facultad).queryByText(/Reseña orientativa/)).toBeNull();
+  });
+
+  it("sin reseñas no dibuja su bloque", async () => {
+    vi.mocked(obtenerTrazabilidad).mockResolvedValue(traza());
+    render(<Trazabilidad sesionId={SESION} turno={4} />);
+
+    await screen.findByRole("heading", { name: "Lo que dice la Facultad" });
+    expect(screen.queryByRole("heading", { name: "Reseñas orientativas" })).toBeNull();
   });
 
   it("no muestra jerga del backend", async () => {

@@ -1505,7 +1505,7 @@ export interface components {
       orden: number;
       /**
        * Procedencia
-       * @description Siempre `corpus`: lo dice la Facultad, no lo contó la persona.
+       * @description Siempre `corpus`: no lo contó la persona. Si lo dice la Facultad o es una reseña de cursada, lo dice `tipo`.
        * @constant
        */
       procedencia: "corpus";
@@ -1514,6 +1514,12 @@ export interface components {
        * @description Creciente en similitud, 1.0 = idéntico. **No está acotado a [0, 1]**: sirve para ordenar, no como porcentaje de acierto.
        */
       puntaje: number;
+      /**
+       * Tipo
+       * @description `experiencial` es una reseña de cursada (HU-22): sale del corpus pero no la dice la Facultad, y nunca se muestra como tal (ADR-018 §2). Se deduce del estado.
+       * @enum {string}
+       */
+      tipo: "institucional" | "experiencial";
     };
     /**
      * RespaldoRecomendacionSalida
@@ -1951,7 +1957,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...'}], 'fuentes_retenidas': N, 'escalamiento': bool, 'perfil_alcanza': bool | null, 'falta_para_recomendar': '...' | null}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error; `perfil_alcanza` viene sólo si el turno cerró esta parte de la charla, y `falta_para_recomendar`, si no alcanzó—, y `{'error': '...'}` si la generación se corta. */
+      /** @description Flujo de eventos SSE. Cada evento es una línea `data:` con un objeto JSON: `{'delta': '...'}` por cada trozo de la respuesta, `{'fin': true, 'turno_usuario': N, 'turno_agente': N, 'fuentes': [{'id': '...', 'fuente': '...', 'estado_validacion': '...', 'tipo': 'institucional' | 'experiencial'}], 'fuentes_retenidas': N, 'escalamiento': bool, 'perfil_alcanza': bool | null, 'falta_para_recomendar': '...' | null}` al cerrar —donde `fuentes` son los fragmentos del corpus que se consultaron para el turno, no necesariamente los que la respuesta cita, y `fuentes_retenidas` los que el filtro de validación dejó afuera, siempre 0 en modo abierto. `fuentes` viene vacía cuando nada del corpus superó el piso de puntaje, que es lo habitual en los turnos donde la persona habla de sí misma: es un turno normal, no un error; `perfil_alcanza` viene sólo si el turno cerró esta parte de la charla, y `falta_para_recomendar`, si no alcanzó—, y `{'error': '...'}` si la generación se corta. */
       200: {
         headers: {
           [name: string]: unknown;

@@ -202,6 +202,55 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     expect(screen.queryByText(/Industrial|Calendario/)).toBeNull();
   });
 
+  it("una reseña de cursada no va con las fuentes de la Facultad (HU-22)", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo(
+        { delta: "Es anual." },
+        {
+          fin: true,
+          turno_usuario: 1,
+          turno_agente: 2,
+          fuentes: [
+            {
+              id: "contenidos-isi-analisis-matematico-i",
+              fuente: "Ordenanza C.S. N.º 1877, pág. 39 — https://example.org/1877",
+              tipo: "institucional",
+            },
+            {
+              id: "resena-isi-analisis-matematico-i",
+              fuente: "Reseña orientativa de Análisis Matemático I, basada en el plan 2023",
+              tipo: "experiencial",
+            },
+          ],
+        },
+      ),
+    );
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [
+          turno(1, "usuario", "¿Cómo es cursar Análisis I?"),
+          turno(2, "agente", "Es anual [1]. Según una reseña orientativa, conviene practicar [2]."),
+        ]),
+      ),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "¿Cómo es cursar Análisis I?");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    // La de la Facultad cuenta una: la reseña no suma ahí.
+    await usuario.click(
+      await screen.findByRole("button", { name: /fuentes de la facultad \(1\)/i }),
+    );
+    expect(screen.queryByRole("link", { name: /Reseña orientativa/ })).toBeNull();
+    await usuario.keyboard("{Escape}");
+
+    await usuario.click(screen.getByRole("button", { name: /reseñas orientativas \(1\)/i }));
+    expect(screen.getByText(/No son información de la Facultad/)).toBeInTheDocument();
+    expect(screen.getByText(/Reseña orientativa de Análisis Matemático I/)).toBeInTheDocument();
+  });
+
   it("un turno sin fuentes no dibuja el bloque", async () => {
     const usuario = userEvent.setup();
     vi.mocked(enviarMensaje).mockReturnValue(
