@@ -710,6 +710,24 @@ describe("Conversacion · lo que la revisión del #68 pidió probar", () => {
     expect(Object.keys(window.sessionStorage).filter((c) => c.includes("no-enviado"))).toEqual([]);
   });
 
+  it("si la sesión vence al comprobar si llegó, el mensaje tampoco se guarda", async () => {
+    const { SesionVencida } = await import("../api/cliente");
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "algo personal");
+    // El envío se corta y, al traer el historial para ver si llegó, la sesión ya venció.
+    vi.mocked(obtenerHistorial).mockRejectedValue(new SesionVencida());
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await screen.findByRole("alert");
+    await waitFor(() => expect(obtenerHistorial).toHaveBeenCalled());
+    expect(Object.keys(window.sessionStorage).filter((c) => c.includes("no-enviado"))).toEqual([]);
+  });
+
   it("si el backend llegó a contestarlo antes del corte, no queda como no enviado", async () => {
     const usuario = userEvent.setup();
     vi.mocked(enviarMensaje).mockImplementationOnce(() => {

@@ -293,7 +293,15 @@ export function useConversacion(): Conversacion {
         if (fallo instanceof SesionVencida) return;
         // Si el backend llegó a contestarlo antes del corte, no se marca como perdido:
         // reenviarlo lo duplicaría.
-        const historial = await traer().catch(() => null);
+        // La sesión también puede vencer en esta comprobación: entonces el cierre ya
+        // borró lo no enviado, y anotarlo después lo dejaría en el navegador (revisión
+        // del #68, segunda vuelta).
+        let historial: Awaited<ReturnType<typeof traer>> | null = null;
+        try {
+          historial = await traer();
+        } catch (otro) {
+          if (otro instanceof SesionVencida) return;
+        }
         // Con dos turnos nuevos y no sólo los dos últimos: un «sí» igual al anterior que
         // no llegó se daba por contestado con la respuesta vieja (revisión del #68).
         const ultimos = historial?.turnos.slice(-2) ?? [];
