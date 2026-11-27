@@ -33,6 +33,7 @@ import { Cargando } from "../componentes/ui/Cargando";
 import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
+import { AVISO } from "../contenido/aviso-ia";
 
 const NIVELES: Record<string, string> = {
   grado: "Carrera de grado",
@@ -172,11 +173,41 @@ export default function Carreras() {
       {!cargando && error === null && carreras.length === 0 && (
         <div className="text-muted-foreground flex flex-col items-center gap-3 py-10 text-center">
           <GraduationCap aria-hidden="true" className="size-10" strokeWidth={1.5} />
-          <p>
-            {buscado
-              ? `No encontramos carreras con respaldo institucional para «${buscado}».`
-              : "Por ahora no hay carreras para mostrar: puede que todavía no estén cargadas, o que estén esperando la validación de la Facultad."}
-          </p>
+          {buscado ? (
+            // «Sin respaldo institucional» no le decía que eso no se dicta acá ni a quién
+            // preguntar (recorrido del 22/11, «algo de historia o escribir»). No afirma que no se
+            // dicta: el backend retiene las carreras sin validar (revisión del #68).
+            <>
+              <p>
+                No encontramos «{buscado}» entre las carreras de la UTN San Francisco que VocaIA
+                tiene cargadas. {AVISO.presentacionAyuda}
+              </p>
+              <ul className="flex flex-col gap-1">
+                {AVISO.canales.map((canal) => (
+                  <li key={canal.nombre}>
+                    {canal.nombre}:{" "}
+                    {/* Como en el encuadre: área táctil de HU-08, el canal en el nombre
+                        accesible, y lo que sale de VocaIA avisa que abre otra pestaña. */}
+                    <a
+                      href={canal.href}
+                      className="text-primary inline-flex min-h-11 items-center underline underline-offset-4"
+                      aria-label={`${canal.nombre}: ${canal.detalle}${externo(canal.href) ? " (se abre fuera de VocaIA, en otra pestaña)" : ""}`}
+                      {...(externo(canal.href)
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                    >
+                      {canal.detalle}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p>
+              Por ahora no hay carreras para mostrar: puede que todavía no estén cargadas, o que
+              estén esperando la validación de la Facultad.
+            </p>
+          )}
         </div>
       )}
 
@@ -331,4 +362,8 @@ function Datos({ carrera }: { carrera: Carrera }) {
       )}
     </div>
   );
+}
+
+function externo(href: string | undefined): boolean {
+  return href !== undefined && /^https?:/.test(href);
 }

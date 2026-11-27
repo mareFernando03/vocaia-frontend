@@ -1125,6 +1125,11 @@ export interface components {
       /** Estado */
       estado: string;
       /**
+       * Falta Para Recomendar
+       * @description Si la sesión está cerrada y el perfil no alcanza para sugerir carreras, lo que falta conocer, para la persona. Es lo mismo que el evento `fin` del turno que cerró: así el aviso de cierre dice lo mismo al volver o al recargar.
+       */
+      falta_para_recomendar?: string | null;
+      /**
        * Iniciada En
        * Format: date-time
        */

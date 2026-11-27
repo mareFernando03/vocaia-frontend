@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { PILOTO } from "../contenido/piloto";
+import { cn } from "../lib/cn";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 const URL_SCRIPT = "https://accounts.google.com/gsi/client";
@@ -26,12 +27,20 @@ interface Propiedades {
   error?: string | null;
   /** Lo que hay que contarle y no es un error: que su baja terminó (HU-04). */
   aviso?: string | null;
+  /**
+   * Si el aviso de que es una IA está abierto. El aviso va antes de identificarse
+   * —el consentimiento se registra al ingresar—, pero el botón de Google es un iframe
+   * que quedaba asomando por encima del diálogo (recorrido del 22/11): mientras está
+   * abierto, el botón no se ve.
+   */
+  avisoAbierto?: boolean;
 }
 
 export default function Ingresar({
   alIngresar,
   error: errorDeIngreso = null,
   aviso = null,
+  avisoAbierto = false,
 }: Propiedades) {
   const contenedorBoton = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +120,11 @@ export default function Ingresar({
           iframe el navegador le pinta un fondo opaco. En el tema oscuro el botón
           quedaba dentro de un rectángulo blanco (producción, 11/11). El botón
           sigue tomando el tema de `theme`; esto sólo saca el fondo. */}
-      <div ref={contenedorBoton} className="mt-8 flex justify-center [color-scheme:light]" />
+      <div
+        ref={contenedorBoton}
+        aria-hidden={avisoAbierto}
+        className={cn("mt-8 flex justify-center [color-scheme:light]", avisoAbierto && "invisible")}
+      />
 
       {aviso && (
         <p role="status" className="mt-6 text-sm">

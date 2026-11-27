@@ -113,7 +113,7 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("muestra las fuentes consultadas de la última respuesta, sin decir que las citó", async () => {
+  it("muestra las fuentes que cita la última respuesta", async () => {
     const usuario = userEvent.setup();
     vi.mocked(enviarMensaje).mockReturnValue(
       flujo(
@@ -151,30 +151,30 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     expect(screen.queryByText(/sin validar|provisional/i)).toBeNull();
     const enlace = await screen.findByRole("link", { name: /Ordenanza C.S. N.º 1877/ });
     expect(enlace).toHaveAttribute("href", "http://csu.rec.utn.edu.ar/CSU/ORD/1877.pdf");
-    // La distinción no es cosmética: el backend recupera lo más cercano y el
-    // modelo puede haberlo ignorado por completo.
-    expect(screen.getByText(/consultadas/i)).toBeInTheDocument();
-    expect(screen.queryByText(/citadas/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/de dónde sale lo que dice la última respuesta/i)).toBeInTheDocument();
   });
 
-  it("muestra cada fuente una sola vez aunque lleguen varios fragmentos suyos", async () => {
+  it("lista sólo lo citado, una vez por documento (recorrido del 22/11)", async () => {
+    // A «qué se ve en análisis matemático I?» la 1877 salía tres veces, una por página,
+    // junto al plan de Industrial y el calendario, que la respuesta no citaba.
     const usuario = userEvent.setup();
-    const horarios = "Horarios de Ingeniería Química, UTN FRSFco — https://example.org/horarios";
+    const ordenanza = (pagina: number) =>
+      `Ordenanza C.S. N.º 1877, pág. ${pagina} — https://example.org/1877.pdf#page=${pagina}`;
     vi.mocked(enviarMensaje).mockReturnValue(
       flujo(
-        { delta: "Se cursa a la mañana." },
+        { delta: "Límites, derivadas e integrales." },
         {
           fin: true,
           turno_usuario: 1,
           turno_agente: 2,
           fuentes: [
-            { id: "horarios-ingenieria-quimica-1", fuente: horarios },
-            { id: "horarios-ingenieria-quimica-2", fuente: horarios },
-            { id: "horarios-ingenieria-quimica-3", fuente: horarios },
+            { id: "contenidos-isi-am1", fuente: ordenanza(54) },
+            { id: "contenidos-isi-aga", fuente: ordenanza(40) },
             {
-              id: "ingenieria-quimica",
-              fuente: "Ordenanza C.S. N.º 1875 — https://example.org/1875",
+              id: "plan-ind",
+              fuente: "Plan de estudio de Ingeniería Industrial — https://e.org/i",
             },
+            { id: "calendario-academico", fuente: "Calendario Académico 2026 — https://e.org/c" },
           ],
         },
       ),
@@ -182,8 +182,8 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
       Promise.resolve(
         historial(id, [
-          turno(1, "usuario", "¿En qué horario se cursa Química?"),
-          turno(2, "agente", "Se cursa a la mañana [1]."),
+          turno(1, "usuario", "que se ve en analisis matematico I?"),
+          turno(2, "agente", "Límites, derivadas e integrales [1][2]."),
         ]),
       ),
     );
@@ -191,17 +191,15 @@ describe("Conversacion · continuidad de la sesión (HU-07)", () => {
     render(<Conversacion alVerInforme={() => {}} />);
     await usuario.type(
       screen.getByLabelText(/escribí tu mensaje/i),
-      "¿En qué horario se cursa Química?",
+      "que se ve en analisis matematico I?",
     );
     await usuario.click(screen.getByRole("button", { name: "Enviar" }));
 
     await usuario.click(
-      await screen.findByRole("button", { name: /fuentes de la facultad \(2\)/i }),
+      await screen.findByRole("button", { name: /fuentes de la facultad \(1\)/i }),
     );
-    expect(
-      await screen.findAllByRole("link", { name: /Horarios de Ingeniería Química/ }),
-    ).toHaveLength(1);
-    expect(screen.getByRole("link", { name: /Ordenanza C.S. N.º 1875/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Ordenanza C.S. N.º 1877/ })).toHaveLength(1);
+    expect(screen.queryByText(/Industrial|Calendario/)).toBeNull();
   });
 
   it("una reseña de cursada no va con las fuentes de la Facultad (HU-22)", async () => {
@@ -375,6 +373,7 @@ describe("Conversacion · el cierre y el informe (S4-04)", () => {
       Promise.resolve({
         ...historial(id, [turno(1, "usuario", "Nada más"), turno(2, "agente", "Quedó bastante.")]),
         estado: "cerrada",
+        falta_para_recomendar: "qué cosas te gusta hacer",
       }),
     );
     montar();
@@ -635,5 +634,165 @@ describe("Conversacion · seguir una conversación o empezar otra (VOCAIA-222)",
     await waitFor(() => expect(listarSesiones).toHaveBeenCalledTimes(2));
     expect(screen.queryByText(/querías seguir/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("Conversacion · un mensaje que no llegó no se pierde (recorrido del 22/11)", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerHistorial).mockReset().mockResolvedValue(null);
+    vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("queda a la vista con su error, se reenvía tal cual y vuelve al recargar", async () => {
+    const usuario = userEvent.setup();
+    const perdido = "ahora ya me podes decir que carreras?";
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    const { unmount } = render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), perdido);
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText(perdido)).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo conectar/i);
+
+    // Al ir al historial y volver, sigue ahí.
+    unmount();
+    render(<Conversacion alVerInforme={() => {}} />);
+    expect(await screen.findByText(perdido)).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/no llegó a contestarse/i);
+
+    // «Reenviar» manda el mismo texto, no recarga el historial.
+    vi.mocked(enviarMensaje).mockReturnValue(
+      flujo({ delta: "Todavía no." }, { fin: true, turno_usuario: 1, turno_agente: 2 }),
+    );
+    await usuario.click(screen.getByRole("button", { name: "Reenviar" }));
+    expect(enviarMensaje).toHaveBeenLastCalledWith(expect.any(String), perdido);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+});
+
+describe("Conversacion · lo que la revisión del #68 pidió probar", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerHistorial).mockReset().mockResolvedValue(null);
+    vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("al salir no queda en el navegador ningún mensaje sin enviar", async () => {
+    const { olvidarSesion } = await import("../hooks/useConversacion");
+    window.sessionStorage.setItem("vocaia:conversacion:no-enviado:a", "algo personal");
+    window.sessionStorage.setItem("vocaia:conversacion:no-enviado:b", "otra cosa");
+
+    olvidarSesion();
+
+    expect(Object.keys(window.sessionStorage)).toEqual([]);
+  });
+
+  it("con la sesión vencida el mensaje no se guarda", async () => {
+    const { SesionVencida } = await import("../api/cliente");
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new SesionVencida();
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "algo personal");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await screen.findByRole("alert");
+    expect(Object.keys(window.sessionStorage).filter((c) => c.includes("no-enviado"))).toEqual([]);
+  });
+
+  it("si la sesión vence al comprobar si llegó, el mensaje tampoco se guarda", async () => {
+    const { SesionVencida } = await import("../api/cliente");
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "algo personal");
+    // El envío se corta y, al traer el historial para ver si llegó, la sesión ya venció.
+    vi.mocked(obtenerHistorial).mockRejectedValue(new SesionVencida());
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await screen.findByRole("alert");
+    await waitFor(() => expect(obtenerHistorial).toHaveBeenCalled());
+    expect(Object.keys(window.sessionStorage).filter((c) => c.includes("no-enviado"))).toEqual([]);
+  });
+
+  it("si el backend llegó a contestarlo antes del corte, no queda como no enviado", async () => {
+    const usuario = userEvent.setup();
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [turno(1, "usuario", "hola"), turno(2, "agente", "Contame más.")]),
+      ),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "hola");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Contame más.")).toBeInTheDocument();
+    expect(screen.queryByText("No se envió")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("al recargar una charla cerrada, el aviso dice qué falta sin mandar nada", async () => {
+    window.sessionStorage.setItem(CLAVE, "44444444-4444-4444-8444-444444444444");
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve({
+        ...historial(id, [turno(1, "usuario", "nada"), turno(2, "agente", "Quedó bastante.")]),
+        estado: "cerrada",
+        falta_para_recomendar: "cómo te llevás con dos de estas cosas",
+      }),
+    );
+
+    render(<Conversacion alVerInforme={() => {}} />);
+
+    await screen.findByRole("button", { name: "Ver tu informe" });
+    expect(screen.getByRole("status")).toHaveTextContent(/cómo te llevás con dos de estas cosas/);
+    expect(enviarMensaje).not.toHaveBeenCalled();
+  });
+});
+
+describe("Conversacion · un «sí» repetido que no llegó (segunda vuelta del #68)", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.mocked(listarSesiones).mockResolvedValue([]);
+    vi.mocked(obtenerHistorial).mockReset();
+    vi.mocked(enviarMensaje).mockReset();
+    vi.mocked(obtenerEncuadre).mockReset().mockRejectedValue(new Error("sin encuadre"));
+  });
+
+  it("no se da por contestado con la respuesta al «sí» anterior", async () => {
+    const usuario = userEvent.setup();
+    window.sessionStorage.setItem(CLAVE, "55555555-5555-4555-8555-555555555555");
+    vi.mocked(obtenerHistorial).mockImplementation((id: string) =>
+      Promise.resolve(
+        historial(id, [turno(1, "usuario", "sí"), turno(2, "agente", "¿Y qué más?")]),
+      ),
+    );
+    vi.mocked(enviarMensaje).mockImplementationOnce(() => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    render(<Conversacion alVerInforme={() => {}} />);
+    await screen.findByText("¿Y qué más?");
+    await usuario.type(screen.getByLabelText(/escribí tu mensaje/i), "sí");
+    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("No se envió")).toBeInTheDocument();
   });
 });

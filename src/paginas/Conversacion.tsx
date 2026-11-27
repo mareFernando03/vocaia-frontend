@@ -32,10 +32,10 @@ import { BotonIcono } from "../componentes/ui/BotonIcono";
 import { Cargando } from "../componentes/ui/Cargando";
 import { Dialogo } from "../componentes/ui/Dialogo";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
-import { InfoTip } from "../componentes/ui/InfoTip";
 import { RETOMAR } from "../contenido/retomar";
 import { useConversacion } from "../hooks/useConversacion";
 import { cn } from "../lib/cn";
+import { citadas, unaPorDocumento } from "../lib/fuentes";
 
 interface Propiedades {
   alVerInforme: (sesionId: string) => void;
@@ -60,6 +60,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
     estado,
     tieneInforme,
     faltaParaRecomendar,
+    noEnviado,
     enviar,
     terminar,
     reintentar,
@@ -228,6 +229,12 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
           />
         ))}
 
+        {/* El mensaje que no llegó queda a la vista hasta que se reenvíe. Si el backend
+            lo había guardado ya está en `turnos`, y no se muestra dos veces. */}
+        {noEnviado !== null && enCurso === null && turnos.at(-1)?.contenido !== noEnviado && (
+          <Burbuja rol="usuario" texto={noEnviado} noEnviado />
+        )}
+
         {enCurso !== null && (
           <>
             <Burbuja rol="usuario" texto={enCurso.usuario} />
@@ -252,7 +259,9 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
           "[[data-teclado]_&]:bottom-0",
         )}
       >
-        {fuentes.length > 0 && citaAlgo && !enviando && !derivada && <Fuentes fuentes={fuentes} />}
+        {fuentes.length > 0 && citaAlgo && !enviando && !derivada && (
+          <Fuentes fuentes={fuentes} respuesta={ultimaRespuesta?.contenido ?? ""} />
+        )}
 
         {/* La región viva existe siempre y lo que cambia es su contenido: una
             que aparece ya llena no se anuncia en todos los lectores. Sin el
@@ -321,6 +330,7 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
         {error !== null && (
           <ErrorConReintento
             alReintentar={() => (errorAlTerminar ? void terminarYVer() : reintentar())}
+            textoBoton={noEnviado !== null && !errorAlTerminar ? "Reenviar" : undefined}
           >
             {error}
           </ErrorConReintento>
@@ -375,16 +385,16 @@ export default function Conversacion({ alVerInforme, alIrAlHistorial }: Propieda
  * Una línea por fuente. Los horarios llegan en un fragmento por año y los tres
  * comparten la página de la carrera: sin esto, la misma fuente salía repetida.
  */
-function unaPorFuente<T extends { fuente: string }>(fuentes: T[]): T[] {
-  return fuentes.filter((f, i) => fuentes.findIndex((otra) => otra.fuente === f.fuente) === i);
-}
-
-function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
+function Fuentes({ fuentes: todas, respuesta }: { fuentes: Fuente[]; respuesta: string }) {
+  // Sólo las que la respuesta cita, una por documento: el 22/11 listaba el plan de
+  // Industrial y el calendario debajo de qué se ve en Análisis Matemático I.
+  // `citadas` va sobre la lista entera: el número de la cita es su lugar en ella.
   // Una reseña de cursada no es de la Facultad (HU-22): va aparte, con su rótulo, y
   // no suma al número de «Fuentes de la Facultad».
-  const unicas = unaPorFuente(todas);
-  const fuentes = unicas.filter((f) => f.tipo !== "experiencial");
-  const resenas = unicas.filter((f) => f.tipo === "experiencial");
+  const fuentes = unaPorDocumento(citadas(todas, respuesta)).filter(
+    (f) => f.tipo !== "experiencial",
+  );
+  const resenas = unaPorDocumento(todas.filter((f) => f.tipo === "experiencial"));
   const [abierta, setAbierta] = useState(false);
   const [resenasAbiertas, setResenasAbiertas] = useState(false);
   return (
@@ -394,7 +404,7 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
       <p className="text-muted-foreground flex flex-wrap items-center gap-x-4 text-sm">
         {fuentes.length > 0 && (
           <Dialogo
-            titulo="Fuentes consultadas"
+            titulo="Fuentes de la Facultad"
             abierto={abierta}
             alCambiar={setAbierta}
             disparador={
@@ -436,15 +446,7 @@ function Fuentes({ fuentes: todas }: { fuentes: Fuente[] }) {
 function ContenidoFuentes({ fuentes }: { fuentes: Fuente[] }) {
   return (
     <>
-      {/* «Consultadas» y no «citadas»: el backend recupera lo más cercano a
-            lo que se escribió y el modelo puede haber ignorado todo. */}
-      <p className="text-muted-foreground flex items-center gap-1">
-        Lo que VocaIA leyó para la última respuesta.
-        <InfoTip tema="estas fuentes">
-          Es el material de la Facultad más cercano a lo que escribiste. La respuesta no
-          necesariamente lo usó todo.
-        </InfoTip>
-      </p>
+      <p className="text-muted-foreground">De dónde sale lo que dice la última respuesta.</p>
       <ul className="mt-4 flex flex-col gap-2">
         {fuentes.map((fuente) => (
           <li key={fuente.id}>
@@ -484,9 +486,17 @@ interface PropiedadesBurbuja {
   escribiendo?: boolean;
   /** Sólo en respuestas confirmadas: la que se está escribiendo no tiene número todavía. */
   traza?: { sesionId: string; turno: number };
+  /** El mensaje que no llegó: lo dice en la burbuja, no sólo en el error de abajo. */
+  noEnviado?: boolean;
 }
 
-function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja) {
+function Burbuja({
+  rol,
+  texto,
+  escribiendo = false,
+  traza,
+  noEnviado = false,
+}: PropiedadesBurbuja) {
   const esPersona = rol === "usuario";
   // La traza se pide al abrir y no al dibujar: una conversación larga haría un
   // pedido por respuesta para algo que casi nadie despliega.
@@ -510,10 +520,18 @@ function Burbuja({ rol, texto, escribiendo = false, traza }: PropiedadesBurbuja)
             esto, un lector de pantalla lee dos textos seguidos sin saber quién
             dijo cada cosa. */}
         <span className="sr-only">{esPersona ? "Vos:" : "VocaIA:"}</span>
+        {noEnviado && <span className="sr-only">(no se envió)</span>}
         {escribiendo ? (
           <Cargando texto="Escribiendo…" />
         ) : esPersona ? (
-          <p className="whitespace-pre-wrap">{texto}</p>
+          <>
+            <p className="whitespace-pre-wrap">{texto}</p>
+            {noEnviado && (
+              <p aria-hidden="true" className="mt-1 text-xs opacity-80">
+                No se envió
+              </p>
+            )}
+          </>
         ) : (
           <Prosa texto={texto} />
         )}

@@ -40,7 +40,11 @@ import { EncabezadoPagina } from "../componentes/ui/EncabezadoPagina";
 import { ErrorConReintento } from "../componentes/ui/ErrorConReintento";
 import { MedidorGusto } from "../componentes/ui/MedidorGusto";
 import { Tarjeta } from "../componentes/ui/Tarjeta";
-import { descripcionParaLaPersona, rotuloDeRechazo } from "../contenido/dimensiones";
+import {
+  descripcionParaLaPersona,
+  nombreParaLaPersona,
+  rotuloDeRechazo,
+} from "../contenido/dimensiones";
 import { enLaConversacion, useInicios } from "../hooks/useConversaciones";
 import { usePreguntas } from "../hooks/usePreguntas";
 import { fechaCorta } from "../lib/fechas";
@@ -189,7 +193,7 @@ function ContenidoPerfil() {
                 className="bg-primary-soft rounded-full px-3 py-1.5 font-medium"
                 title={descripcionParaLaPersona(rasgo.dimension, rasgo.descripcion)}
               >
-                {rasgo.nombre || rasgo.dimension}
+                {nombreParaLaPersona(rasgo.dimension, rasgo.nombre)}
               </li>
             ))}
           </ul>
@@ -248,7 +252,9 @@ function TarjetaRasgo({ rasgo, alObjetar, conFecha = false, inicios }: Propiedad
   return (
     <Tarjeta como="article" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-        <h2 className="text-lg leading-snug font-semibold">{rasgo.nombre || rasgo.dimension}</h2>
+        <h2 className="text-lg leading-snug font-semibold">
+          {nombreParaLaPersona(rasgo.dimension, rasgo.nombre)}
+        </h2>
         {/* Una restricción no es un gusto: «no sé si me pueden pagar el viaje»
             dicho con signo negativo no es algo que a la persona le desagrade. */}
         {rasgo.mide_interes && <MedidorGusto intensidad={rasgo.intensidad} />}

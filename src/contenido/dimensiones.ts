@@ -6,6 +6,10 @@
  * persona, y la del instrumento queda de respaldo para una dimensión que no esté
  * en la lista. **Son textos provisorios**: los revisa el asesor en psicología
  * vocacional.
+ *
+ * El comienzo de cada interés lo repite el backend en la frase de lo que falta para
+ * sugerir carreras (`INTERESES_PARA_LA_PERSONA` en `dominio/perfil/perfilado.py`): si
+ * cambia uno, cambia el otro.
  */
 const PARA_LA_PERSONA: Record<string, string> = {
   R: "Hacer cosas con las manos, con herramientas o máquinas, y ver un resultado concreto.",
@@ -20,6 +24,23 @@ const PARA_LA_PERSONA: Record<string, string> = {
   "C-3": "Cuánto sabés de las carreras que te interesan, más allá del nombre.",
   "C-4": "En qué te sentís capaz y en qué no tanto, aunque te guste.",
 };
+
+/**
+ * El título de cada dimensión que no es un interés, para la persona. El del
+ * instrumento —«Autoeficacia percibida por área», «Circunstancias y restricciones»,
+ * «Nivel de información»— es para quien lo evalúa (recorrido del 22/11). Los seis
+ * intereses conservan el nombre de Holland: es el que usa el informe.
+ */
+const NOMBRE_PARA_LA_PERSONA: Record<string, string> = {
+  "C-1": "Tu situación",
+  "C-2": "De quién es la decisión",
+  "C-3": "Cuánto sabés de las carreras",
+  "C-4": "En qué te sentís capaz",
+};
+
+export function nombreParaLaPersona(dimension: string, delInstrumento: string): string {
+  return NOMBRE_PARA_LA_PERSONA[dimension] ?? (delInstrumento || dimension);
+}
 
 export function descripcionParaLaPersona(dimension: string, delInstrumento: string): string {
   return PARA_LA_PERSONA[dimension] ?? delInstrumento;

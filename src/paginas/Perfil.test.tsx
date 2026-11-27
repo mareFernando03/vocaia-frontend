@@ -168,9 +168,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
 
     render(<Perfil alSalir={async () => {}} alDarDeBaja={async () => {}} />);
 
-    expect(
-      await screen.findByRole("heading", { name: "Circunstancias y restricciones" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Tu situación" })).toBeInTheDocument();
     expect(screen.queryByText(/te desagrada/i)).not.toBeInTheDocument();
   });
 
@@ -194,7 +192,7 @@ describe("Perfil · comprensible para quien no lo construyó (HU-13, S2-11)", ()
     expect(tarjetas.map((titulo) => titulo?.textContent)).toEqual([
       "Investigador",
       "Realista",
-      "Circunstancias",
+      "Tu situación",
     ]);
   });
 

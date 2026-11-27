@@ -225,17 +225,25 @@ describe("Carreras", () => {
     expect(await screen.findByText("Ingeniería en Sistemas de Información")).toBeInTheDocument();
   });
 
-  it("una búsqueda sin resultados lo dice en vez de mostrar una lista vacía", async () => {
+  it("una búsqueda sin resultados dice que no se dicta acá y da el contacto (22/11)", async () => {
     vi.mocked(listarCarreras).mockResolvedValue([carrera()]);
     vi.mocked(buscarCarreras).mockResolvedValue([]);
     const usuario = userEvent.setup();
     render(<Carreras />);
     await screen.findByText("Ingeniería en Sistemas de Información");
 
-    await usuario.type(screen.getByRole("searchbox"), "astronomía");
+    await usuario.type(screen.getByRole("searchbox"), "algo de historia o escribir");
     await usuario.click(screen.getByRole("button", { name: "Buscar" }));
 
-    expect(await screen.findByText(/no encontramos carreras/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        /entre las carreras de la UTN San Francisco que VocaIA tiene cargadas/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Correo: scpu@fr.sanfrancisco.utn.edu.ar" }),
+    ).toHaveAttribute("href", "mailto:scpu@fr.sanfrancisco.utn.edu.ar");
+    expect(screen.queryByText(/respaldo institucional|dónde se estudia/)).toBeNull();
   });
 
   it("el catálogo vacío no afirma que el corpus no esté cargado", async () => {

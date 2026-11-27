@@ -52,12 +52,40 @@ export class ErrorDeApi extends Error {
 /** El `X-Motivo` del 403 de quien no está en la lista blanca del piloto. */
 export const MOTIVO_NO_HABILITADO = "correo-no-habilitado";
 
+/**
+ * Cuánto se espera una respuesta antes de darla por perdida.
+ *
+ * Sin tope, «Reintentar» quedó más de dos minutos esperando en el recorrido del 22/11.
+ * Un minuto, como `TOPE_CONSULTA_MS` de `PreguntaAviso`: el plan gratuito de Render tarda
+ * de 30 a 50 segundos en despertar el servicio, y cortar antes convertiría el primer
+ * ingreso del día en un error (revisión del #68).
+ */
+export const ESPERA_MAXIMA_MS = 60_000;
+
+/** El pedido se cortó por tiempo: lo cortó `ESPERA_MAXIMA_MS` o la inactividad del stream. */
+export class SinRespuesta extends Error {
+  constructor() {
+    super("El servidor tardó demasiado en responder. Probá de nuevo en un momento.");
+    this.name = "SinRespuesta";
+  }
+}
+
 export async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   const token = obtenerToken();
   const cabeceras = new Headers(opciones.headers);
   if (token) cabeceras.set("Authorization", `Bearer ${token}`);
 
-  const respuesta = await fetch(`${BASE}${ruta}`, { ...opciones, headers: cabeceras });
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE}${ruta}`, {
+      ...opciones,
+      headers: cabeceras,
+      signal: opciones.signal ?? AbortSignal.timeout(ESPERA_MAXIMA_MS),
+    });
+  } catch (fallo) {
+    if (fallo instanceof DOMException && fallo.name === "TimeoutError") throw new SinRespuesta();
+    throw fallo;
+  }
 
   if (respuesta.status === 401) {
     borrarToken();
@@ -99,6 +127,7 @@ export async function leerDetalle(respuesta: Response): Promise<string> {
 export function describir(fallo: unknown): string {
   if (fallo instanceof SesionVencida) return fallo.message;
   if (fallo instanceof ErrorDeApi) return fallo.message;
+  if (fallo instanceof SinRespuesta) return fallo.message;
   return "No se pudo conectar con el servidor. Revisá tu conexión y probá de nuevo.";
 }
 

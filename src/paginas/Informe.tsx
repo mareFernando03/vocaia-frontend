@@ -391,8 +391,10 @@ function Contenido({ informe }: { informe: DatosInforme }) {
       {/* La versión del instrumento sigue guardada en el informe, que es donde
           la leen el asesor y la medición de concordancia; a la persona no le
           dice nada (prueba del piloto). */}
+      {/* No va en el PDF: el informe ya dice cuándo se armó, y esta línea sola quedaba
+          ocupando la segunda hoja (recorrido del 22/11). */}
       {informe.perfil_actualizado_en !== null && (
-        <p className="text-muted-foreground border-border border-t pt-3 text-xs">
+        <p className="text-muted-foreground border-border border-t pt-3 text-xs print:hidden">
           Perfil calculado el {fechaLarga(informe.perfil_actualizado_en)}.
         </p>
       )}
