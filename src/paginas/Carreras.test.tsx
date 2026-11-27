@@ -237,7 +237,7 @@ describe("Carreras", () => {
 
     expect(
       await screen.findByText(
-        /no aparece entre las carreras que se dictan en la UTN San Francisco/,
+        /entre las carreras de la UTN San Francisco que VocaIA tiene cargadas/,
       ),
     ).toBeInTheDocument();
     expect(

@@ -175,11 +175,12 @@ export default function Carreras() {
           <GraduationCap aria-hidden="true" className="size-10" strokeWidth={1.5} />
           {buscado ? (
             // «Sin respaldo institucional» no le decía que eso no se dicta acá ni a quién
-            // preguntar (recorrido del 22/11, «algo de historia o escribir»).
+            // preguntar (recorrido del 22/11, «algo de historia o escribir»). No afirma que no se
+            // dicta: el backend retiene las carreras sin validar (revisión del #68).
             <>
               <p>
-                «{buscado}» no aparece entre las carreras que se dictan en la UTN San Francisco.{" "}
-                {AVISO.presentacionAyuda}
+                No encontramos «{buscado}» entre las carreras de la UTN San Francisco que VocaIA
+                tiene cargadas. {AVISO.presentacionAyuda}
               </p>
               <ul className="flex flex-col gap-1">
                 {AVISO.canales.map((canal) => (
